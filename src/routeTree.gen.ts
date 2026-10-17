@@ -14,6 +14,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedEspaceRouteImport } from './routes/_authenticated/espace'
+import { Route as AuthenticatedEnseignantIndexRouteImport } from './routes/_authenticated/enseignant.index'
+import { Route as AuthenticatedEnseignantClassesClassIdRouteImport } from './routes/_authenticated/enseignant.classes.$classId'
+import { Route as AuthenticatedEnseignantListesListIdRouteImport } from './routes/_authenticated/enseignant.listes.$listId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +42,42 @@ const AuthenticatedEspaceRoute = AuthenticatedEspaceRouteImport.update({
   path: '/espace',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEnseignantIndexRoute =
+  AuthenticatedEnseignantIndexRouteImport.update({
+    id: '/enseignant/',
+    path: '/enseignant/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnseignantClassesClassIdRoute =
+  AuthenticatedEnseignantClassesClassIdRouteImport.update({
+    id: '/enseignant/classes/$classId',
+    path: '/enseignant/classes/$classId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnseignantListesListIdRoute =
+  AuthenticatedEnseignantListesListIdRouteImport.update({
+    id: '/enseignant/listes/$listId',
+    path: '/enseignant/listes/$listId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/enseignant/': typeof AuthenticatedEnseignantIndexRoute
+  '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
+  '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/enseignant': typeof AuthenticatedEnseignantIndexRoute
+  '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
+  '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +86,29 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/espace': typeof AuthenticatedEspaceRoute
+  '/_authenticated/enseignant/': typeof AuthenticatedEnseignantIndexRoute
+  '/_authenticated/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
+  '/_authenticated/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/espace'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/espace'
+    | '/enseignant/'
+    | '/enseignant/classes/$classId'
+    | '/enseignant/listes/$listId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/espace'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/espace'
+    | '/enseignant'
+    | '/enseignant/classes/$classId'
+    | '/enseignant/listes/$listId'
   id:
     | '__root__'
     | '/'
@@ -72,6 +116,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/espace'
+    | '/_authenticated/enseignant/'
+    | '/_authenticated/enseignant/classes/$classId'
+    | '/_authenticated/enseignant/listes/$listId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,15 +165,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEspaceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/enseignant/': {
+      id: '/_authenticated/enseignant/'
+      path: '/enseignant'
+      fullPath: '/enseignant/'
+      preLoaderRoute: typeof AuthenticatedEnseignantIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/enseignant/classes/$classId': {
+      id: '/_authenticated/enseignant/classes/$classId'
+      path: '/enseignant/classes/$classId'
+      fullPath: '/enseignant/classes/$classId'
+      preLoaderRoute: typeof AuthenticatedEnseignantClassesClassIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/enseignant/listes/$listId': {
+      id: '/_authenticated/enseignant/listes/$listId'
+      path: '/enseignant/listes/$listId'
+      fullPath: '/enseignant/listes/$listId'
+      preLoaderRoute: typeof AuthenticatedEnseignantListesListIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEspaceRoute: typeof AuthenticatedEspaceRoute
+  AuthenticatedEnseignantIndexRoute: typeof AuthenticatedEnseignantIndexRoute
+  AuthenticatedEnseignantClassesClassIdRoute: typeof AuthenticatedEnseignantClassesClassIdRoute
+  AuthenticatedEnseignantListesListIdRoute: typeof AuthenticatedEnseignantListesListIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEspaceRoute: AuthenticatedEspaceRoute,
+  AuthenticatedEnseignantIndexRoute: AuthenticatedEnseignantIndexRoute,
+  AuthenticatedEnseignantClassesClassIdRoute:
+    AuthenticatedEnseignantClassesClassIdRoute,
+  AuthenticatedEnseignantListesListIdRoute:
+    AuthenticatedEnseignantListesListIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

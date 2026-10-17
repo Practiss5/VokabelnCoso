@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { AppShell } from "@/components/AppShell";
-import { TeacherOnly } from "./enseignant.index";
+import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

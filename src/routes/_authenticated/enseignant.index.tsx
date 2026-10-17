@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { AppShell } from "@/components/AppShell";
+import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,13 +17,6 @@ export const Route = createFileRoute("/_authenticated/enseignant/")({
     </AppShell>
   ),
 });
-
-export function TeacherOnly({ children }: { children: React.ReactNode }) {
-  const { data: me } = useSuspenseQuery(meQuery);
-  if (!me?.isTeacher)
-    return <p className="rounded-lg bg-secondary p-4">Cet espace est réservé aux enseignants.</p>;
-  return <>{children}</>;
-}
 
 function TeacherHome() {
   return (
