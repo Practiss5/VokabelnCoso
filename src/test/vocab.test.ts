@@ -19,7 +19,7 @@ describe("typed answers", () => {
 
 describe("multiple choice", () => {
   it("gives four options with exactly one correct", () => {
-    const c = buildChoices(words[0], words);
+    const c = buildChoices(words[0]!, words);
     expect(c).toHaveLength(4);
     expect(c.filter((x) => x === "la maison")).toHaveLength(1);
   });
@@ -37,7 +37,7 @@ describe("spaced repetition queue", () => {
       now,
     );
     expect(caughtUp).toBe(false);
-    expect(queue[0].id).toBe("2");
+    expect(queue[0]?.id).toBe("2");
     expect(queue.map((w) => w.id)).not.toContain("1");
   });
   it("falls back to free practice when nothing is due", () => {
