@@ -39,7 +39,7 @@ function JoinClass() {
   async function join(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.rpc("join_class", { _code: code });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Classe rejointe !");
     qc.invalidateQueries();
   }

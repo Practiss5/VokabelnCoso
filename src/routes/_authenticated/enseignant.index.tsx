@@ -45,7 +45,7 @@ function Classes() {
   async function create(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from("classes").insert({ name: name.trim(), teacher_id: me!.id });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setName("");
     qc.invalidateQueries({ queryKey: ["classes"] });
   }
@@ -88,7 +88,7 @@ function Lists() {
   async function create(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from("vocab_lists").insert({ title: title.trim(), teacher_id: me!.id });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setTitle("");
     qc.invalidateQueries({ queryKey: ["lists"] });
   }

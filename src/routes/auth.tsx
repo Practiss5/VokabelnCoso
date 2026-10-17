@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 type Mode = "login" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>): { mode?: Mode } => ({
+  validateSearch: (s: Record<string, unknown>): { mode?: Mode | undefined } => ({
     mode: s.mode === "signup" || s.mode === "forgot" ? s.mode : undefined,
   }),
   head: () => ({

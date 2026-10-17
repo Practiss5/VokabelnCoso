@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
@@ -39,7 +39,7 @@ function Review() {
       supabase.from("words").select("id, german, french").eq("list_id", listId),
       supabase.from("word_progress").select("word_id, due_at, repetitions, wrong_count, correct_count").eq("student_id", me!.id),
     ]);
-    if (list.error || !words.data?.length) return toast.error("Liste introuvable ou vide");
+    if (list.error || !words.data?.length) { toast.error("Liste introuvable ou vide"); return; }
     const { queue, caughtUp } = orderQueue(words.data, prog.data ?? [], new Date());
     setTitle(list.data.title);
     setSession({ words: queue, pool: words.data, caughtUp });
@@ -78,24 +78,30 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
   const choices = useMemo(() => (word ? buildChoices(word, pool) : []), [word, pool]);
 
   async function answer(correct: boolean) {
-    if (answered !== null) return;
+    if (answered !== null || !word) return;
+    const w = word;
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
     // Missed words come back once more at the end of the session.
-    if (!correct && !retried.current.has(word.id)) {
-      retried.current.add(word.id);
-      setQueue((q) => [...q, word]);
+    if (!correct && !retried.current.has(w.id)) {
+      retried.current.add(w.id);
+      setQueue((q) => [...q, w]);
     }
-    const { error } = await supabase.rpc("record_answer", { _word: word.id, _mode: mode, _correct: correct });
+    const { error } = await supabase.rpc("record_answer", { _word: w.id, _mode: mode, _correct: correct });
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
   function next() {
     setAnswered(null); setTyped(""); setPicked(null); setIndex((i) => i + 1);
   }
 
-  if (!word) {
+  const finished = !word;
+  useEffect(() => {
+    if (!finished) return;
     qc.invalidateQueries({ queryKey: ["my-lists"] });
     qc.invalidateQueries({ queryKey: ["history"] });
+  }, [finished, qc]);
+
+  if (!word) {
     return (
       <div className="word-card mx-auto max-w-md p-8 text-center">
         <h1 className="text-4xl font-bold">Gut gemacht !</h1>

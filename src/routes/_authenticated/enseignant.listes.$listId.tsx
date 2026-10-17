@@ -50,15 +50,15 @@ function ListEditor() {
   async function addWord(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from("words").insert({ list_id: listId, german: de.trim(), french: fr.trim() });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setDe(""); setFr(""); refresh();
   }
   async function addBulk() {
-    const rows = bulk.split("\n").map((l) => l.split(/[;\t=]/)).filter((p) => p.length >= 2 && p[0].trim() && p[1].trim())
-      .map((p) => ({ list_id: listId, german: p[0].trim(), french: p[1].trim() }));
-    if (!rows.length) return toast.error("Aucune ligne valide (format : allemand ; français)");
+    const rows = bulk.split("\n").map((l) => l.split(/[;\t=]/)).map((p) => ({ list_id: listId, german: (p[0] ?? "").trim(), french: (p[1] ?? "").trim() }))
+      .filter((r) => r.german && r.french);
+    if (!rows.length) { toast.error("Aucune ligne valide (format : allemand ; français)"); return; }
     const { error } = await supabase.from("words").insert(rows);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(`${rows.length} mots ajoutés`);
     setBulk(""); refresh();
   }
@@ -66,13 +66,13 @@ function ListEditor() {
     const { error } = on
       ? await supabase.from("list_assignments").insert({ list_id: listId, class_id: classId })
       : await supabase.from("list_assignments").delete().eq("list_id", listId).eq("class_id", classId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     refresh();
   }
   async function deleteList() {
     if (!confirm("Supprimer cette liste et tous ses mots ?")) return;
     const { error } = await supabase.from("vocab_lists").delete().eq("id", listId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["lists"] });
     navigate({ to: "/enseignant" });
   }
@@ -132,13 +132,13 @@ function WordRow({ word, onChange }: { word: { id: string; german: string; frenc
   const [fr, setFr] = useState(word.french);
   async function save() {
     const { error } = await supabase.from("words").update({ german: de.trim(), french: fr.trim() }).eq("id", word.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setEditing(false); onChange();
   }
   async function remove() {
     if (!confirm(`Supprimer « ${word.german} » ?`)) return;
     const { error } = await supabase.from("words").delete().eq("id", word.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     onChange();
   }
   if (editing)

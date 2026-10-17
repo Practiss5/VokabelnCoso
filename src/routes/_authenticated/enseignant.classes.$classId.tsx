@@ -47,7 +47,7 @@ function ClassPage() {
   async function remove() {
     if (!confirm("Supprimer cette classe ? Les élèves ne seront plus rattachés.")) return;
     const { error } = await supabase.from("classes").delete().eq("id", classId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["classes"] });
     navigate({ to: "/enseignant" });
   }
