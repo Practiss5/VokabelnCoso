@@ -14,16 +14,286 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      classes: {
+        Row: {
+          created_at: string
+          id: string
+          join_code: string
+          name: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
+      list_assignments: {
+        Row: {
+          class_id: string
+          created_at: string
+          list_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          list_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_assignments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          full_name: string
+          id: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          full_name?: string
+          id: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_class_fk"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          correct: boolean
+          created_at: string
+          id: string
+          mode: string
+          student_id: string
+          word_id: string
+        }
+        Insert: {
+          correct: boolean
+          created_at?: string
+          id?: string
+          mode: string
+          student_id: string
+          word_id: string
+        }
+        Update: {
+          correct?: boolean
+          created_at?: string
+          id?: string
+          mode?: string
+          student_id?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vocab_lists: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      word_progress: {
+        Row: {
+          correct_count: number
+          due_at: string
+          ease: number
+          interval_days: number
+          last_reviewed_at: string | null
+          repetitions: number
+          student_id: string
+          word_id: string
+          wrong_count: number
+        }
+        Insert: {
+          correct_count?: number
+          due_at?: string
+          ease?: number
+          interval_days?: number
+          last_reviewed_at?: string | null
+          repetitions?: number
+          student_id: string
+          word_id: string
+          wrong_count?: number
+        }
+        Update: {
+          correct_count?: number
+          due_at?: string
+          ease?: number
+          interval_days?: number
+          last_reviewed_at?: string | null
+          repetitions?: number
+          student_id?: string
+          word_id?: string
+          wrong_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_progress_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      words: {
+        Row: {
+          created_at: string
+          french: string
+          german: string
+          id: string
+          list_id: string
+        }
+        Insert: {
+          created_at?: string
+          french: string
+          german: string
+          id?: string
+          list_id: string
+        }
+        Update: {
+          created_at?: string
+          french?: string
+          german?: string
+          id?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "words_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_teacher_of_student: { Args: { _student: string }; Returns: boolean }
+      join_class: { Args: { _code: string }; Returns: string }
+      my_class_id: { Args: never; Returns: string }
+      owns_list: { Args: { _list: string }; Returns: boolean }
+      record_answer: {
+        Args: { _correct: boolean; _mode: string; _word: string }
+        Returns: {
+          correct_count: number
+          due_at: string
+          ease: number
+          interval_days: number
+          last_reviewed_at: string | null
+          repetitions: number
+          student_id: string
+          word_id: string
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "word_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      student_can_access_list: { Args: { _list: string }; Returns: boolean }
+      update_my_name: { Args: { _name: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "teacher" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +420,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["teacher", "student"],
+    },
   },
 } as const
