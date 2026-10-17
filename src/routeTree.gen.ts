@@ -14,7 +14,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedEspaceRouteImport } from './routes/_authenticated/espace'
+import { Route as AuthenticatedEleveIndexRouteImport } from './routes/_authenticated/eleve.index'
 import { Route as AuthenticatedEnseignantIndexRouteImport } from './routes/_authenticated/enseignant.index'
+import { Route as AuthenticatedEleveReviserListIdRouteImport } from './routes/_authenticated/eleve.reviser.$listId'
 import { Route as AuthenticatedEnseignantClassesClassIdRouteImport } from './routes/_authenticated/enseignant.classes.$classId'
 import { Route as AuthenticatedEnseignantListesListIdRouteImport } from './routes/_authenticated/enseignant.listes.$listId'
 
@@ -42,10 +44,21 @@ const AuthenticatedEspaceRoute = AuthenticatedEspaceRouteImport.update({
   path: '/espace',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEleveIndexRoute = AuthenticatedEleveIndexRouteImport.update({
+  id: '/eleve/',
+  path: '/eleve/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEnseignantIndexRoute =
   AuthenticatedEnseignantIndexRouteImport.update({
     id: '/enseignant/',
     path: '/enseignant/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEleveReviserListIdRoute =
+  AuthenticatedEleveReviserListIdRouteImport.update({
+    id: '/eleve/reviser/$listId',
+    path: '/eleve/reviser/$listId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEnseignantClassesClassIdRoute =
@@ -66,7 +79,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/eleve/': typeof AuthenticatedEleveIndexRoute
   '/enseignant/': typeof AuthenticatedEnseignantIndexRoute
+  '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
   '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
@@ -75,7 +90,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/eleve': typeof AuthenticatedEleveIndexRoute
   '/enseignant': typeof AuthenticatedEnseignantIndexRoute
+  '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
   '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
@@ -86,7 +103,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/espace': typeof AuthenticatedEspaceRoute
+  '/_authenticated/eleve/': typeof AuthenticatedEleveIndexRoute
   '/_authenticated/enseignant/': typeof AuthenticatedEnseignantIndexRoute
+  '/_authenticated/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
   '/_authenticated/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/_authenticated/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
 }
@@ -97,7 +116,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/espace'
+    | '/eleve/'
     | '/enseignant/'
+    | '/eleve/reviser/$listId'
     | '/enseignant/classes/$classId'
     | '/enseignant/listes/$listId'
   fileRoutesByTo: FileRoutesByTo
@@ -106,7 +127,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/espace'
+    | '/eleve'
     | '/enseignant'
+    | '/eleve/reviser/$listId'
     | '/enseignant/classes/$classId'
     | '/enseignant/listes/$listId'
   id:
@@ -116,7 +139,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/espace'
+    | '/_authenticated/eleve/'
     | '/_authenticated/enseignant/'
+    | '/_authenticated/eleve/reviser/$listId'
     | '/_authenticated/enseignant/classes/$classId'
     | '/_authenticated/enseignant/listes/$listId'
   fileRoutesById: FileRoutesById
@@ -165,11 +190,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEspaceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/eleve/': {
+      id: '/_authenticated/eleve/'
+      path: '/eleve'
+      fullPath: '/eleve/'
+      preLoaderRoute: typeof AuthenticatedEleveIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/enseignant/': {
       id: '/_authenticated/enseignant/'
       path: '/enseignant'
       fullPath: '/enseignant/'
       preLoaderRoute: typeof AuthenticatedEnseignantIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/eleve/reviser/$listId': {
+      id: '/_authenticated/eleve/reviser/$listId'
+      path: '/eleve/reviser/$listId'
+      fullPath: '/eleve/reviser/$listId'
+      preLoaderRoute: typeof AuthenticatedEleveReviserListIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/enseignant/classes/$classId': {
@@ -191,14 +230,18 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEspaceRoute: typeof AuthenticatedEspaceRoute
+  AuthenticatedEleveIndexRoute: typeof AuthenticatedEleveIndexRoute
   AuthenticatedEnseignantIndexRoute: typeof AuthenticatedEnseignantIndexRoute
+  AuthenticatedEleveReviserListIdRoute: typeof AuthenticatedEleveReviserListIdRoute
   AuthenticatedEnseignantClassesClassIdRoute: typeof AuthenticatedEnseignantClassesClassIdRoute
   AuthenticatedEnseignantListesListIdRoute: typeof AuthenticatedEnseignantListesListIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEspaceRoute: AuthenticatedEspaceRoute,
+  AuthenticatedEleveIndexRoute: AuthenticatedEleveIndexRoute,
   AuthenticatedEnseignantIndexRoute: AuthenticatedEnseignantIndexRoute,
+  AuthenticatedEleveReviserListIdRoute: AuthenticatedEleveReviserListIdRoute,
   AuthenticatedEnseignantClassesClassIdRoute:
     AuthenticatedEnseignantClassesClassIdRoute,
   AuthenticatedEnseignantListesListIdRoute:
