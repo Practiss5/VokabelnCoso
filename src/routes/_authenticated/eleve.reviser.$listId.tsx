@@ -37,10 +37,13 @@ function Review() {
     const [list, words, prog] = await Promise.all([
       supabase.from("vocab_lists").select("title").eq("id", listId).single(),
       supabase.from("words").select("id, german, french").eq("list_id", listId),
-      supabase.from("word_progress").select("word_id, due_at, repetitions, wrong_count, correct_count").eq("student_id", me!.id),
+      // Each mode schedules its own skill: a QCM success does not delay the writing review.
+      supabase.from("skill_progress").select("word_id, due_at, step, wrong_count, correct_count")
+        .eq("student_id", me!.id).eq("skill", SKILL_OF_MODE[m]),
     ]);
     if (list.error || !words.data?.length) { toast.error("Liste introuvable ou vide"); return; }
-    const { queue, caughtUp } = orderQueue(words.data, prog.data ?? [], new Date());
+    const progress = (prog.data ?? []).map((p) => ({ ...p, repetitions: p.step }));
+    const { queue, caughtUp } = orderQueue(words.data, progress, new Date());
     setTitle(list.data.title);
     setSession({ words: queue, pool: words.data, caughtUp });
     setMode(m);
@@ -77,9 +80,11 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
   const word = queue[index];
   const choices = useMemo(() => (word ? buildChoices(word, pool) : []), [word, pool]);
 
-  async function answer(correct: boolean) {
+  async function answer(correct: boolean, given?: string) {
     if (answered !== null || !word) return;
     const w = word;
+    const err = correct ? null : mode === "typing" ? diagnoseAnswer(given ?? "", w.german) : "translation";
+    setErrorType(err);
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
     // Missed words come back once more at the end of the session.
@@ -87,7 +92,9 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
       retried.current.add(w.id);
       setQueue((q) => [...q, w]);
     }
-    const { error } = await supabase.rpc("record_answer", { _word: w.id, _mode: mode, _correct: correct });
+    const { error } = await supabase.rpc("record_answer", {
+      _word: w.id, _mode: mode, _correct: correct, _given: given ?? undefined, _error: err ?? undefined,
+    });
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
   function next() {
