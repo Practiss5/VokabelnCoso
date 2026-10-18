@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
+import { isMastered } from "@/lib/vocab";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }] }),
@@ -30,7 +31,7 @@ function ClassPage() {
       const ids = students.map((s) => s.id);
       const [reviews, progress, lists] = await Promise.all([
         ids.length ? supabase.from("reviews").select("student_id, correct, created_at").in("student_id", ids) : Promise.resolve({ data: [] }),
-        ids.length ? supabase.from("word_progress").select("student_id, repetitions").in("student_id", ids) : Promise.resolve({ data: [] }),
+        ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
       ]);
       const rows = students.map((s) => {
@@ -38,7 +39,7 @@ function ClassPage() {
         const p = (progress.data ?? []).filter((x) => x.student_id === s.id);
         const correct = r.filter((x) => x.correct).length;
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
-        return { ...s, total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: p.filter((x) => x.repetitions >= 3).length, seen: p.length, last };
+        return { ...s, total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
       });
       return { cls: cls.data, rows, lists: (lists.data ?? []).map((l) => l.vocab_lists).filter(Boolean) as { id: string; title: string }[] };
     },
