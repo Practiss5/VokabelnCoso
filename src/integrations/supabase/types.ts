@@ -104,30 +104,86 @@ export type Database = {
         Row: {
           correct: boolean
           created_at: string
+          error_type: string | null
+          given_answer: string | null
           id: string
           mode: string
+          skill: string | null
           student_id: string
           word_id: string
         }
         Insert: {
           correct: boolean
           created_at?: string
+          error_type?: string | null
+          given_answer?: string | null
           id?: string
           mode: string
+          skill?: string | null
           student_id: string
           word_id: string
         }
         Update: {
           correct?: boolean
           created_at?: string
+          error_type?: string | null
+          given_answer?: string | null
           id?: string
           mode?: string
+          skill?: string | null
           student_id?: string
           word_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "reviews_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_progress: {
+        Row: {
+          correct_count: number
+          due_at: string
+          last_error: string | null
+          last_reviewed_at: string | null
+          skill: string
+          step: number
+          streak: number
+          student_id: string
+          word_id: string
+          wrong_count: number
+        }
+        Insert: {
+          correct_count?: number
+          due_at?: string
+          last_error?: string | null
+          last_reviewed_at?: string | null
+          skill: string
+          step?: number
+          streak?: number
+          student_id: string
+          word_id: string
+          wrong_count?: number
+        }
+        Update: {
+          correct_count?: number
+          due_at?: string
+          last_error?: string | null
+          last_reviewed_at?: string | null
+          skill?: string
+          step?: number
+          streak?: number
+          student_id?: string
+          word_id?: string
+          wrong_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_progress_word_id_fkey"
             columns: ["word_id"]
             isOneToOne: false
             referencedRelation: "words"
@@ -270,25 +326,33 @@ export type Database = {
       my_class_id: { Args: never; Returns: string }
       owns_list: { Args: { _list: string }; Returns: boolean }
       record_answer: {
-        Args: { _correct: boolean; _mode: string; _word: string }
+        Args: {
+          _correct: boolean
+          _error?: string
+          _given?: string
+          _mode: string
+          _word: string
+        }
         Returns: {
           correct_count: number
           due_at: string
-          ease: number
-          interval_days: number
+          last_error: string | null
           last_reviewed_at: string | null
-          repetitions: number
+          skill: string
+          step: number
+          streak: number
           student_id: string
           word_id: string
           wrong_count: number
         }
         SetofOptions: {
           from: "*"
-          to: "word_progress"
+          to: "skill_progress"
           isOneToOne: true
           isSetofReturn: false
         }
       }
+      step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }
       update_my_name: { Args: { _name: string }; Returns: undefined }
     }
