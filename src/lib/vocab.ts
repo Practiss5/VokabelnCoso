@@ -87,4 +87,60 @@ export const MODE_LABELS: Record<string, string> = {
   flashcard: "Cartes",
   choice: "QCM",
   typing: "Écriture",
+  context: "Phrase",
+};
+
+export type ErrorType = "article" | "spelling" | "translation";
+export const ERROR_LABELS: Record<string, string> = {
+  article: "Erreur d'article (der / die / das)",
+  spelling: "Erreur d'orthographe",
+  translation: "Erreur de traduction",
+  context: "Erreur d'emploi dans la phrase",
+};
+
+const ARTICLES = ["der", "die", "das"];
+
+function splitArticle(s: string): { article: string | null; noun: string } {
+  const n = normalizeAnswer(s);
+  const [first, ...rest] = n.split(" ");
+  if (first && ARTICLES.includes(first) && rest.length) return { article: first, noun: rest.join(" ") };
+  return { article: null, noun: n };
+}
+
+function levenshtein(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)] as number[]);
+  for (let j = 1; j <= b.length; j++) d[0]![j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length]![b.length]!;
+}
+
+/** Classify a wrong typed German answer. Returns null when the answer is correct. */
+export function diagnoseAnswer(typed: string, expected: string): ErrorType | null {
+  if (isAnswerCorrect(typed, expected)) return null;
+  let best: ErrorType = "translation";
+  for (const opt of expected.split("/")) {
+    const e = splitArticle(opt);
+    const t = splitArticle(typed);
+    if (e.article && t.noun === e.noun && t.article !== e.article) return "article";
+    const dist = levenshtein(t.noun, e.noun);
+    if (dist > 0 && dist <= (e.noun.length > 7 ? 2 : 1)) best = "spelling";
+  }
+  return best;
+}
+
+export type SkillRow = { word_id: string; skill: string; step: number };
+
+/** A word is mastered only when written German AND recognition/translation are solid (step ≥ 3). */
+export function isMastered(skills: SkillRow[]): boolean {
+  const step = (k: string) => skills.find((s) => s.skill === k)?.step ?? 0;
+  return step("writing") >= 3 && Math.max(step("recognition"), step("translation")) >= 3;
+}
+
+export const SKILL_LABELS: Record<string, string> = {
+  recognition: "Reconnaissance",
+  translation: "Traduction",
+  writing: "Écriture",
+  context: "En contexte",
 };

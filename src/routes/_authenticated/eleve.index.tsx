@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { MODE_LABELS } from "@/lib/vocab";
+import { ERROR_LABELS, isMastered, MODE_LABELS } from "@/lib/vocab";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,12 +60,13 @@ function MyLists() {
     queryFn: async () => {
       const { data: a } = await supabase.from("list_assignments").select("vocab_lists(id, title, words(id))").eq("class_id", me!.classId!);
       const { data: prog } = await supabase.from("word_progress").select("word_id, due_at, repetitions").eq("student_id", me!.id);
+      const { data: skills } = await supabase.from("skill_progress").select("word_id, skill, step").eq("student_id", me!.id);
       const pm = new Map((prog ?? []).map((p) => [p.word_id, p]));
       const now = Date.now();
       return (a ?? []).map((x) => x.vocab_lists).filter(Boolean).map((l) => {
         const words = l!.words as { id: string }[];
         const due = words.filter((w) => { const p = pm.get(w.id); return !p || new Date(p.due_at).getTime() <= now; }).length;
-        const mastered = words.filter((w) => (pm.get(w.id)?.repetitions ?? 0) >= 3).length;
+        const mastered = words.filter((w) => isMastered((skills ?? []).filter((s) => s.word_id === w.id))).length;
         return { id: l!.id, title: l!.title, total: words.length, due, mastered };
       });
     },
@@ -92,7 +93,7 @@ function History() {
   const { data } = useQuery({
     queryKey: ["history"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("reviews").select("id, mode, correct, created_at, words(german, french)")
+      const { data, error } = await supabase.from("reviews").select("id, mode, correct, error_type, created_at, words(german, french)")
         .eq("student_id", me!.id).order("created_at", { ascending: false }).limit(40);
       if (error) throw error;
       return data;
@@ -109,7 +110,7 @@ function History() {
           <li key={r.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
             <span><b>{r.words?.german}</b> <span className="text-muted-foreground">— {r.words?.french}</span></span>
             <span className="flex shrink-0 items-center gap-2">
-              <span className="text-xs text-muted-foreground">{MODE_LABELS[r.mode]} · {new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
+              <span className="text-xs text-muted-foreground">{MODE_LABELS[r.mode]}{r.error_type ? ` · ${ERROR_LABELS[r.error_type] ?? ""}` : ""} · {new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
               <span className={r.correct ? "font-bold text-success" : "font-bold text-destructive"}>{r.correct ? "✓" : "✗"}</span>
             </span>
           </li>
