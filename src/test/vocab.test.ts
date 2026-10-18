@@ -62,3 +62,24 @@ describe("mastery", () => {
   it("writing + recognition at step 3 is mastery", () =>
     expect(isMastered([{ word_id: "1", skill: "writing", step: 3 }, { word_id: "1", skill: "recognition", step: 3 }])).toBe(true));
 });
+
+import { buildDailySession, type SkillState } from "@/lib/vocab";
+describe("daily session", () => {
+  const now = new Date("2026-01-10T12:00:00Z");
+  const sk = (word_id: string, skill: string, o: Partial<SkillState>): SkillState => ({
+    word_id, skill, step: 1, due_at: "2026-02-01T00:00:00Z", wrong_count: 0, correct_count: 1, last_reviewed_at: "2025-12-01T00:00:00Z", ...o,
+  });
+  const s = buildDailySession(words, [
+    sk("1", "writing", { due_at: "2026-01-09T00:00:00Z" }),
+    sk("2", "translation", { wrong_count: 3, correct_count: 1 }),
+    sk("3", "recognition", { step: 2, last_reviewed_at: "2026-01-09T00:00:00Z" }),
+  ], now);
+  it("overdue word first in its own mode", () => expect(s[0]).toMatchObject({ reason: "overdue", mode: "typing" }));
+  it("fragile word is asked in writing", () => expect(s.find((i) => i.word.id === "2")).toMatchObject({ reason: "fragile", mode: "typing" }));
+  it("recent word moves to a harder mode", () => expect(s.find((i) => i.word.id === "3")).toMatchObject({ reason: "recent", mode: "choice" }));
+  it("new words are added", () => expect(s.filter((i) => i.reason === "new").map((i) => i.word.id)).toEqual(["4", "5"]));
+  it("never more than the limit, one item per word", () => {
+    const r = buildDailySession(words, [], now, 2);
+    expect(r).toHaveLength(2);
+  });
+});
