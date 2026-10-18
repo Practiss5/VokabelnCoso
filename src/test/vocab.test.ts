@@ -47,3 +47,18 @@ describe("spaced repetition queue", () => {
     expect(orderQueue(words, p, now).caughtUp).toBe(true);
   });
 });
+
+import { diagnoseAnswer, isMastered } from "@/lib/vocab";
+describe("error diagnosis", () => {
+  it("wrong article", () => expect(diagnoseAnswer("der Haus", "das Haus")).toBe("article"));
+  it("missing article", () => expect(diagnoseAnswer("Haus", "das Haus")).toBe("article"));
+  it("small typo is spelling", () => expect(diagnoseAnswer("die Kaze", "die Katze")).toBe("spelling"));
+  it("other word is translation", () => expect(diagnoseAnswer("der Baum", "der Hund")).toBe("translation"));
+  it("case/space difference is correct", () => expect(diagnoseAnswer(" DIE katze ", "die Katze")).toBeNull());
+});
+describe("mastery", () => {
+  it("QCM success alone is not mastery", () =>
+    expect(isMastered([{ word_id: "1", skill: "translation", step: 5 }])).toBe(false));
+  it("writing + recognition at step 3 is mastery", () =>
+    expect(isMastered([{ word_id: "1", skill: "writing", step: 3 }, { word_id: "1", skill: "recognition", step: 3 }])).toBe(true));
+});
