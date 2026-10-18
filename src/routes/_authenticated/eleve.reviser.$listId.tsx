@@ -4,12 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { buildChoices, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
+import { buildChoices, diagnoseAnswer, ERROR_LABELS, isAnswerCorrect, orderQueue, type ErrorType, type Word } from "@/lib/vocab";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Mode = "flashcard" | "choice" | "typing";
+const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", typing: "writing" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }] }),
@@ -76,6 +77,7 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
   const [score, setScore] = useState({ ok: 0, ko: 0 });
   const [typed, setTyped] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<ErrorType | null>(null);
   const retried = useRef(new Set<string>());
   const word = queue[index];
   const choices = useMemo(() => (word ? buildChoices(word, pool) : []), [word, pool]);
@@ -98,7 +100,7 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
   function next() {
-    setAnswered(null); setTyped(""); setPicked(null); setIndex((i) => i + 1);
+    setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setIndex((i) => i + 1);
   }
 
   const finished = !word;
@@ -153,7 +155,7 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
           {choices.map((c) => {
             const state = answered === null ? "" : c === word.french ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
             return (
-              <button key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === word.french); }}
+              <button key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === word.french, c); }}
                 className={`word-card min-h-14 px-4 py-3 text-left text-lg font-medium ${state}`}>
                 {c}
               </button>
@@ -163,7 +165,7 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
       )}
 
       {mode === "typing" && (
-        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isAnswerCorrect(typed, word.german)); else next(); }} className="space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isAnswerCorrect(typed, word.german), typed); else next(); }} className="space-y-3">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
           <div className="flex flex-wrap gap-1">
@@ -172,7 +174,13 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
             ))}
           </div>
           {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
-          {answered === false && <p className="text-center">Réponse attendue : <b>{word.german}</b></p>}
+          {answered === false && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
+              <p>Bonne réponse : <b>{word.german}</b></p>
+              <p className="text-sm text-muted-foreground">Vous avez écrit : « {typed} »</p>
+              {errorType && <p className="mt-1 text-sm font-semibold text-destructive">{ERROR_LABELS[errorType]}</p>}
+            </div>
+          )}
           {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
         </form>
       )}
@@ -182,6 +190,7 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
           <p className={`text-center text-lg font-bold ${answered ? "text-success" : "text-destructive"}`}>
             {answered ? "Richtig ! ✓" : "Pas encore… ✗"}
           </p>
+          {answered === false && mode === "choice" && <p className="text-center">Bonne réponse : <b>{word.french}</b></p>}
           {mode !== "typing" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
         </>
       )}
