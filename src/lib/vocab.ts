@@ -144,3 +144,63 @@ export const SKILL_LABELS: Record<string, string> = {
   writing: "Écriture",
   context: "En contexte",
 };
+
+export type DailyMode = "flashcard" | "choice" | "typing";
+export type SkillState = {
+  word_id: string; skill: string; step: number; due_at: string;
+  wrong_count: number; correct_count: number; last_reviewed_at: string | null;
+};
+export type DailyItem = { word: Word; mode: DailyMode; reason: "overdue" | "fragile" | "recent" | "new" };
+
+const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", translation: "choice", writing: "typing" };
+
+/**
+ * Daily 5–10 min session (≈12 items, one per word): overdue skills first,
+ * then fragile words (often missed), then recently learnt words practised in
+ * the next harder mode, then a few new words.
+ */
+export function buildDailySession(words: Word[], skills: SkillState[], now: Date, limit = 12): DailyItem[] {
+  const t = now.getTime();
+  const byWord = new Map<string, SkillState[]>();
+  for (const s of skills) if (MODE_OF_SKILL[s.skill]) byWord.set(s.word_id, [...(byWord.get(s.word_id) ?? []), s]);
+  const used = new Set<string>();
+  const out: DailyItem[] = [];
+  const push = (word: Word, mode: DailyMode, reason: DailyItem["reason"]) => {
+    if (out.length >= limit || used.has(word.id)) return;
+    used.add(word.id); out.push({ word, mode, reason });
+  };
+  const wmap = new Map(words.map((w) => [w.id, w]));
+
+  // 1. Overdue: most overdue first, a word's weakest due skill.
+  skills.filter((s) => MODE_OF_SKILL[s.skill] && new Date(s.due_at).getTime() <= t && wmap.has(s.word_id))
+    .sort((a, b) => a.step - b.step || new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
+    .forEach((s) => push(wmap.get(s.word_id)!, MODE_OF_SKILL[s.skill]!, "overdue"));
+
+  // 2. Fragile: missed at least twice and more errors than successes → write it.
+  [...byWord.entries()]
+    .map(([id, rows]) => ({ id, wrong: rows.reduce((n, r) => n + r.wrong_count, 0), ok: rows.reduce((n, r) => n + r.correct_count, 0) }))
+    .filter((x) => x.wrong >= 2 && x.wrong >= x.ok && wmap.has(x.id))
+    .sort((a, b) => b.wrong - a.wrong)
+    .slice(0, 4)
+    .forEach((x) => push(wmap.get(x.id)!, "typing", "fragile"));
+
+  // 3. Recent: seen in the last 3 days, still young → next harder mode not yet solid.
+  const order: DailyMode[] = ["flashcard", "choice", "typing"];
+  [...byWord.entries()]
+    .filter(([id, rows]) => wmap.has(id) && rows.some((r) => r.last_reviewed_at && t - new Date(r.last_reviewed_at).getTime() < 3 * 864e5))
+    .slice(0, 4)
+    .forEach(([id, rows]) => {
+      const step = (m: DailyMode) => rows.find((r) => MODE_OF_SKILL[r.skill] === m)?.step ?? 0;
+      const mode = order.find((m) => step(m) < 2) ?? "typing";
+      push(wmap.get(id)!, mode, "recent");
+    });
+
+  // 4. New words: up to 3, introduced with cards.
+  words.filter((w) => !byWord.has(w.id)).slice(0, 3).forEach((w) => push(w, "flashcard", "new"));
+  return out;
+}
+
+export const REASON_LABELS: Record<DailyItem["reason"], string> = {
+  overdue: "À revoir", fragile: "Mot fragile", recent: "Récemment appris", new: "Nouveau",
+};
+export const DAILY_GOAL = 12;
