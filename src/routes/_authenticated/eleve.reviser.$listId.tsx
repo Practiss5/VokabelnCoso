@@ -94,9 +94,10 @@ function Session({ mode, title, words, pool, caughtUp, onQuit }: { mode: Mode; t
       retried.current.add(w.id);
       setQueue((q) => [...q, w]);
     }
-    const { error } = await supabase.rpc("record_answer", {
-      _word: w.id, _mode: mode, _correct: correct, _given: given ?? undefined, _error: err ?? undefined,
-    });
+    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: w.id, _mode: mode, _correct: correct };
+    if (given) args._given = given;
+    if (err) args._error = err;
+    const { error } = await supabase.rpc("record_answer", args);
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
   function next() {
