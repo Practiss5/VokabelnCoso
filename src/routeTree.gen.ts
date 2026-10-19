@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedEspaceRouteImport } from './routes/_authenticated/espace'
 import { Route as AuthenticatedEleveIndexRouteImport } from './routes/_authenticated/eleve.index'
+import { Route as AuthenticatedEleveSeanceRouteImport } from './routes/_authenticated/eleve.seance'
 import { Route as AuthenticatedEnseignantIndexRouteImport } from './routes/_authenticated/enseignant.index'
 import { Route as AuthenticatedEleveReviserListIdRouteImport } from './routes/_authenticated/eleve.reviser.$listId'
 import { Route as AuthenticatedEnseignantClassesClassIdRouteImport } from './routes/_authenticated/enseignant.classes.$classId'
@@ -49,6 +50,12 @@ const AuthenticatedEleveIndexRoute = AuthenticatedEleveIndexRouteImport.update({
   path: '/eleve/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEleveSeanceRoute =
+  AuthenticatedEleveSeanceRouteImport.update({
+    id: '/eleve/seance',
+    path: '/eleve/seance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEnseignantIndexRoute =
   AuthenticatedEnseignantIndexRouteImport.update({
     id: '/enseignant/',
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/eleve/seance': typeof AuthenticatedEleveSeanceRoute
   '/eleve/': typeof AuthenticatedEleveIndexRoute
   '/enseignant/': typeof AuthenticatedEnseignantIndexRoute
   '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/espace': typeof AuthenticatedEspaceRoute
+  '/eleve/seance': typeof AuthenticatedEleveSeanceRoute
   '/eleve': typeof AuthenticatedEleveIndexRoute
   '/enseignant': typeof AuthenticatedEnseignantIndexRoute
   '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
@@ -103,6 +112,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/espace': typeof AuthenticatedEspaceRoute
+  '/_authenticated/eleve/seance': typeof AuthenticatedEleveSeanceRoute
   '/_authenticated/eleve/': typeof AuthenticatedEleveIndexRoute
   '/_authenticated/enseignant/': typeof AuthenticatedEnseignantIndexRoute
   '/_authenticated/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/espace'
+    | '/eleve/seance'
     | '/eleve/'
     | '/enseignant/'
     | '/eleve/reviser/$listId'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/espace'
+    | '/eleve/seance'
     | '/eleve'
     | '/enseignant'
     | '/eleve/reviser/$listId'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/espace'
+    | '/_authenticated/eleve/seance'
     | '/_authenticated/eleve/'
     | '/_authenticated/enseignant/'
     | '/_authenticated/eleve/reviser/$listId'
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEleveIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/eleve/seance': {
+      id: '/_authenticated/eleve/seance'
+      path: '/eleve/seance'
+      fullPath: '/eleve/seance'
+      preLoaderRoute: typeof AuthenticatedEleveSeanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/enseignant/': {
       id: '/_authenticated/enseignant/'
       path: '/enseignant'
@@ -230,6 +250,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEspaceRoute: typeof AuthenticatedEspaceRoute
+  AuthenticatedEleveSeanceRoute: typeof AuthenticatedEleveSeanceRoute
   AuthenticatedEleveIndexRoute: typeof AuthenticatedEleveIndexRoute
   AuthenticatedEnseignantIndexRoute: typeof AuthenticatedEnseignantIndexRoute
   AuthenticatedEleveReviserListIdRoute: typeof AuthenticatedEleveReviserListIdRoute
@@ -239,6 +260,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEspaceRoute: AuthenticatedEspaceRoute,
+  AuthenticatedEleveSeanceRoute: AuthenticatedEleveSeanceRoute,
   AuthenticatedEleveIndexRoute: AuthenticatedEleveIndexRoute,
   AuthenticatedEnseignantIndexRoute: AuthenticatedEnseignantIndexRoute,
   AuthenticatedEleveReviserListIdRoute: AuthenticatedEleveReviserListIdRoute,
