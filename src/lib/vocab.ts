@@ -159,7 +159,7 @@ const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", tra
  * then fragile words (often missed), then recently learnt words practised in
  * the next harder mode, then a few new words.
  */
-export function buildDailySession(words: Word[], skills: SkillState[], now: Date, limit = 12): DailyItem[] {
+export function buildDailySession(words: Word[], skills: SkillState[], now: Date, limit = 16): DailyItem[] {
   const t = now.getTime();
   const byWord = new Map<string, SkillState[]>();
   for (const s of skills) if (MODE_OF_SKILL[s.skill]) byWord.set(s.word_id, [...(byWord.get(s.word_id) ?? []), s]);
@@ -196,11 +196,11 @@ export function buildDailySession(words: Word[], skills: SkillState[], now: Date
     });
 
   // 4. New words: up to 3, introduced with cards.
-  words.filter((w) => !byWord.has(w.id)).slice(0, 3).forEach((w) => push(w, "flashcard", "new"));
+  words.filter((w) => !byWord.has(w.id)).slice(0, 4).forEach((w) => push(w, "flashcard", "new"));
   return out;
 }
 
 export const REASON_LABELS: Record<DailyItem["reason"], string> = {
   overdue: "À revoir", fragile: "Mot fragile", recent: "Récemment appris", new: "Nouveau",
 };
-export const DAILY_GOAL = 12;
+export const DAILY_GOAL = 16;
