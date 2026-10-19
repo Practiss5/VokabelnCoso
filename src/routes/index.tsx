@@ -24,8 +24,10 @@ function Index() {
           Vocabulaire <span className="bg-accent px-2">Allemand</span>
         </h1>
         <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-          Les enseignants préparent les listes, les élèves révisent avec des cartes, un QCM ou en écrivant.
-          Les mots ratés reviennent plus souvent.
+          Teste tes connaissances avec des quiz et des exercices pour mémoriser les mots plus facilement.
+        </p>
+        <p className="mt-3 max-w-xl text-lg font-bold text-foreground">
+          Apprends. Révise. Progresse. Sprich Deutsch !
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg"><Link to="/auth">Se connecter</Link></Button>
