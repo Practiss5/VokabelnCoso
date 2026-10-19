@@ -4,7 +4,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { ERROR_LABELS, isMastered, MODE_LABELS } from "@/lib/vocab";
+import { DAILY_GOAL, ERROR_LABELS, isMastered, MODE_LABELS, REASON_LABELS } from "@/lib/vocab";
+import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,9 +26,13 @@ function StudentHome() {
     <div className="space-y-10">
       <div>
         <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
-        <h1 className="text-4xl font-bold">Mes listes</h1>
+        <h1 className="text-4xl font-bold">Aujourd'hui</h1>
       </div>
-      <MyLists />
+      <DailyCard />
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">Mes listes</h2>
+        <MyLists />
+      </section>
       <History />
     </div>
   );
@@ -50,6 +55,44 @@ function JoinClass() {
       <Input required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="A1B2C3" className="font-mono text-lg" />
       <Button type="submit" className="w-full">Rejoindre</Button>
     </form>
+  );
+}
+
+function DailyCard() {
+  const { data: me } = useSuspenseQuery(meQuery);
+  const { data } = useQuery(dailyQuery(me!.id, me!.classId!));
+  if (!data) return <div className="word-card p-6">Chargement…</div>;
+  const pct = Math.min(100, Math.round((data.doneToday / DAILY_GOAL) * 100));
+  const counts = data.items.reduce<Record<string, number>>((m, i) => ({ ...m, [i.reason]: (m[i.reason] ?? 0) + 1 }), {});
+  const minutes = Math.max(5, Math.min(10, Math.round(data.items.length * 0.7)));
+  return (
+    <section className="word-card space-y-4 p-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Ma séance du jour</h2>
+          <p className="text-sm text-muted-foreground">
+            {data.items.length ? `${data.items.length} mots choisis pour vous · environ ${minutes} min` : "Aucun mot à proposer pour l'instant."}
+          </p>
+        </div>
+        {data.items.length > 0 && (
+          <Button asChild size="lg" className="mt-3 sm:mt-0"><Link to="/eleve/seance">{pct >= 100 ? "Encore une séance" : "Commencer"}</Link></Button>
+        )}
+      </div>
+      {data.items.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-sm">
+          {(["overdue", "fragile", "recent", "new"] as const).filter((r) => counts[r]).map((r) => (
+            <span key={r} className="rounded-full bg-secondary px-3 py-1">{REASON_LABELS[r]} : <b>{counts[r]}</b></span>
+          ))}
+        </div>
+      )}
+      <div>
+        <div className="flex justify-between text-sm"><span>Objectif du jour</span><span className="font-semibold">{Math.min(data.doneToday, DAILY_GOAL)}/{DAILY_GOAL} réponses</span></div>
+        <div className="mt-1 h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+        </div>
+        {pct >= 100 && <p className="mt-1 text-sm font-semibold text-success">Objectif atteint, bravo ! ✓</p>}
+      </div>
+    </section>
   );
 }
 
