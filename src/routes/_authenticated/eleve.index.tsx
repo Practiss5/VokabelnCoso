@@ -62,7 +62,9 @@ function DailyCard() {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data } = useQuery(dailyQuery(me!.id, me!.classId!));
   if (!data) return <div className="word-card p-6">Chargement…</div>;
-  const pct = Math.min(100, Math.round((data.doneToday / DAILY_GOAL) * 100));
+  // Goal adapts to small lists: 5 to 12 answers per day.
+  const goal = Math.min(DAILY_GOAL, Math.max(5, data.words.length));
+  const pct = Math.min(100, Math.round((data.doneToday / goal) * 100));
   const counts = data.items.reduce<Record<string, number>>((m, i) => ({ ...m, [i.reason]: (m[i.reason] ?? 0) + 1 }), {});
   const minutes = Math.max(5, Math.min(10, Math.round(data.items.length * 0.7)));
   return (
@@ -86,7 +88,7 @@ function DailyCard() {
         </div>
       )}
       <div>
-        <div className="flex justify-between text-sm"><span>Objectif du jour</span><span className="font-semibold">{Math.min(data.doneToday, DAILY_GOAL)}/{DAILY_GOAL} réponses</span></div>
+        <div className="flex justify-between text-sm"><span>Objectif du jour</span><span className="font-semibold">{Math.min(data.doneToday, goal)}/{goal} réponses</span></div>
         <div className="mt-1 h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
         </div>
