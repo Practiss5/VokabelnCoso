@@ -90,7 +90,7 @@ export const MODE_LABELS: Record<string, string> = {
   context: "Phrase",
 };
 
-export type ErrorType = "article" | "spelling" | "translation";
+export type ErrorType = "article" | "spelling" | "translation" | "context";
 export const ERROR_LABELS: Record<string, string> = {
   article: "Erreur d'article (der / die / das)",
   spelling: "Erreur d'orthographe",

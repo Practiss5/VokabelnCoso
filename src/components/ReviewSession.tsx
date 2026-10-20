@@ -100,7 +100,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "typing" ? "Français" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : "Deutsch"}
         </p>
         {cloze ? (
           <>

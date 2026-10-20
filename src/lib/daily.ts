@@ -9,7 +9,7 @@ export const dailyQuery = (studentId: string, classId: string) =>
     queryFn: async () => {
       const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
       const [a, sk, today] = await Promise.all([
-        supabase.from("list_assignments").select("vocab_lists(words(id, german, french))").eq("class_id", classId),
+        supabase.from("list_assignments").select("vocab_lists(words(id, german, french, example_de, example_fr))").eq("class_id", classId),
         supabase.from("skill_progress").select("word_id, skill, step, due_at, wrong_count, correct_count, last_reviewed_at").eq("student_id", studentId),
         supabase.from("reviews").select("id", { count: "exact", head: true }).eq("student_id", studentId).gte("created_at", startOfDay.toISOString()),
       ]);
