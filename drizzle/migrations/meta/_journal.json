@@ -15,6 +15,13 @@
       "when": 1792307341383,
       "tag": "0001_skill_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792477062267,
+      "tag": "0002_example_sentences",
+      "breakpoints": true
     }
   ]
 }

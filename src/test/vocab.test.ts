@@ -83,3 +83,24 @@ describe("daily session", () => {
     expect(r).toHaveLength(2);
   });
 });
+
+import { clozeHint, parseCloze } from "@/lib/vocab";
+describe("cloze sentences", () => {
+  it("extracts the bracketed answer", () => {
+    expect(parseCloze("Ich habe einen [Hund].")).toEqual({ before: "Ich habe einen ", answer: "Hund", after: "." });
+  });
+  it("rejects sentences without a gap", () => {
+    expect(parseCloze("Ich habe einen Hund.")).toBeNull();
+  });
+  it("hint shows first letter and length", () => {
+    expect(clozeHint("der Hund")).toBe("d·· H···");
+  });
+  it("daily session uses a sentence once a recent word is solid", () => {
+    const now = new Date("2026-10-20T10:00:00Z");
+    const w = { id: "x", german: "der Hund", french: "le chien", example_de: "Das ist mein [Hund]." };
+    const recent = new Date(now.getTime() - 3600e3).toISOString();
+    const future = new Date(now.getTime() + 864e5).toISOString();
+    const sk = ["recognition", "translation", "writing"].map((skill) => ({ word_id: "x", skill, step: 2, due_at: future, wrong_count: 0, correct_count: 2, last_reviewed_at: recent }));
+    expect(buildDailySession([w], sk, now)[0]?.mode).toBe("context");
+  });
+});

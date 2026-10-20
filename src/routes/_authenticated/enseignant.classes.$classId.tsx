@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
-import { isMastered } from "@/lib/vocab";
+import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }] }),
@@ -30,7 +30,7 @@ function ClassPage() {
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
       const [reviews, progress, lists] = await Promise.all([
-        ids.length ? supabase.from("reviews").select("student_id, correct, created_at").in("student_id", ids) : Promise.resolve({ data: [] }),
+        ids.length ? supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids) : Promise.resolve({ data: [] }),
         ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
       ]);
@@ -41,7 +41,18 @@ function ClassPage() {
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
         return { ...s, total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
       });
-      return { cls: cls.data, rows, lists: (lists.data ?? []).map((l) => l.vocab_lists).filter(Boolean) as { id: string; title: string }[] };
+      // Hardest words for the class: most errors, then lowest success rate.
+      const byWord = new Map<string, { german: string; french: string; ok: number; ko: number; students: Set<string>; errs: Record<string, number> }>();
+      for (const r of reviews.data ?? []) {
+        const w = (r as { words?: { german: string; french: string } | null }).words;
+        if (!w) continue;
+        const e = byWord.get(r.word_id) ?? { ...w, ok: 0, ko: 0, students: new Set<string>(), errs: {} };
+        if (r.correct) e.ok++; else { e.ko++; e.students.add(r.student_id); if (r.error_type) e.errs[r.error_type] = (e.errs[r.error_type] ?? 0) + 1; }
+        byWord.set(r.word_id, e);
+      }
+      const hard = [...byWord.values()].filter((w) => w.ko > 0)
+        .sort((a, b) => b.ko - a.ko || a.ok / (a.ok + a.ko) - b.ok / (b.ok + b.ko)).slice(0, 10);
+      return { cls: cls.data, rows, hard, lists: (lists.data ?? []).map((l) => l.vocab_lists).filter(Boolean) as { id: string; title: string }[] };
     },
   });
 
@@ -84,6 +95,29 @@ function ClassPage() {
               </tr>
             ))}
             {data.rows.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">Aucun élève. Donnez-leur le code de classe pour s'inscrire.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+      <section className="word-card overflow-x-auto p-0">
+        <h2 className="p-4 pb-0 text-xl font-bold">Mots les plus difficiles</h2>
+        <table className="mt-3 w-full text-sm">
+          <thead className="bg-muted text-left">
+            <tr><th className="p-3">Mot</th><th className="p-3">Erreurs</th><th className="p-3">Réussite</th><th className="p-3">Élèves en difficulté</th><th className="p-3">Erreur la plus fréquente</th></tr>
+          </thead>
+          <tbody className="divide-y">
+            {data.hard.map((w) => {
+              const top = Object.entries(w.errs).sort((a, b) => b[1] - a[1])[0];
+              return (
+                <tr key={w.german + w.french}>
+                  <td className="p-3"><b>{w.german}</b> <span className="text-muted-foreground">— {w.french}</span></td>
+                  <td className="p-3">{w.ko}</td>
+                  <td className="p-3">{Math.round((w.ok / (w.ok + w.ko)) * 100)} %</td>
+                  <td className="p-3">{w.students.size}</td>
+                  <td className="p-3">{top ? ERROR_LABELS[top[0]] ?? top[0] : "—"}</td>
+                </tr>
+              );
+            })}
+            {data.hard.length === 0 && <tr><td colSpan={5} className="p-4 text-muted-foreground">Pas encore d'erreurs enregistrées.</td></tr>}
           </tbody>
         </table>
       </section>
