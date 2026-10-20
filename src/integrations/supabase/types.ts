@@ -214,6 +214,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          level: string
           teacher_id: string
           title: string
         }
@@ -221,6 +222,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          level?: string
           teacher_id: string
           title: string
         }
@@ -228,6 +230,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          level?: string
           teacher_id?: string
           title?: string
         }
@@ -280,6 +283,8 @@ export type Database = {
       words: {
         Row: {
           created_at: string
+          example_de: string
+          example_fr: string
           french: string
           german: string
           id: string
@@ -287,6 +292,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          example_de?: string
+          example_fr?: string
           french: string
           german: string
           id?: string
@@ -294,6 +301,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          example_de?: string
+          example_fr?: string
           french?: string
           german?: string
           id?: string
