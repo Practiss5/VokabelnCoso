@@ -84,7 +84,7 @@ describe("daily session", () => {
   });
 });
 
-import { buildDailySession, clozeHint, parseCloze } from "@/lib/vocab";
+import { clozeHint, parseCloze } from "@/lib/vocab";
 describe("cloze sentences", () => {
   it("extracts the bracketed answer", () => {
     expect(parseCloze("Ich habe einen [Hund].")).toEqual({ before: "Ich habe einen ", answer: "Hund", after: "." });
