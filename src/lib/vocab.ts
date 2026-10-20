@@ -1,6 +1,6 @@
 // Pure helpers for review sessions (tested in src/test/vocab.test.ts).
 
-export type Word = { id: string; german: string; french: string };
+export type Word = { id: string; german: string; french: string; example_de?: string; example_fr?: string };
 export type Progress = {
   word_id: string;
   due_at: string;
@@ -145,14 +145,14 @@ export const SKILL_LABELS: Record<string, string> = {
   context: "En contexte",
 };
 
-export type DailyMode = "flashcard" | "choice" | "typing";
+export type DailyMode = "flashcard" | "choice" | "typing" | "context";
 export type SkillState = {
   word_id: string; skill: string; step: number; due_at: string;
   wrong_count: number; correct_count: number; last_reviewed_at: string | null;
 };
 export type DailyItem = { word: Word; mode: DailyMode; reason: "overdue" | "fragile" | "recent" | "new" };
 
-const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", translation: "choice", writing: "typing" };
+const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", translation: "choice", writing: "typing", context: "context" };
 
 /**
  * Daily 5–10 min session (≈12 items, one per word): overdue skills first,
@@ -191,7 +191,8 @@ export function buildDailySession(words: Word[], skills: SkillState[], now: Date
     .slice(0, 4)
     .forEach(([id, rows]) => {
       const step = (m: DailyMode) => rows.find((r) => MODE_OF_SKILL[r.skill] === m)?.step ?? 0;
-      const mode = order.find((m) => step(m) < 2) ?? "typing";
+      // Once the word is solid in isolation, use it in a sentence (if the teacher gave one).
+      const mode = order.find((m) => step(m) < 2) ?? (hasCloze(wmap.get(id)!) ? "context" : "typing");
       push(wmap.get(id)!, mode, "recent");
     });
 
@@ -204,3 +205,16 @@ export const REASON_LABELS: Record<DailyItem["reason"], string> = {
   overdue: "À revoir", fragile: "Mot fragile", recent: "Récemment appris", new: "Nouveau",
 };
 export const DAILY_GOAL = 16;
+
+/** Split "Ich habe einen [Hund]." into the text around the gap and the expected answer. */
+export function parseCloze(sentence: string | undefined): { before: string; answer: string; after: string } | null {
+  const m = /^(.*?)\[([^\]]+)\](.*)$/s.exec(sentence ?? "");
+  if (!m || !m[2]!.trim()) return null;
+  return { before: m[1]!, answer: m[2]!.trim(), after: m[3]! };
+}
+export const hasCloze = (w: Word) => parseCloze(w.example_de) !== null;
+
+/** Hint shown before the second try: first letter and length of the expected answer. */
+export function clozeHint(answer: string): string {
+  return answer.split(" ").map((p) => p[0] + "·".repeat(Math.max(0, p.length - 1))).join(" ");
+}
