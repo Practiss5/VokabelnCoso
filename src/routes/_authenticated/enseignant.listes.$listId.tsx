@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { generateExamples } from "@/lib/examples.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { AppShell } from "@/components/AppShell";
@@ -32,8 +34,8 @@ function ListEditor() {
     queryKey: key,
     queryFn: async () => {
       const [list, words, classes, assigned] = await Promise.all([
-        supabase.from("vocab_lists").select("id, title").eq("id", listId).single(),
-        supabase.from("words").select("id, german, french").eq("list_id", listId).order("created_at"),
+        supabase.from("vocab_lists").select("id, title, level").eq("id", listId).single(),
+        supabase.from("words").select("id, german, french, example_de, example_fr").eq("list_id", listId).order("created_at"),
         supabase.from("classes").select("id, name").eq("teacher_id", me!.id).order("name"),
         supabase.from("list_assignments").select("class_id").eq("list_id", listId),
       ]);
@@ -82,7 +84,24 @@ function ListEditor() {
     if (error) toast.error(error.message); else { toast.success("Titre enregistré"); refresh(); }
   }
 
+  const gen = useServerFn(generateExamples);
+  const [genBusy, setGenBusy] = useState(false);
+  async function generateAll() {
+    setGenBusy(true);
+    try {
+      const r = await gen({ data: { listId } });
+      toast.success(r.updated ? `${r.updated} phrases proposées — relisez-les ci-dessous` : "Tous les mots ont déjà une phrase");
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    finally { setGenBusy(false); }
+  }
+  async function setLevel(level: string) {
+    const { error } = await supabase.from("vocab_lists").update({ level }).eq("id", listId);
+    if (error) toast.error(error.message); else refresh();
+  }
+
   if (!data) return <p>Chargement…</p>;
+  const missing = data.words.filter((w) => !w.example_de.trim()).length;
 
   return (
     <div className="space-y-8">
@@ -90,6 +109,12 @@ function ListEditor() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input defaultValue={data.list.title} onBlur={(e) => rename(e.target.value)} className="h-auto border-0 bg-transparent px-0 font-display text-4xl font-bold shadow-none" />
         <Button variant="destructive" onClick={deleteList}>Supprimer la liste</Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium">Niveau :</span>
+        {["A1", "A2", "B1"].map((l) => (
+          <Button key={l} size="sm" variant={data.list.level === l ? "default" : "outline"} onClick={() => setLevel(l)}>{l}</Button>
+        ))}
       </div>
 
       <section className="word-card p-5">
@@ -112,8 +137,12 @@ function ListEditor() {
           <Input required placeholder="Français (ex. la maison)" value={fr} onChange={(e) => setFr(e.target.value)} />
           <Button type="submit">Ajouter</Button>
         </form>
+        <div className="mt-4 flex flex-col gap-2 rounded-lg bg-secondary p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <span>Phrases d'exemple : {data.words.length - missing}/{data.words.length}. Écrivez le mot à trouver entre crochets : <code>Ich habe einen [Hund].</code></span>
+          <Button size="sm" disabled={genBusy || missing === 0} onClick={generateAll}>{genBusy ? "Génération…" : `✨ Proposer les phrases (${data.list.level})`}</Button>
+        </div>
         <ul className="mt-4 divide-y">
-          {data.words.map((w) => <WordRow key={w.id} word={w} onChange={refresh} />)}
+          {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} onChange={refresh} />)}
         </ul>
         <details className="mt-6">
           <summary className="cursor-pointer text-sm font-medium">Ajouter plusieurs mots d'un coup</summary>
@@ -126,12 +155,24 @@ function ListEditor() {
   );
 }
 
-function WordRow({ word, onChange }: { word: { id: string; german: string; french: string }; onChange: () => void }) {
+type W = { id: string; german: string; french: string; example_de: string; example_fr: string };
+function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [de, setDe] = useState(word.german);
   const [fr, setFr] = useState(word.french);
+  const [exDe, setExDe] = useState(word.example_de);
+  const [exFr, setExFr] = useState(word.example_fr);
+  const [busy, setBusy] = useState(false);
+  const gen = useServerFn(generateExamples);
+  async function propose() {
+    setBusy(true);
+    try { await gen({ data: { listId, wordId: word.id } }); toast.success("Phrase proposée"); onChange(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    finally { setBusy(false); }
+  }
   async function save() {
-    const { error } = await supabase.from("words").update({ german: de.trim(), french: fr.trim() }).eq("id", word.id);
+    if (exDe.trim() && !/\[[^\]]+\]/.test(exDe)) { toast.error("Mettez le mot à trouver entre crochets [ ]"); return; }
+    const { error } = await supabase.from("words").update({ german: de.trim(), french: fr.trim(), example_de: exDe.trim(), example_fr: exFr.trim() }).eq("id", word.id);
     if (error) { toast.error(error.message); return; }
     setEditing(false); onChange();
   }
@@ -143,17 +184,25 @@ function WordRow({ word, onChange }: { word: { id: string; german: string; frenc
   }
   if (editing)
     return (
-      <li className="grid gap-2 py-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+      <li className="grid gap-2 py-2 sm:grid-cols-2">
         <Input value={de} onChange={(e) => setDe(e.target.value)} />
         <Input value={fr} onChange={(e) => setFr(e.target.value)} />
-        <Button size="sm" onClick={save}>OK</Button>
-        <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Annuler</Button>
+        <Input value={exDe} onChange={(e) => setExDe(e.target.value)} placeholder="Phrase : Ich habe einen [Hund]." />
+        <Input value={exFr} onChange={(e) => setExFr(e.target.value)} placeholder="Traduction : J'ai un chien." />
+        <div className="flex gap-2 sm:col-span-2">
+          <Button size="sm" onClick={save}>OK</Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Annuler</Button>
+        </div>
       </li>
     );
   return (
     <li className="flex items-center justify-between gap-2 py-2">
-      <span><b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span></span>
-      <span className="flex shrink-0 gap-1">
+      <span>
+        <b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span>
+        {word.example_de && <span className="block text-sm italic">{word.example_de} <span className="not-italic text-muted-foreground">{word.example_fr}</span></span>}
+      </span>
+      <span className="flex shrink-0 flex-wrap justify-end gap-1">
+        <Button size="sm" variant="ghost" disabled={busy} onClick={propose}>{busy ? "…" : "✨ Phrase"}</Button>
         <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Modifier</Button>
         <Button size="sm" variant="ghost" onClick={remove}>Supprimer</Button>
       </span>
