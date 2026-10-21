@@ -118,3 +118,39 @@
   border-radius: calc(var(--radius) + 8px);
   box-shadow: 0 1px 0 var(--border), 0 12px 30px -18px color-mix(in oklch, var(--foreground) 35%, transparent);
 }
+
+/* Mode DYS : police Lexend, espacements généreux, fond pastel, pas d'italique */
+html.dys body,
+html.dys h1,
+html.dys h2,
+html.dys h3,
+html.dys input,
+html.dys button,
+html.dys textarea {
+  font-family: "Lexend", system-ui, sans-serif;
+}
+html.dys body {
+  font-size: 1.08rem;
+  line-height: 1.75;
+  letter-spacing: 0.04em;
+  word-spacing: 0.14em;
+  background-color: oklch(0.97 0.025 95);
+  color: oklch(0.28 0.02 260);
+}
+html.dys h1,
+html.dys h2,
+html.dys h3 {
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+html.dys p {
+  max-width: 68ch;
+}
+html.dys em,
+html.dys i {
+  font-style: normal;
+  font-weight: 600;
+}
+html.dys .paper-lines {
+  background-image: none;
+}
