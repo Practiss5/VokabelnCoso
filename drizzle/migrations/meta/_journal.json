@@ -22,6 +22,13 @@
       "when": 1792477062267,
       "tag": "0002_example_sentences",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792566562504,
+      "tag": "0003_allow_context_mode",
+      "breakpoints": true
     }
   ]
 }
