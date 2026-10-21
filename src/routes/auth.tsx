@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { DysToggle } from "@/components/DysToggle";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +74,8 @@ function AuthPage() {
   const title = mode === "login" ? "Connexion" : mode === "signup" ? "Créer un compte élève" : "Mot de passe oublié";
 
   return (
-    <main className="paper-lines flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="paper-lines relative flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="absolute right-4 top-4"><DysToggle /></div>
       <div className="word-card w-full max-w-md p-6 sm:p-8">
         <h1 className="text-3xl font-bold">{title}</h1>
         {sent ? (
