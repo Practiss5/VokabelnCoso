@@ -21,11 +21,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link to="/espace" className="font-display text-lg font-bold">
             Vokabeln<span className="text-accent-foreground bg-accent ml-1 rounded px-1">.</span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-3">
             <DysToggle />
             <span className="hidden text-sm text-muted-foreground sm:inline">
               {me?.fullName || me?.email} · {me?.isTeacher ? "Enseignant" : "Élève"}

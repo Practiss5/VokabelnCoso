@@ -75,7 +75,8 @@ function AuthPage() {
 
   return (
     <main className="paper-lines relative flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="absolute right-4 top-4"><DysToggle /></div>
+      <div className="flex w-full max-w-md flex-col gap-4">
+        <DysToggle prominent />
       <div className="word-card w-full max-w-md p-6 sm:p-8">
         <h1 className="text-3xl font-bold">{title}</h1>
         {sent ? (
@@ -117,6 +118,7 @@ function AuthPage() {
         <p className="mt-6 text-xs text-muted-foreground">
           Les comptes enseignants sont activés par l'administrateur de l'application.
         </p>
+      </div>
       </div>
     </main>
   );
