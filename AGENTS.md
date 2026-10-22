@@ -9,3 +9,4 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - Spaced repetition is tracked per skill (skill_progress: recognition/translation/writing/context) via the `record_answer` RPC only; word_progress is a derived summary. Why: a QCM success must not mark a word mastered for writing.
+- Homework completion = every word of the list answered once between assignment and deadline, computed client-side by homeworkStatus from reviews. Why: no extra writes; reuses record_answer data.
