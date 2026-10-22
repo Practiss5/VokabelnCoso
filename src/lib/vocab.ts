@@ -218,3 +218,26 @@ export const hasCloze = (w: Word) => parseCloze(w.example_de) !== null;
 export function clozeHint(answer: string): string {
   return answer.split(" ").map((p) => p[0] + "·".repeat(Math.max(0, p.length - 1))).join(" ");
 }
+
+/** Homework is done when every word of the list was answered at least once between assignment and deadline. */
+export function homeworkStatus(
+  wordIds: string[],
+  reviews: { word_id: string; created_at: string }[],
+  createdAt: string,
+  dueAt: string,
+): { done: boolean; answered: number; total: number; doneAt: string | null } {
+  const start = new Date(createdAt).getTime();
+  const end = new Date(dueAt).getTime();
+  const ids = new Set(wordIds);
+  const first = new Map<string, string>();
+  for (const r of reviews) {
+    const t = new Date(r.created_at).getTime();
+    if (!ids.has(r.word_id) || t < start || t > end) continue;
+    const prev = first.get(r.word_id);
+    if (!prev || r.created_at < prev) first.set(r.word_id, r.created_at);
+  }
+  const total = ids.size;
+  const done = total > 0 && first.size === total;
+  const doneAt = done ? [...first.values()].sort().at(-1)! : null;
+  return { done, answered: first.size, total, doneAt };
+}
