@@ -13,7 +13,7 @@ type Mode = "flashcard" | "choice" | "typing" | "context";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", typing: "writing", context: "context" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
-  head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }] }),
+  head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <Review />

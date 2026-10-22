@@ -8,7 +8,7 @@ import { ReviewSession, type SessionItem } from "@/components/ReviewSession";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/eleve/seance")({
-  head: () => ({ meta: [{ title: "Séance du jour — Vocabulaire Allemand" }, { name: "description", content: "Votre séance personnalisée de 5 à 10 minutes." }] }),
+  head: () => ({ meta: [{ title: "Séance du jour — Vocabulaire Allemand" }, { name: "description", content: "Votre séance personnalisée de 5 à 10 minutes." }, { property: "og:title", content: "Séance du jour — Vocabulaire Allemand" }, { property: "og:description", content: "Votre séance personnalisée de 5 à 10 minutes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <Daily />

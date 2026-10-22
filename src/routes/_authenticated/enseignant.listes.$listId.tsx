@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
-  head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }] }),
+  head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <TeacherOnly>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/enseignant/")({
-  head: () => ({ meta: [{ title: "Espace enseignant — Vocabulaire Allemand" }, { name: "description", content: "Classes et listes de vocabulaire." }] }),
+  head: () => ({ meta: [{ title: "Espace enseignant — Vocabulaire Allemand" }, { name: "description", content: "Classes et listes de vocabulaire." }, { property: "og:title", content: "Espace enseignant — Vocabulaire Allemand" }, { property: "og:description", content: "Classes et listes de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <TeacherHome />

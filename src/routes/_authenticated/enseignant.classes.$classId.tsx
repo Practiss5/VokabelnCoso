@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
-  head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }] }),
+  head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <TeacherOnly>
