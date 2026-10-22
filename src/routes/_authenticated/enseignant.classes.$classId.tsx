@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { ERROR_LABELS, isMastered } from "@/lib/vocab";
+import { TeacherHomework } from "@/components/Homework";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -78,6 +79,7 @@ function ClassPage() {
       <p className="text-sm text-muted-foreground">
         Listes attribuées : {data.lists.length ? data.lists.map((l) => l.title).join(", ") : "aucune"}
       </p>
+      <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.full_name }))} />
       <section className="word-card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left">
