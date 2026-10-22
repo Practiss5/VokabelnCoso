@@ -38,6 +38,51 @@ export type Database = {
         }
         Relationships: []
       }
+      homeworks: {
+        Row: {
+          class_id: string
+          created_at: string
+          due_at: string
+          id: string
+          instructions: string
+          list_id: string
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          due_at: string
+          id?: string
+          instructions?: string
+          list_id: string
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          due_at?: string
+          id?: string
+          instructions?: string
+          list_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeworks_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homeworks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_assignments: {
         Row: {
           class_id: string
