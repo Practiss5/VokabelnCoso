@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChoices, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
+import { buildChoices, isSpokenCorrect, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
 
 const words: Word[] = [
   { id: "1", german: "das Haus", french: "la maison" },
