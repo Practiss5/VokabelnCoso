@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 py-3 pl-16 pr-4">
           <Link to="/espace" className="font-display text-lg font-bold">
             Vokabeln<span className="text-accent-foreground bg-accent ml-1 rounded px-1">.</span>
           </Link>

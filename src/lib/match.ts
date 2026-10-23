@@ -3,7 +3,7 @@ export const WAVE_SIZE = 6;
 
 function shuffle<T>(a: T[], rand: () => number): T[] {
   const r = [...a];
-  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [r[i], r[j]] = [r[j] as T, r[i] as T]; }
   return r;
 }
 
@@ -13,7 +13,7 @@ export function buildWaves(words: MatchWord[], rand = Math.random, size = WAVE_S
   const waves: MatchWord[][] = [];
   for (let i = 0; i < order.length; i += size) waves.push(order.slice(i, i + size));
   const last = waves[waves.length - 1];
-  if (waves.length > 1 && last.length < size) {
+  if (last && waves.length > 1 && last.length < size) {
     const ids = new Set(last.map((w) => w.id));
     const fill = shuffle(order.filter((w) => !ids.has(w.id)), rand).slice(0, size - last.length);
     waves[waves.length - 1] = [...last, ...fill];
