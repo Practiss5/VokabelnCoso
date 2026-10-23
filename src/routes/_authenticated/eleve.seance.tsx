@@ -13,7 +13,7 @@ const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speakin
 
 export const Route = createFileRoute("/_authenticated/eleve/seance")({
   validateSearch: (s: Record<string, unknown>): { mode?: DailyMode } =>
-    MODES.includes(s.mode as DailyMode) ? { mode: s.mode as DailyMode } : {},
+    MODES.includes(s['mode'] as DailyMode) ? { mode: s['mode'] as DailyMode } : {},
   head: () => ({ meta: [{ title: "Séance du jour — Vocabulaire Allemand" }, { name: "description", content: "Votre séance personnalisée de 5 à 10 minutes." }, { property: "og:title", content: "Séance du jour — Vocabulaire Allemand" }, { property: "og:description", content: "Votre séance personnalisée de 5 à 10 minutes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
@@ -46,5 +46,5 @@ function Daily() {
         <Button asChild className="mt-6"><Link to="/eleve">Accueil</Link></Button>
       </div>
     );
-  return <ReviewSession key={mode ?? "daily"} title={mode ? MODE_LABELS[mode] : "Séance du jour"} items={frozen} pool={data.words} onQuit={() => navigate({ to: "/eleve" })} />;
+  return <ReviewSession key={mode ?? "daily"} title={mode ? MODE_LABELS[mode] ?? "Entraînement" : "Séance du jour"} items={frozen} pool={data.words} onQuit={() => navigate({ to: "/eleve" })} />;
 }
