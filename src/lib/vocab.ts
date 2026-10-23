@@ -86,6 +86,7 @@ export function orderQueue(
 export const MODE_LABELS: Record<string, string> = {
   flashcard: "Cartes",
   choice: "QCM",
+  speaking: "Prononciation",
   typing: "Écriture",
   context: "Phrase",
 };
@@ -145,14 +146,14 @@ export const SKILL_LABELS: Record<string, string> = {
   context: "En contexte",
 };
 
-export type DailyMode = "flashcard" | "choice" | "typing" | "context";
+export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context";
 export type SkillState = {
   word_id: string; skill: string; step: number; due_at: string;
   wrong_count: number; correct_count: number; last_reviewed_at: string | null;
 };
 export type DailyItem = { word: Word; mode: DailyMode; reason: "overdue" | "fragile" | "recent" | "new" };
 
-const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", translation: "choice", writing: "typing", context: "context" };
+const MODE_OF_SKILL: Record<string, DailyMode> = { recognition: "flashcard", translation: "choice", speaking: "speaking", writing: "typing", context: "context" };
 
 /**
  * Daily 5–10 min session (≈12 items, one per word): overdue skills first,
@@ -185,7 +186,7 @@ export function buildDailySession(words: Word[], skills: SkillState[], now: Date
     .forEach((x) => push(wmap.get(x.id)!, "typing", "fragile"));
 
   // 3. Recent: seen in the last 3 days, still young → next harder mode not yet solid.
-  const order: DailyMode[] = ["flashcard", "choice", "typing"];
+  const order: DailyMode[] = ["flashcard", "choice", "speaking", "typing"];
   [...byWord.entries()]
     .filter(([id, rows]) => wmap.has(id) && rows.some((r) => r.last_reviewed_at && t - new Date(r.last_reviewed_at).getTime() < 3 * 864e5))
     .slice(0, 4)
@@ -221,7 +222,7 @@ export function clozeHint(answer: string): string {
 
 export const HW_QCM_RATE = 0.8;
 export const HW_WRITING_RATE = 0.6;
-const QCM_OR_ABOVE = new Set(["choice", "typing", "context"]);
+const QCM_OR_ABOVE = new Set(["choice", "speaking", "typing", "context"]);
 const WRITING = new Set(["typing", "context"]);
 
 /**
@@ -262,4 +263,12 @@ export function computeStreak(dates: string[], now: Date, goal = DAILY_GOAL): { 
   let days = 0;
   while (ok(d)) { days++; d.setDate(d.getDate() - 1); }
   return { days, today };
+}
+
+/** Speech transcripts: drop punctuation, then the article is required like in writing. */
+export function cleanSpoken(t: string): string {
+  return t.replace(/[.,!?;:"«»„“”']/g, " ").replace(/\s+/g, " ").trim();
+}
+export function isSpokenCorrect(transcripts: string[], expected: string): boolean {
+  return transcripts.some((t) => isAnswerCorrect(cleanSpoken(t), expected));
 }

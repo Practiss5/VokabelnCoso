@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  buildChoices, clozeHint, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
   type DailyItem, type DailyMode, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GermanAudio } from "@/components/GermanAudio";
 import { reviewSpeech } from "@/lib/speech";
+import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
 
@@ -27,6 +28,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
   const [errorType, setErrorType] = useState<ErrorType | null>(null);
   const [secondTry, setSecondTry] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState("");
+  const [useKeyboard, setUseKeyboard] = useState(false);
+  const stopRef = useRef<null | (() => void)>(null);
   const retried = useRef(new Set<string>());
   const item = queue[index];
   const word = item?.word;
@@ -36,7 +41,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
   async function answer(correct: boolean, given?: string) {
     if (answered !== null || !item || !word || !mode) return;
-    const err = correct ? null : mode === "typing" ? diagnoseAnswer(given ?? "", word.german) : mode === "context" ? "context" : "translation";
+    const err = correct ? null : mode === "typing" || mode === "speaking" ? diagnoseAnswer(given ?? "", word.german) : mode === "context" ? "context" : "translation";
     setErrorType(err);
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
@@ -51,8 +56,32 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
     const { error } = await supabase.rpc("record_answer", args);
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
+  function judgeSpoken(alts: string[]) {
+    if (!word) return;
+    const said = cleanSpoken(alts[0] ?? "");
+    setHeard(said);
+    if (isSpokenCorrect(alts, word.german)) return void answer(true, said);
+    if (!secondTry) { setSecondTry(true); setErrorType(said ? diagnoseAnswer(said, word.german) : null); return; }
+    answer(false, said);
+  }
+  async function speak() {
+    if (listening) { stopRef.current?.(); return; }
+    try {
+      const l = listenGerman();
+      stopRef.current = l.stop; setListening(true);
+      const alts = await l.promise;
+      setListening(false);
+      if (!alts.length) { toast("Je n'ai rien entendu. Réessaie en parlant près du micro."); return; }
+      judgeSpoken(alts);
+    } catch (e) {
+      setListening(false);
+      const msg = (e as Error).message;
+      toast.error(msg === "not-allowed" || msg === "service-not-allowed" ? "Micro refusé : autorise le micro ou passe au clavier." : "Micro indisponible : passe au clavier.");
+      setUseKeyboard(true);
+    }
+  }
   function next() {
-    setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setIndex((i) => i + 1);
+    setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
   }
 
   const finished = !item;
@@ -102,7 +131,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : "Deutsch"}
         </p>
         {cloze ? (
           <>
@@ -116,7 +145,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
             )}
           </>
         ) : (
-          <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" ? word.french : word.german}</p>
+          <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" ? word.french : word.german}</p>
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
         <div className="mt-3 flex justify-center">
@@ -143,6 +172,47 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
               </button>
             );
           })}
+        </div>
+      )}
+
+      {mode === "speaking" && (
+        <div className="space-y-3">
+          {answered === null && !useKeyboard && canRecognize() && (
+            <Button size="lg" className={`h-20 w-full text-xl ${listening ? "animate-pulse" : ""}`} variant={listening ? "destructive" : "default"} onClick={speak}>
+              {listening ? "● J'écoute… (toucher pour arrêter)" : "🎙️ Parler"}
+            </Button>
+          )}
+          {answered === null && (useKeyboard || !canRecognize()) && (
+            <form onSubmit={(e) => { e.preventDefault(); if (typed.trim()) judgeSpoken([typed]); setTyped(""); }} className="space-y-2">
+              <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)}
+                placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
+              <div className="flex flex-wrap gap-1">
+                {["ä", "ö", "ü", "ß"].map((ch) => (
+                  <Button key={ch} type="button" size="sm" variant="secondary" onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
+                ))}
+              </div>
+              <Button type="submit" size="lg" className="w-full">Valider</Button>
+            </form>
+          )}
+          {answered === null && !useKeyboard && canRecognize() && (
+            <button type="button" className="w-full text-center text-sm underline text-muted-foreground" onClick={() => setUseKeyboard(true)}>Pas de micro ? Passer au clavier</button>
+          )}
+          {secondTry && answered === null && (
+            <div className="rounded-lg border border-accent bg-accent/20 p-3 text-center">
+              <p className="font-semibold">Presque ! Deuxième essai.</p>
+              {heard && <p className="text-sm">J'ai compris : « {heard} »</p>}
+              {errorType === "article" && <p className="text-sm font-semibold">Attention à l'article (der / die / das) !</p>}
+              {errorType === "spelling" && <p className="text-sm">Tu y es presque, articule bien.</p>}
+              <p className="mt-1 font-mono text-lg tracking-widest">{clozeHint(word.german)}</p>
+            </div>
+          )}
+          {answered === false && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
+              <p>Bonne réponse : <b>{word.german}</b></p>
+              {heard && <p className="text-sm text-muted-foreground">J'ai compris : « {heard} »</p>}
+              {errorType && <p className="mt-1 text-sm font-semibold text-destructive">{ERROR_LABELS[errorType]}</p>}
+            </div>
+          )}
         </div>
       )}
 

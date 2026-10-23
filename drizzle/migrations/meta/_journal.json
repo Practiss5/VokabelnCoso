@@ -50,6 +50,13 @@
       "when": 1792735697080,
       "tag": "0006_folder_share_copy",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792737035258,
+      "tag": "0007_speaking_mode",
+      "breakpoints": true
     }
   ]
 }

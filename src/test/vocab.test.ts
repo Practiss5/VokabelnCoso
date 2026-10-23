@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChoices, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
+import { buildChoices, isSpokenCorrect, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
 
 const words: Word[] = [
   { id: "1", german: "das Haus", french: "la maison" },
@@ -100,7 +100,23 @@ describe("cloze sentences", () => {
     const w = { id: "x", german: "der Hund", french: "le chien", example_de: "Das ist mein [Hund]." };
     const recent = new Date(now.getTime() - 3600e3).toISOString();
     const future = new Date(now.getTime() + 864e5).toISOString();
-    const sk = ["recognition", "translation", "writing"].map((skill) => ({ word_id: "x", skill, step: 2, due_at: future, wrong_count: 0, correct_count: 2, last_reviewed_at: recent }));
+    const sk = ["recognition", "translation", "speaking", "writing"].map((skill) => ({ word_id: "x", skill, step: 2, due_at: future, wrong_count: 0, correct_count: 2, last_reviewed_at: recent }));
     expect(buildDailySession([w], sk, now)[0]?.mode).toBe("context");
+  });
+});
+
+describe("speaking", () => {
+  it("accepts a spoken answer with the article, ignoring punctuation", () => {
+    expect(isSpokenCorrect(["Der Hund."], "der Hund")).toBe(true);
+  });
+  it("rejects a spoken answer without the article", () => {
+    expect(isSpokenCorrect(["Hund"], "der Hund")).toBe(false);
+  });
+  it("comes after QCM in the daily progression", () => {
+    const now = new Date("2026-10-20T10:00:00Z");
+    const w = { id: "x", german: "der Hund", french: "le chien" };
+    const recent = new Date(now.getTime() - 3600e3).toISOString();
+    const sk = ["recognition", "translation"].map((skill) => ({ word_id: "x", skill, step: 2, due_at: new Date(now.getTime() + 864e5).toISOString(), wrong_count: 0, correct_count: 2, last_reviewed_at: recent }));
+    expect(buildDailySession([w], sk, now)[0]?.mode).toBe("speaking");
   });
 });
