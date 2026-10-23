@@ -140,3 +140,11 @@ describe("écriture : espaces et trémas tolérés", () => {
   it('" vaut ü (avant ou après la voyelle)', () => { expect(isWrittenCorrect('f"ur', "für")).toBe(true); expect(isWrittenCorrect('fu"r', "für")).toBe(true); });
   it("n'accepte pas un mot différent", () => expect(isWrittenCorrect("dieHunde", "die Katze")).toBe(false));
 });
+
+describe("écriture sans pluriel", () => {
+  it("nom: singulier suffit", () => expect(isWrittenCorrect("die Stadt", "die Stadt, ”-e")).toBe(true));
+  it("nom: forme complète acceptée", () => expect(isWrittenCorrect("die Stadt, ”-e", "die Stadt, ”-e")).toBe(true));
+  it("nom: article toujours requis", () => expect(isWrittenCorrect("Stadt", "die Stadt, ”-e")).toBe(false));
+  it("verbe: conjugaison exigée", () => expect(isWrittenCorrect("fahren", "fahren, er fährt")).toBe(false));
+  it("verbe: virgule facultative", () => expect(isWrittenCorrect("fahren er fährt", "fahren, er fährt")).toBe(true));
+});
