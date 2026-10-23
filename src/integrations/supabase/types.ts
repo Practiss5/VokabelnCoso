@@ -116,6 +116,27 @@ export type Database = {
           },
         ]
       }
+      list_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           class_id: string | null
@@ -258,6 +279,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          folder_id: string | null
           id: string
           level: string
           teacher_id: string
@@ -266,6 +288,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string
+          folder_id?: string | null
           id?: string
           level?: string
           teacher_id: string
@@ -274,12 +297,21 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          folder_id?: string | null
           id?: string
           level?: string
           teacher_id?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vocab_lists_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "list_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       word_progress: {
         Row: {
