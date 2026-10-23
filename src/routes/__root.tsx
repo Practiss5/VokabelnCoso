@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { applyStoredDys } from "@/components/DysToggle";
+import { ThemeToggle, applyStoredTheme } from "@/components/ThemeToggle";
 
 function NotFoundComponent() {
   return (
@@ -114,6 +115,7 @@ function RootComponent() {
 
   useEffect(() => {
     applyStoredDys();
+    applyStoredTheme();
   }, []);
 
   useEffect(() => {
@@ -127,6 +129,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeToggle />
       <Outlet />
       <Toaster position="top-center" />
     </QueryClientProvider>
