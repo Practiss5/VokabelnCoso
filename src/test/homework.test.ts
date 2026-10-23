@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak, homeworkStatus } from "@/lib/vocab";
+import { computeStreak, homeworkCsv, homeworkStatus, pickQuizWords } from "@/lib/vocab";
 
 const C = "2026-10-20T08:00:00Z", D = "2026-10-23T18:00:00Z", T = "2026-10-21T10:00:00Z";
 const ids = ["a", "b", "c", "d", "e"];
@@ -33,5 +33,17 @@ describe("computeStreak", () => {
   });
   it("does not count a day below 16 answers", () => {
     expect(computeStreak(day(23, 15), new Date("2026-10-23T12:00:00")).days).toBe(0);
+  });
+});
+
+describe("paper quiz & export", () => {
+  it("picks the same 12 words for the same seed", () => {
+    const w = Array.from({ length: 20 }, (_, i) => i);
+    expect(pickQuizWords(w, 12, 0.42)).toEqual(pickQuizWords(w, 12, 0.42));
+    expect(pickQuizWords(w, 12, 0.42)).toHaveLength(12);
+  });
+  it("exports one line per student with the status", () => {
+    const csv = homeworkCsv("Haus", "23/10/2026", [{ name: "Léa", done: true, qcm: 4, qcmNeed: 4, writing: 3, writingNeed: 3 }]);
+    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";"4";"4";"3";"3";"Haus";"23/10/2026"');
   });
 });

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeStreak, homeworkStatus } from "@/lib/vocab";
+import { computeStreak, homeworkCsv, homeworkStatus } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -50,6 +50,17 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     qc.invalidateQueries({ queryKey: ["homeworks", classId] });
   }
 
+  function exportCsv(title: string, dueAt: string, st: { s: { full_name: string }; r: ReturnType<typeof homeworkStatus> }[]) {
+    const due = new Date(dueAt).toLocaleDateString("fr-FR");
+    const csv = homeworkCsv(title, due, st.map(({ s, r }) => ({ name: s.full_name || "—", ...r })));
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `devoir-${title.replace(/[^\p{L}\p{N}]+/gu, "-")}-${due.replace(/\//g, "-")}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
   return (
     <section className="word-card space-y-4 p-4">
       <h2 className="text-xl font-bold">📅 Devoirs</h2>
@@ -84,7 +95,10 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                 <p className="text-sm text-muted-foreground">Pour {fmt(h.due_at)}{late ? " · terminé" : ""}{h.instructions ? ` · ${h.instructions}` : ""}</p>
                 <p className="text-sm font-semibold">{doneN}/{students.length} élèves ont fait le devoir</p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st)}>⬇️ Excel / CSV</Button>
+                <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
+              </div>
             </div>
             <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
               {st.map(({ s, r }) => (
