@@ -43,7 +43,12 @@ describe("paper quiz & export", () => {
     expect(pickQuizWords(w, 12, 0.42)).toHaveLength(12);
   });
   it("exports one line per student with the status", () => {
-    const csv = homeworkCsv("Haus", "23/10/2026", [{ name: "Léa", done: true, qcm: 4, qcmNeed: 4, writing: 3, writingNeed: 3 }]);
-    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";"4";"4";"3";"3";"Haus";"23/10/2026"');
+    const csv = homeworkCsv("Haus", "23/10/2026", false, [{ name: "Léa", done: true, qcm: 4, qcmNeed: 4, writing: 3, writingNeed: 3 }]);
+    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";4;4;3;3;"Haus";"23/10/2026"');
+  });
+  it("says 'À faire' before the deadline and 'Non fait' after it", () => {
+    const row = { name: "Tom", done: false, qcm: 1, qcmNeed: 4, writing: 0, writingNeed: 3 };
+    expect(homeworkCsv("Haus", "x", false, [row]).split("\r\n")[1]).toContain('"À faire"');
+    expect(homeworkCsv("Haus", "x", true, [row]).split("\r\n")[1]).toContain('"Non fait"');
   });
 });

@@ -281,9 +281,9 @@ export function pickQuizWords<T>(words: T[], count: number, seed: number): T[] {
 }
 
 /** Homework export for spreadsheets (French Excel: ";" separator). */
-export function homeworkCsv(title: string, due: string, rows: { name: string; done: boolean; qcm: number; qcmNeed: number; writing: number; writingNeed: number }[]): string {
-  const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; qcm: number; qcmNeed: number; writing: number; writingNeed: number }[]): string {
+  const q = (v: string | number) => (typeof v === "number" ? String(v) : `"${v.replace(/"/g, '""')}"`);
   const lines = [["Élève", "Statut", "QCM réussis", "QCM requis", "Écrit réussis", "Écrit requis", "Liste", "Date limite"].map(q).join(";")];
-  for (const r of rows) lines.push([r.name, r.done ? "Fait" : "Non fait", r.qcm, r.qcmNeed, r.writing, r.writingNeed, title, due].map(q).join(";"));
+  for (const r of rows) lines.push([r.name, r.done ? "Fait" : late ? "Non fait" : "À faire", r.qcm, r.qcmNeed, r.writing, r.writingNeed, title, due].map(q).join(";"));
   return lines.join("\r\n");
 }
