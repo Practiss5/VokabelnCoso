@@ -137,6 +137,6 @@ describe("écriture : espaces et trémas tolérés", () => {
   it("excuse un espace en trop ou doublé", () => expect(isWrittenCorrect(" die  Katze ", "die Katze")).toBe(true));
   it("exige toujours l'article", () => expect(isWrittenCorrect("Katze", "die Katze")).toBe(false));
   it("¨ vaut ä", () => expect(isWrittenCorrect("ma¨dchen", "Mädchen")).toBe(true));
-  it('" vaut ü', () => expect(isWrittenCorrect('f"r', "für")).toBe(true));
+  it('" vaut ü (avant ou après la voyelle)', () => { expect(isWrittenCorrect('f"ur', "für")).toBe(true); expect(isWrittenCorrect('fu"r', "für")).toBe(true); });
   it("n'accepte pas un mot différent", () => expect(isWrittenCorrect("dieHunde", "die Katze")).toBe(false));
 });
