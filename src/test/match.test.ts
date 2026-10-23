@@ -12,7 +12,7 @@ describe("match game", () => {
   it("pads a 14-word list's last wave to 6 with distinct already-seen words", () => {
     const w = buildWaves(words(14));
     expect(w.map((x) => x.length)).toEqual([6, 6, 6]);
-    expect(new Set(w[2].map((x) => x.id)).size).toBe(6);
+    expect(new Set(w[2]!.map((x) => x.id)).size).toBe(6);
     expect(new Set(w.flat().map((x) => x.id)).size).toBe(14);
   });
   it("a wave has 12 cards, one German and one French per word", () => {
