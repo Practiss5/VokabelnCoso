@@ -272,3 +272,18 @@ export function cleanSpoken(t: string): string {
 export function isSpokenCorrect(transcripts: string[], expected: string): boolean {
   return transcripts.some((t) => isAnswerCorrect(cleanSpoken(t), expected));
 }
+
+/** Paper quiz: a stable random pick (same seed → same words for the student sheet and the answer key). */
+export function pickQuizWords<T>(words: T[], count: number, seed: number): T[] {
+  let s = Math.floor(seed * 2 ** 31) || 1;
+  const rng = () => ((s = (s * 48271) % 2147483647) / 2147483647);
+  return shuffle(words, rng).slice(0, count);
+}
+
+/** Homework export for spreadsheets (French Excel: ";" separator). */
+export function homeworkCsv(title: string, due: string, rows: { name: string; done: boolean; qcm: number; qcmNeed: number; writing: number; writingNeed: number }[]): string {
+  const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [["Élève", "Statut", "QCM réussis", "QCM requis", "Écrit réussis", "Écrit requis", "Liste", "Date limite"].map(q).join(";")];
+  for (const r of rows) lines.push([r.name, r.done ? "Fait" : "Non fait", r.qcm, r.qcmNeed, r.writing, r.writingNeed, title, due].map(q).join(";"));
+  return lines.join("\r\n");
+}

@@ -109,7 +109,10 @@ function ListEditor() {
       <Link to="/enseignant" className="text-sm underline">← Retour</Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input defaultValue={data.list.title} onBlur={(e) => rename(e.target.value)} className="h-auto border-0 bg-transparent px-0 font-display text-4xl font-bold shadow-none" />
-        <Button variant="destructive" onClick={deleteList}>Supprimer la liste</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline"><Link to="/enseignant/fiche/$listId" params={{ listId: data.list.id }}>🖨️ Fiche de contrôle</Link></Button>
+          <Button variant="destructive" onClick={deleteList}>Supprimer la liste</Button>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium">Niveau :</span>
