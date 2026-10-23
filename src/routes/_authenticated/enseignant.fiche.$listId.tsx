@@ -40,10 +40,10 @@ function Sheet() {
           <span className="text-sm">Nombre de mots :</span>
           {[10, 12].map((n) => <Button key={n} size="sm" variant={count === n ? "default" : "outline"} onClick={() => setCount(n)}>{n}</Button>)}
           <Button size="sm" variant="outline" onClick={() => setSeed(Math.random())}>🔀 Autres mots</Button>
-          <Button size="sm" variant={key ? "default" : "outline"} onClick={() => setKey((k) => !k)}>{key ? "Corrigé affiché" : "Version élève"}</Button>
+          <Button size="sm" variant={key ? "default" : "outline"} onClick={() => setKey((k) => !k)}>{key ? "Masquer le corrigé" : "Afficher le corrigé"}</Button>
           <Button size="sm" onClick={() => window.print()}>🖨️ Imprimer</Button>
         </div>
-        <p className="text-xs text-muted-foreground">Imprimez la version élève, puis touchez « Version élève » pour afficher et imprimer le corrigé avec les mêmes mots. Pour un PDF, choisissez « Enregistrer en PDF » dans la fenêtre d'impression.</p>
+        <p className="text-xs text-muted-foreground">Imprimez la version élève, puis touchez « Afficher le corrigé » pour obtenir et imprimer le corrigé avec les mêmes mots. Pour un PDF, choisissez « Enregistrer en PDF » dans la fenêtre d'impression.</p>
         {data.words.length < count && <p className="text-sm text-destructive">La liste ne contient que {data.words.length} mots.</p>}
       </div>
 
