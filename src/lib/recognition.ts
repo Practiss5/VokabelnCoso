@@ -17,19 +17,21 @@ function ctor(): (new () => Rec) | null {
 
 export const canRecognize = () => ctor() !== null;
 
-/** Listen once in German; resolves with alternative transcripts (empty if nothing heard). */
-export function listenGerman(): { promise: Promise<string[]>; stop: () => void } {
+/** Listen once in German; resolves with alternative transcripts (empty if nothing heard).
+ *  Interim results are kept so short words ("die Stadt") are not lost when Safari ends early. */
+export function listenGerman(onInterim?: (t: string) => void): { promise: Promise<string[]>; stop: () => void } {
   const C = ctor();
   if (!C) return { promise: Promise.reject(new Error("unsupported")), stop: () => {} };
   const rec = new C();
-  rec.lang = "de-DE"; rec.interimResults = false; rec.maxAlternatives = 5; rec.continuous = false;
+  rec.lang = "de-DE"; rec.interimResults = true; rec.maxAlternatives = 5; rec.continuous = false;
   const promise = new Promise<string[]>((resolve, reject) => {
     let out: string[] = [];
     rec.onresult = (e) => {
-      const r = e.results[0];
-      out = r ? Array.from({ length: r.length }, (_, i) => r[i]!.transcript) : [];
+      const r = e.results[e.results.length - 1] ?? e.results[0];
+      const alts = r ? Array.from({ length: r.length }, (_, i) => r[i]!.transcript).filter((s) => s.trim()) : [];
+      if (alts.length) { out = alts; onInterim?.(alts[0]!); }
     };
-    rec.onerror = (e) => (e.error === "no-speech" || e.error === "aborted" ? resolve([]) : reject(new Error(e.error)));
+    rec.onerror = (e) => (e.error === "no-speech" || e.error === "aborted" ? resolve(out) : reject(new Error(e.error)));
     rec.onend = () => resolve(out);
   });
   rec.start();
