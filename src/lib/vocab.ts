@@ -9,13 +9,17 @@ export type Progress = {
   correct_count: number;
 };
 
-/** Normalise a typed German answer: case, spaces, umlaut spellings (ae→ä…), ß/ss. */
+/** Normalise a typed German answer: case, spaces, umlaut spellings (ae→ä…), ß/ss.
+ *  Dead keys count too: a¨ / a" / a + combining diaeresis all become ä. */
 export function normalizeAnswer(s: string): string {
+  const umlaut = (c: string) => (c === "a" ? "ä" : c === "o" ? "ö" : "ü");
   return s
     .normalize("NFC")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ")
+    .replace(/([aou])["¨]/g, (_, c: string) => umlaut(c))
+    .replace(/["¨]([aou])/g, (_, c: string) => umlaut(c))
     .replace(/ae/g, "ä")
     .replace(/oe/g, "ö")
     .replace(/ue/g, "ü")
@@ -27,6 +31,13 @@ export function isAnswerCorrect(typed: string, expected: string): boolean {
   // Teachers may store alternatives separated by "/" (e.g. "der Junge / der Knabe").
   const options = expected.split("/").map((o) => normalizeAnswer(o));
   return options.includes(normalizeAnswer(typed));
+}
+
+/** Written answers (Écriture & texte à trou): a space — extra, doubled or missing — is never an error. */
+export function isWrittenCorrect(typed: string, expected: string): boolean {
+  if (!typed.trim()) return false;
+  const squish = (s: string) => normalizeAnswer(s).replace(/ /g, "");
+  return expected.split("/").some((o) => squish(o) === squish(typed));
 }
 
 function shuffle<T>(arr: T[], rng: () => number): T[] {

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
   type DailyItem, type DailyMode, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
   function submitContext() {
     if (!cloze) return;
-    if (isAnswerCorrect(typed, cloze.answer)) { answer(true, typed); return; }
+    if (isWrittenCorrect(typed, cloze.answer)) { answer(true, typed); return; }
     // First miss: no penalty yet, show a hint and allow a second try.
     if (!secondTry) { setSecondTry(true); setErrorType(diagnoseAnswer(typed, cloze.answer)); return; }
     answer(false, typed);
@@ -220,7 +220,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
       )}
 
       {mode === "typing" && (
-        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isAnswerCorrect(typed, word.german), typed); else next(); }} className="space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isWrittenCorrect(typed, word.german), typed); else next(); }} className="space-y-3">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
           <div className="flex flex-wrap gap-1">

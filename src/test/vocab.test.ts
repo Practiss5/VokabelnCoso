@@ -121,7 +121,7 @@ describe("speaking", () => {
   });
 });
 
-import { buildChoices as bc } from "@/lib/vocab";
+import { buildChoices as bc, isWrittenCorrect } from "@/lib/vocab";
 describe("QCM inversé", () => {
   it("propose des choix allemands quand le sens est français → allemand", () => {
     const pool = [1, 2, 3, 4, 5].map((i) => ({ id: `${i}`, german: `das Wort${i}`, french: `mot${i}` }));
@@ -130,4 +130,13 @@ describe("QCM inversé", () => {
     expect(c).toContain("das Wort1");
     expect(c.every((x) => x.startsWith("das "))).toBe(true);
   });
+});
+
+describe("écriture : espaces et trémas tolérés", () => {
+  it("excuse un espace manquant", () => expect(isWrittenCorrect("dieKatze", "die Katze")).toBe(true));
+  it("excuse un espace en trop ou doublé", () => expect(isWrittenCorrect(" die  Katze ", "die Katze")).toBe(true));
+  it("exige toujours l'article", () => expect(isWrittenCorrect("Katze", "die Katze")).toBe(false));
+  it("¨ vaut ä", () => expect(isWrittenCorrect("ma¨dchen", "Mädchen")).toBe(true));
+  it('" vaut ü', () => expect(isWrittenCorrect('f"r', "für")).toBe(true));
+  it("n'accepte pas un mot différent", () => expect(isWrittenCorrect("dieHunde", "die Katze")).toBe(false));
 });
