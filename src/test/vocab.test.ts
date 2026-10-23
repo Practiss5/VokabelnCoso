@@ -149,3 +149,10 @@ describe("écriture sans pluriel", () => {
   it("verbe: virgule facultative", () => expect(isWrittenCorrect("fahren er fährt", "fahren, er fährt")).toBe(true));
   it("point sous la lettre ignoré", () => { expect(isWrittenCorrect("die Stadt", "die Stạdt, ”-e")).toBe(true); expect(isWrittenCorrect("warten er wartet", "wạrten, er wạrtet")).toBe(true); });
 });
+
+import { isSpokenCorrect as _spk } from "@/lib/vocab";
+import { test as _t, expect as _e } from "vitest";
+_t("spoken 'die Stadt' accepted for 'die Stạdt, ”-e'", () => {
+  _e(_spk(["die Stadt"], "die Stạdt, ”-e")).toBe(true);
+  _e(_spk(["Stadt"], "die Stạdt, ”-e")).toBe(false);
+});

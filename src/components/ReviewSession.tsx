@@ -70,7 +70,8 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
   async function speak() {
     if (listening) { stopRef.current?.(); return; }
     try {
-      const l = listenGerman();
+      setHeard("");
+      const l = listenGerman((t) => setHeard(t));
       stopRef.current = l.stop; setListening(true);
       const alts = await l.promise;
       setListening(false);
@@ -185,6 +186,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
               {listening ? "● J'écoute… (toucher pour arrêter)" : "🎙️ Parler"}
             </Button>
           )}
+          {listening && <p className="text-center text-sm text-muted-foreground">J'entends : « {heard || "…"} »</p>}
           {answered === null && (useKeyboard || !canRecognize()) && (
             <form onSubmit={(e) => { e.preventDefault(); if (typed.trim()) judgeSpoken([typed]); setTyped(""); }} className="space-y-2">
               <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)}

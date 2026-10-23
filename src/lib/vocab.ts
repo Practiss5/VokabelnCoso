@@ -289,7 +289,8 @@ export function cleanSpoken(t: string): string {
   return t.replace(/[.,!?;:"«»„“”']/g, " ").replace(/\s+/g, " ").trim();
 }
 export function isSpokenCorrect(transcripts: string[], expected: string): boolean {
-  return transcripts.some((t) => isAnswerCorrect(cleanSpoken(t), expected));
+  // Same tolerance as writing: plural hints and dots under letters are not needed.
+  return transcripts.some((t) => isWrittenCorrect(cleanSpoken(t), expected));
 }
 
 /** Paper quiz: a stable random pick (same seed → same words for the student sheet and the answer key). */
