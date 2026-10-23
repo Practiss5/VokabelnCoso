@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { GermanAudio } from "@/components/GermanAudio";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
   head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -196,11 +197,17 @@ function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange
       </li>
     );
   return (
-    <li className="flex items-center justify-between gap-2 py-2">
-      <span>
-        <b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span>
-        {word.example_de && <span className="block text-sm italic">{word.example_de} <span className="not-italic text-muted-foreground">{word.example_fr}</span></span>}
-      </span>
+    <li className="flex flex-wrap items-center justify-between gap-2 py-2">
+      <div className="min-w-0 flex-1 basis-64">
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 break-words"><b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span></span>
+          <GermanAudio text={word.german} />
+        </div>
+        {word.example_de && <div className="mt-1 flex items-center gap-2">
+          <span className="min-w-0 break-words text-sm italic">{word.example_de} <span className="not-italic text-muted-foreground">{word.example_fr}</span></span>
+          <GermanAudio text={word.example_de} label="Écouter la phrase" />
+        </div>}
+      </div>
       <span className="flex shrink-0 flex-wrap justify-end gap-1">
         <Button size="sm" variant="ghost" disabled={busy} onClick={propose}>{busy ? "…" : "✨ Phrase"}</Button>
         <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Modifier</Button>
