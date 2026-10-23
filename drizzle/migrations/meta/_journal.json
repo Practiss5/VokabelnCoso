@@ -43,6 +43,13 @@
       "when": 1792735415386,
       "tag": "0005_create_list_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792735697080,
+      "tag": "0006_folder_share_copy",
+      "breakpoints": true
     }
   ]
 }
