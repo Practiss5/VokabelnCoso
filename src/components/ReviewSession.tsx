@@ -9,6 +9,8 @@ import {
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GermanAudio } from "@/components/GermanAudio";
+import { reviewSpeech } from "@/lib/speech";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
 
@@ -117,6 +119,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
           <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" ? word.french : word.german}</p>
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
+        <div className="mt-3 flex justify-center">
+          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, mode, answered !== null)}
+            label={mode === "context" ? "Écouter la phrase" : "Écouter le mot"} />
+        </div>
       </div>
 
       {mode === "flashcard" && answered === null && (
