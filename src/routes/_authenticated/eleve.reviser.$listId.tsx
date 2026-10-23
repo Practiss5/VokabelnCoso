@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { hasCloze, orderQueue, type Word } from "@/lib/vocab";
 import { ReviewSession } from "@/components/ReviewSession";
+import { MatchGame } from "@/components/MatchGame";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 
@@ -35,6 +36,7 @@ function Review() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [session, setSession] = useState<{ words: Word[]; pool: Word[]; caughtUp: boolean } | null>(null);
   const [title, setTitle] = useState("");
+  const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
 
   async function start(m: Mode) {
     const [list, words, prog] = await Promise.all([
@@ -54,6 +56,14 @@ function Review() {
     setMode(m);
   }
 
+  async function startMatch() {
+    const { data } = await supabase.from("words").select("id, german, french").eq("list_id", listId);
+    if (!data || data.length < 2) { toast.error("Il faut au moins 2 mots dans la liste."); return; }
+    setMatchWords(data);
+  }
+
+  if (matchWords) return <MatchGame listId={listId} words={matchWords} onQuit={() => setMatchWords(null)} />;
+
   if (!mode || !session)
     return (
       <div className="space-y-6">
@@ -66,6 +76,10 @@ function Review() {
               <p className="mt-2 text-sm text-muted-foreground">{m.desc}</p>
             </button>
           ))}
+          <button onClick={startMatch} className="word-card border-2 border-accent p-5 text-left transition-transform hover:-translate-y-0.5">
+            <h2 className="text-2xl font-bold">Cartes à relier ⚡</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Reliez les paires sans vous tromper et battez le record de la classe. (Ne compte pas pour les devoirs.)</p>
+          </button>
         </div>
       </div>
     );
