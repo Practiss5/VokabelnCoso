@@ -40,13 +40,14 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
   return a;
 }
 
-/** Four French options (one correct) drawn from the same list. */
-export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random): string[] {
+/** Four options (one correct) drawn from the same list: French, or German when reversed. */
+export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random, reverse = false): string[] {
+  const key = reverse ? "german" : "french";
   const others = Array.from(
-    new Set(pool.filter((w) => w.id !== target.id && w.french !== target.french).map((w) => w.french)),
+    new Set(pool.filter((w) => w.id !== target.id && w[key] !== target[key]).map((w) => w[key])),
   );
   const distractors = shuffle(others, rng).slice(0, 3);
-  return shuffle([target.french, ...distractors], rng);
+  return shuffle([target[key], ...distractors], rng);
 }
 
 /**

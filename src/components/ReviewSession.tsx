@@ -37,7 +37,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
   const word = item?.word;
   const mode = item?.mode;
   const cloze = mode === "context" && word ? parseCloze(word.example_de) : null;
-  const choices = useMemo(() => (word ? buildChoices(word, pool) : []), [word, pool]);
+  // QCM direction is mixed automatically: about half the questions go French → German.
+  const reverse = useMemo(() => mode === "choice" && Math.random() < 0.5, [index, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const target = word ? (reverse ? word.german : word.french) : "";
+  const choices = useMemo(() => (word ? buildChoices(word, pool, Math.random, reverse) : []), [word, pool, reverse]);
 
   async function answer(correct: boolean, given?: string) {
     if (answered !== null || !item || !word || !mode) return;
