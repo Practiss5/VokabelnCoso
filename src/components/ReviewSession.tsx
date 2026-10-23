@@ -37,7 +37,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
   const word = item?.word;
   const mode = item?.mode;
   const cloze = mode === "context" && word ? parseCloze(word.example_de) : null;
-  const choices = useMemo(() => (word ? buildChoices(word, pool) : []), [word, pool]);
+  // QCM direction is mixed automatically: about half the questions go French → German.
+  const reverse = useMemo(() => mode === "choice" && Math.random() < 0.5, [index, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const target = word ? (reverse ? word.german : word.french) : "";
+  const choices = useMemo(() => (word ? buildChoices(word, pool, Math.random, reverse) : []), [word, pool, reverse]);
 
   async function answer(correct: boolean, given?: string) {
     if (answered !== null || !item || !word || !mode) return;
@@ -131,7 +134,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : "Deutsch"}
         </p>
         {cloze ? (
           <>
@@ -145,11 +148,11 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
             )}
           </>
         ) : (
-          <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" ? word.french : word.german}</p>
+          <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" || reverse ? word.french : word.german}</p>
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
         <div className="mt-3 flex justify-center">
-          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, mode, answered !== null)}
+          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, reverse ? "typing" : mode, answered !== null)}
             label={mode === "context" ? "Écouter la phrase" : "Écouter le mot"} />
         </div>
       </div>
@@ -164,9 +167,9 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
       {mode === "choice" && (
         <div className="grid gap-3">
           {choices.map((c) => {
-            const state = answered === null ? "" : c === word.french ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
+            const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
             return (
-              <button key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === word.french, c); }}
+              <button key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }}
                 className={`word-card min-h-14 px-4 py-3 text-left text-lg font-medium ${state}`}>
                 {c}
               </button>
@@ -269,7 +272,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
           <p className={`text-center text-lg font-bold ${answered ? "text-success" : "text-destructive"}`}>
             {answered ? "Richtig ! ✓" : "Pas encore… ✗"}
           </p>
-          {answered === false && mode === "choice" && <p className="text-center">Bonne réponse : <b>{word.french}</b></p>}
+          {answered === false && mode === "choice" && <p className="text-center">Bonne réponse : <b>{target}</b></p>}
           {mode !== "typing" && mode !== "context" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
         </>
       )}

@@ -120,3 +120,14 @@ describe("speaking", () => {
     expect(buildDailySession([w], sk, now)[0]?.mode).toBe("speaking");
   });
 });
+
+import { buildChoices as bc } from "@/lib/vocab";
+describe("QCM inversé", () => {
+  it("propose des choix allemands quand le sens est français → allemand", () => {
+    const pool = [1, 2, 3, 4, 5].map((i) => ({ id: `${i}`, german: `das Wort${i}`, french: `mot${i}` }));
+    const c = bc(pool[0]!, pool, Math.random, true);
+    expect(c).toHaveLength(4);
+    expect(c).toContain("das Wort1");
+    expect(c.every((x) => x.startsWith("das "))).toBe(true);
+  });
+});
