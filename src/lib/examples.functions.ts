@@ -25,9 +25,10 @@ export const generateExamples = createServerFn({ method: "POST" })
 
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("Clé IA manquante");
-    const { createOpenAI } = await import("@ai-sdk/openai");
+    const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
     const { streamText } = await import("ai");
-    const provider = createOpenAI({
+    const provider = createOpenAICompatible({
+      name: "lovable",
       baseURL: "https://ai.gateway.lovable.dev/v1",
       apiKey,
       headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
@@ -39,10 +40,9 @@ Réponds uniquement en JSON : {"items":[{"id":"...","de":"...","fr":"..."}]}
 Mots :
 ${words.map((w) => `${w.id} | ${w.german} | ${w.french}`).join("\n")}`;
     const result = streamText({
-      model: provider.responses("openai/gpt-6-astra"),
+      model: provider("google/gemini-3.1-flash-lite"),
       prompt,
       maxRetries: 0,
-      providerOptions: { openai: { store: false, forceReasoning: true, reasoningEffort: "low" } },
     });
     let text: string;
     try { text = await result.text; } catch (e) {
