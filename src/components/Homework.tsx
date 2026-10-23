@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { homeworkStatus } from "@/lib/vocab";
+import { computeStreak, homeworkStatus } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -27,7 +27,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         supabase.from("vocab_lists").select("id, title").eq("teacher_id", u.user!.id).order("title"),
       ]);
       const ids = students.map((s) => s.id);
-      const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at").in("student_id", ids)).data ?? [] : [];
+      const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
       return { hw: (hw.data ?? []) as Hw[], lists: lists.data ?? [], rev };
     },
   });
@@ -70,7 +70,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         </div>
         <Button type="submit">Donner en devoir</Button>
       </form>
-      <p className="text-xs text-muted-foreground">Un devoir est « fait » quand l'élève a répondu au moins une fois à chaque mot de la liste avant la date limite.</p>
+      <p className="text-xs text-muted-foreground">Un devoir est « fait » quand, avant la date limite, l'élève a réussi au moins 80 % des mots en QCM (ou plus difficile) et 60 % des mots à l'écrit.</p>
       {data?.hw.map((h) => {
         const words = h.vocab_lists?.words.map((w) => w.id) ?? [];
         const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at) }));
@@ -90,7 +90,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               {st.map(({ s, r }) => (
                 <li key={s.id} className="flex justify-between gap-2 rounded bg-secondary px-2 py-1">
                   <span>{s.full_name || "—"}</span>
-                  <span className={r.done ? "font-semibold text-success" : "text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} ⏳ ${r.answered}/${r.total}`}</span>
+                  <span className={r.done ? "font-semibold text-success" : "text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} ⏳ QCM ${r.qcm}/${r.qcmNeed} · Écrit ${r.writing}/${r.writingNeed}`}</span>
                 </li>
               ))}
             </ul>
@@ -109,7 +109,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as Hw[];
-      const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at").eq("student_id", studentId)).data ?? [] : [];
+      const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId)).data ?? [] : [];
       return hw.map((h) => ({ h, r: homeworkStatus(h.vocab_lists?.words.map((w) => w.id) ?? [], rev, h.created_at, h.due_at) }));
     },
   });
@@ -124,12 +124,35 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title}</p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
-              {!r.done && <p className="text-sm text-muted-foreground">{r.answered}/{r.total} mots déjà révisés</p>}
+              {!r.done && <p className="text-sm text-muted-foreground">QCM : {r.qcm}/{r.qcmNeed} mots {r.qcm >= r.qcmNeed ? "✅" : "⏳"} · Écriture : {r.writing}/{r.writingNeed} mots {r.writing >= r.writingNeed ? "✅" : "⏳"}</p>}
             </div>
             {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }}>Commencer le devoir</Link></Button>}
           </div>
         );
       })}
+    </section>
+  );
+}
+
+/** Student: daily streak ("série") with a flame. */
+export function StudentStreak({ studentId }: { studentId: string }) {
+  const { data } = useQuery({
+    queryKey: ["streak", studentId],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 400 * 86400000).toISOString();
+      const rows = (await supabase.from("reviews").select("created_at").eq("student_id", studentId).gte("created_at", since).limit(20000)).data ?? [];
+      return computeStreak(rows.map((x) => x.created_at), new Date());
+    },
+  });
+  if (!data) return null;
+  const msg = data.days === 0 ? "Fais tes 16 mots aujourd'hui pour allumer ta flamme !" : data.today ? "Objectif du jour atteint. Reviens demain pour entretenir ta flamme !" : "Fais tes 16 mots aujourd'hui pour garder ta série !";
+  return (
+    <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
+      <span aria-hidden className={`text-4xl ${data.days ? "" : "opacity-30 grayscale"}`}>🔥</span>
+      <div>
+        <p className="text-xl font-bold">Série : {data.days} jour{data.days > 1 ? "s" : ""}</p>
+        <p className="text-sm text-muted-foreground">{msg}</p>
+      </div>
     </section>
   );
 }

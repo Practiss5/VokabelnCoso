@@ -7,7 +7,7 @@ import { meQuery } from "@/lib/session";
 import { DAILY_GOAL, ERROR_LABELS, isMastered, MODE_LABELS, REASON_LABELS } from "@/lib/vocab";
 import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
-import { StudentHomework } from "@/components/Homework";
+import { StudentHomework, StudentStreak } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,6 +29,7 @@ function StudentHome() {
         <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
         <h1 className="text-4xl font-bold">Aujourd'hui</h1>
       </div>
+      <StudentStreak studentId={me.id} />
       <StudentHomework studentId={me.id} classId={me.classId} />
       <DailyCard />
       <section className="space-y-4">

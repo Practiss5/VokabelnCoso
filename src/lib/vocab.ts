@@ -219,25 +219,47 @@ export function clozeHint(answer: string): string {
   return answer.split(" ").map((p) => p[0] + "·".repeat(Math.max(0, p.length - 1))).join(" ");
 }
 
-/** Homework is done when every word of the list was answered at least once between assignment and deadline. */
+export const HW_QCM_RATE = 0.8;
+export const HW_WRITING_RATE = 0.6;
+const QCM_OR_ABOVE = new Set(["choice", "typing", "context"]);
+const WRITING = new Set(["typing", "context"]);
+
+/**
+ * Homework is done when, between assignment and deadline, at least 80 % of the
+ * words were answered correctly at QCM level or above AND 60 % in writing.
+ */
 export function homeworkStatus(
   wordIds: string[],
-  reviews: { word_id: string; created_at: string }[],
+  reviews: { word_id: string; created_at: string; mode?: string; correct?: boolean }[],
   createdAt: string,
   dueAt: string,
-): { done: boolean; answered: number; total: number; doneAt: string | null } {
+) {
   const start = new Date(createdAt).getTime();
   const end = new Date(dueAt).getTime();
   const ids = new Set(wordIds);
-  const first = new Map<string, string>();
+  const qcm = new Set<string>(), writing = new Set<string>();
   for (const r of reviews) {
     const t = new Date(r.created_at).getTime();
-    if (!ids.has(r.word_id) || t < start || t > end) continue;
-    const prev = first.get(r.word_id);
-    if (!prev || r.created_at < prev) first.set(r.word_id, r.created_at);
+    if (!ids.has(r.word_id) || t < start || t > end || !r.correct) continue;
+    if (QCM_OR_ABOVE.has(r.mode ?? "")) qcm.add(r.word_id);
+    if (WRITING.has(r.mode ?? "")) writing.add(r.word_id);
   }
   const total = ids.size;
-  const done = total > 0 && first.size === total;
-  const doneAt = done ? [...first.values()].sort().at(-1)! : null;
-  return { done, answered: first.size, total, doneAt };
+  const qcmNeed = Math.ceil(total * HW_QCM_RATE), writingNeed = Math.ceil(total * HW_WRITING_RATE);
+  const done = total > 0 && qcm.size >= qcmNeed && writing.size >= writingNeed;
+  return { done, total, qcm: qcm.size, qcmNeed, writing: writing.size, writingNeed };
+}
+
+/** Streak: consecutive days (ending today or yesterday) with at least `goal` answers. */
+export function computeStreak(dates: string[], now: Date, goal = DAILY_GOAL): { days: number; today: boolean } {
+  const key = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const count = new Map<string, number>();
+  for (const s of dates) { const k = key(new Date(s)); count.set(k, (count.get(k) ?? 0) + 1); }
+  const ok = (d: Date) => (count.get(key(d)) ?? 0) >= goal;
+  const d = new Date(now);
+  const today = ok(d);
+  if (!today) d.setDate(d.getDate() - 1);
+  let days = 0;
+  while (ok(d)) { days++; d.setDate(d.getDate() - 1); }
+  return { days, today };
 }
