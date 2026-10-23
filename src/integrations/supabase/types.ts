@@ -140,6 +140,36 @@ export type Database = {
         }
         Relationships: []
       }
+      match_games: {
+        Row: {
+          best_run: number
+          class_id: string
+          created_at: string
+          id: string
+          list_id: string
+          pairs: number
+          student_id: string
+        }
+        Insert: {
+          best_run: number
+          class_id: string
+          created_at?: string
+          id?: string
+          list_id: string
+          pairs: number
+          student_id: string
+        }
+        Update: {
+          best_run?: number
+          class_id?: string
+          created_at?: string
+          id?: string
+          list_id?: string
+          pairs?: number
+          student_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           class_id: string | null
@@ -403,6 +433,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      class_match_top: {
+        Args: { _list: string }
+        Returns: {
+          best_run: number
+          full_name: string
+          is_me: boolean
+        }[]
+      }
       copy_folder: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
@@ -441,6 +479,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      record_match: {
+        Args: { _best_run: number; _list: string; _pairs: number }
+        Returns: undefined
       }
       step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }

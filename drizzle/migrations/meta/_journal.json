@@ -57,6 +57,13 @@
       "when": 1792737035258,
       "tag": "0007_speaking_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792738007292,
+      "tag": "0008_match_game",
+      "breakpoints": true
     }
   ]
 }
