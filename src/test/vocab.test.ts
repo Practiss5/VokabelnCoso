@@ -147,4 +147,5 @@ describe("écriture sans pluriel", () => {
   it("nom: article toujours requis", () => expect(isWrittenCorrect("Stadt", "die Stadt, ”-e")).toBe(false));
   it("verbe: conjugaison exigée", () => expect(isWrittenCorrect("fahren", "fahren, er fährt")).toBe(false));
   it("verbe: virgule facultative", () => expect(isWrittenCorrect("fahren er fährt", "fahren, er fährt")).toBe(true));
+  it("point sous la lettre ignoré", () => { expect(isWrittenCorrect("die Stadt", "die Stạdt, ”-e")).toBe(true); expect(isWrittenCorrect("warten er wartet", "wạrten, er wạrtet")).toBe(true); });
 });
