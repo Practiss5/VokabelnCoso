@@ -1,4 +1,4 @@
-import { isSpokenCorrect, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { buildChoices, isAnswerCorrect, orderQueue, type Word } from "@/lib/vocab";
 
 const words: Word[] = [
