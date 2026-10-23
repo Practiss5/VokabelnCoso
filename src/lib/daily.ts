@@ -19,6 +19,6 @@ export const dailyQuery = (studentId: string, classId: string) =>
       for (const x of a.data ?? []) for (const w of x.vocab_lists?.words ?? []) if (!seen.has(w.id)) { seen.add(w.id); words.push(w); }
       const items = buildDailySession(words, sk.data ?? [], new Date(), DAILY_GOAL);
       const matched = (games.data ?? []).reduce((n, g) => n + g.pairs, 0);
-      return { words, items, doneToday: (today.count ?? 0) + matched };
+      return { words, skills: sk.data ?? [], items, doneToday: (today.count ?? 0) + matched };
     },
   });

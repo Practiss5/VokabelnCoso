@@ -152,7 +152,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
         <div className="mt-3 flex justify-center">
-          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, mode, answered !== null)}
+          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, reverse ? "typing" : mode, answered !== null)}
             label={mode === "context" ? "Écouter la phrase" : "Écouter le mot"} />
         </div>
       </div>
