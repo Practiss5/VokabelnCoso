@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { DAILY_GOAL, ERROR_LABELS, isMastered, MODE_LABELS, REASON_LABELS } from "@/lib/vocab";
+import { DAILY_GOAL, isMastered, REASON_LABELS } from "@/lib/vocab";
 import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
 import { StudentHomework, StudentStreak } from "@/components/Homework";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/eleve/")({
-  head: () => ({ meta: [{ title: "Mes révisions — Vocabulaire Allemand" }, { name: "description", content: "Listes à réviser et historique." }, { property: "og:title", content: "Mes révisions — Vocabulaire Allemand" }, { property: "og:description", content: "Listes à réviser et historique." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Mes révisions — Vocabulaire Allemand" }, { name: "description", content: "Séance du jour, entraînements et listes à réviser." }, { property: "og:title", content: "Mes révisions — Vocabulaire Allemand" }, { property: "og:description", content: "Séance du jour, entraînements et listes à réviser." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
       <StudentHome />
@@ -32,11 +32,11 @@ function StudentHome() {
       <StudentStreak studentId={me.id} />
       <StudentHomework studentId={me.id} classId={me.classId} />
       <DailyCard />
+      <ChooseStep />
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">Mes listes</h2>
         <MyLists />
       </section>
-      <History />
     </div>
   );
 }
@@ -136,35 +136,50 @@ function MyLists() {
   );
 }
 
-function History() {
+const STEPS = [
+  { mode: "flashcard", title: "🃏 Cartes" },
+  { mode: "choice", title: "🔠 QCM" },
+  { mode: "speaking", title: "🎙️ Prononciation" },
+  { mode: "typing", title: "✍️ Écriture" },
+  { mode: "context", title: "🧩 Phrases à trou" },
+] as const;
+
+/** Lets the student pick one exercise type over all class words, besides the daily session. */
+function ChooseStep() {
+  const [game, setGame] = useState(false);
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {STEPS.map((s) => (
+          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode }} className="word-card p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
+        ))}
+        <button onClick={() => setGame((g) => !g)} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</button>
+      </div>
+      {game && <GameLists />}
+    </section>
+  );
+}
+
+function GameLists() {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data } = useQuery({
-    queryKey: ["history"],
+    queryKey: ["game-lists", me!.classId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("reviews").select("id, mode, correct, error_type, created_at, words(german, french)")
-        .eq("student_id", me!.id).order("created_at", { ascending: false }).limit(40);
-      if (error) throw error;
-      return data;
+      const { data } = await supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", me!.classId!);
+      return (data ?? []).map((x) => x.vocab_lists).filter(Boolean) as { id: string; title: string }[];
     },
   });
-  const total = data?.length ?? 0;
-  const ok = data?.filter((r) => r.correct).length ?? 0;
+  if (!data) return <p>Chargement…</p>;
   return (
-    <section>
-      <h2 className="text-2xl font-bold">Historique récent</h2>
-      {total > 0 && <p className="mt-1 text-sm text-muted-foreground">{ok}/{total} bonnes réponses sur les dernières révisions</p>}
-      <ul className="word-card mt-4 divide-y">
-        {data?.map((r) => (
-          <li key={r.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
-            <span><b>{r.words?.german}</b> <span className="text-muted-foreground">— {r.words?.french}</span></span>
-            <span className="flex shrink-0 items-center gap-2">
-              <span className="text-xs text-muted-foreground">{MODE_LABELS[r.mode]}{r.error_type ? ` · ${ERROR_LABELS[r.error_type] ?? ""}` : ""} · {new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
-              <span className={r.correct ? "font-bold text-success" : "font-bold text-destructive"}>{r.correct ? "✓" : "✗"}</span>
-            </span>
-          </li>
+    <div className="rounded-lg bg-secondary p-4">
+      <p className="mb-2 text-sm">Sur quelle liste veux-tu jouer ?</p>
+      <div className="flex flex-wrap gap-2">
+        {data.map((l) => (
+          <Button key={l.id} asChild variant="outline"><Link to="/eleve/reviser/$listId" params={{ listId: l.id }} search={{ jeu: true }}>{l.title}</Link></Button>
         ))}
-        {total === 0 && <li className="p-4 text-sm text-muted-foreground">Pas encore de révision.</li>}
-      </ul>
-    </section>
+        {!data.length && <span className="text-sm text-muted-foreground">Aucune liste pour l'instant.</span>}
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
@@ -14,6 +14,7 @@ type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
+  validateSearch: (s: Record<string, unknown>): { jeu?: boolean } => (s.jeu === true || s.jeu === "true" ? { jeu: true } : {}),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
@@ -61,6 +62,9 @@ function Review() {
     if (!data || data.length < 2) { toast.error("Il faut au moins 2 mots dans la liste."); return; }
     setMatchWords(data);
   }
+
+  const { jeu } = Route.useSearch();
+  useEffect(() => { if (jeu) void startMatch(); }, [jeu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (matchWords) return <MatchGame listId={listId} words={matchWords} onQuit={() => setMatchWords(null)} />;
 
