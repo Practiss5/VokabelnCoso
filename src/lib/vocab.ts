@@ -36,8 +36,15 @@ export function isAnswerCorrect(typed: string, expected: string): boolean {
 /** Written answers (Écriture & texte à trou): a space — extra, doubled or missing — is never an error. */
 export function isWrittenCorrect(typed: string, expected: string): boolean {
   if (!typed.trim()) return false;
-  const squish = (s: string) => normalizeAnswer(s).replace(/ /g, "");
-  return expected.split("/").some((o) => squish(o) === squish(typed));
+  const squish = (s: string) =>
+    normalizeAnswer(s.replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s,;.]/g, "");
+  const t = squish(typed);
+  return expected.split("/").some((o) => {
+    if (squish(o) === t) return true;
+    // Nouns like "die Stadt, ”-e": the singular with article is enough.
+    const m = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i);
+    return !!m && squish(m[0]) === t;
+  });
 }
 
 function shuffle<T>(arr: T[], rng: () => number): T[] {
