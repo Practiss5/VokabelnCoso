@@ -121,18 +121,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          share_code: string
           teacher_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          share_code?: string
           teacher_id: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          share_code?: string
           teacher_id?: string
         }
         Relationships: []
@@ -400,6 +403,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      copy_folder: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

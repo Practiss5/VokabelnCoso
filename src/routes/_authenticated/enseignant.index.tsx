@@ -79,12 +79,13 @@ function Lists() {
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [folderName, setFolderName] = useState("");
+  const [shareCode, setShareCode] = useState("");
   const { data } = useQuery({
     queryKey: ["lists"],
     queryFn: async () => {
       const [lists, folders, classes] = await Promise.all([
         supabase.from("vocab_lists").select("id, title, folder_id, words(count)").eq("teacher_id", me!.id).order("created_at"),
-        supabase.from("list_folders").select("id, name").eq("teacher_id", me!.id).order("name"),
+        supabase.from("list_folders").select("id, name, share_code").eq("teacher_id", me!.id).order("name"),
         supabase.from("classes").select("id, name").eq("teacher_id", me!.id).order("name"),
       ]);
       if (lists.error) throw lists.error;
@@ -103,6 +104,12 @@ function Lists() {
     const { error } = await supabase.from("list_folders").insert({ name: folderName.trim(), teacher_id: me!.id });
     if (error) { toast.error(error.message); return; }
     setFolderName(""); refresh();
+  }
+  async function importFolder(e: React.FormEvent) {
+    e.preventDefault();
+    const { error } = await supabase.rpc("copy_folder", { _code: shareCode });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Classeur copié dans vos listes"); setShareCode(""); refresh();
   }
   async function move(listId: string, folderId: string) {
     const { error } = await supabase.from("vocab_lists").update({ folder_id: folderId || null }).eq("id", listId);
@@ -142,6 +149,10 @@ function Lists() {
         <Input required placeholder="Nouveau classeur (ex. Kapitel 1)" value={folderName} onChange={(e) => setFolderName(e.target.value)} />
         <Button type="submit" variant="secondary">📁 Créer</Button>
       </form>
+      <form onSubmit={importFolder} className="mt-2 flex gap-2">
+        <Input required placeholder="Code d'un collègue (ex. A1B2C3D4)" value={shareCode} onChange={(e) => setShareCode(e.target.value)} className="font-mono uppercase" />
+        <Button type="submit" variant="secondary">Copier</Button>
+      </form>
       <div className="mt-4 space-y-3">
         {data?.folders.map((f) => {
           const inside = data.lists.filter((l) => l.folder_id === f.id);
@@ -157,6 +168,7 @@ function Lists() {
                     {data.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 )}
+                <span className="text-sm text-muted-foreground">Code de partage : <b className="font-mono text-foreground">{f.share_code}</b></span>
                 <Button size="sm" variant="ghost" onClick={() => removeFolder(f.id)}>Supprimer le classeur</Button>
               </div>
             </details>
