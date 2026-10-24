@@ -33,13 +33,26 @@ export function isAnswerCorrect(typed: string, expected: string): boolean {
   return options.includes(normalizeAnswer(typed));
 }
 
+/** Accepted forms of an expected answer: the full text, "/"-separated alternatives,
+ *  and word-level choices ("Wer/Was ist das?" → "Wer ist das?", "Was ist das?"). */
+export function answerOptions(expected: string): string[] {
+  const out = new Set<string>([expected, ...expected.split("/")]);
+  let variants = [""];
+  for (const tok of expected.split(/(\s+)/)) {
+    const alts = tok.includes("/") ? tok.split("/").filter(Boolean) : [tok];
+    variants = variants.flatMap((v) => alts.map((a) => v + a)).slice(0, 32);
+  }
+  variants.forEach((v) => out.add(v));
+  return [...out].filter((o) => o.trim());
+}
+
 /** Written answers (Écriture & texte à trou): a space — extra, doubled or missing — is never an error. */
 export function isWrittenCorrect(typed: string, expected: string): boolean {
   if (!typed.trim()) return false;
   const squish = (s: string) =>
     normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.?!:¿¡«»]/g, "");
   const t = squish(typed);
-  return expected.split("/").some((o) => {
+  return answerOptions(expected).some((o) => {
     if (squish(o) === t) return true;
     // Nouns like "die Stadt, ”-e": the singular with article is enough.
     const m = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i);

@@ -162,3 +162,11 @@ describe("phrases à trou : espaces et ponctuation tolérés", () => {
   it("espace manquant", () => expect(isWrittenCorrect("DieKatze", "Die Katze")).toBe(true));
   it("ponctuation de fin facultative", () => expect(isWrittenCorrect("Entschuldigung wo ist das Kino", "Entschuldigung, wo ist das Kino?")).toBe(true));
 });
+
+describe("slash alternatives inside a phrase", () => {
+  it("accepts the full text and each choice", () => {
+    for (const a of ["Wer/Was ist das?", "Wer ist das?", "Was ist das", "wer ist das"]) expect(isWrittenCorrect(a, "Wer/Was ist das?")).toBe(true);
+    expect(isWrittenCorrect("Wo ist das?", "Wer/Was ist das?")).toBe(false);
+    expect(isWrittenCorrect("der Knabe", "der Junge/der Knabe")).toBe(true);
+  });
+});
