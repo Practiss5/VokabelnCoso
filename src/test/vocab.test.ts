@@ -156,3 +156,9 @@ _t("spoken 'die Stadt' accepted for 'die Stạdt, ”-e'", () => {
   _e(_spk(["die Stadt"], "die Stạdt, ”-e")).toBe(true);
   _e(_spk(["Stadt"], "die Stạdt, ”-e")).toBe(false);
 });
+
+describe("phrases à trou : espaces et ponctuation tolérés", () => {
+  it("espaces en trop", () => expect(isWrittenCorrect("  Die   Katze ", "Die Katze")).toBe(true));
+  it("espace manquant", () => expect(isWrittenCorrect("DieKatze", "Die Katze")).toBe(true));
+  it("ponctuation de fin facultative", () => expect(isWrittenCorrect("Entschuldigung wo ist das Kino", "Entschuldigung, wo ist das Kino?")).toBe(true));
+});

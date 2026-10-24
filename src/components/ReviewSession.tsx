@@ -142,11 +142,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
             <p className="mt-3 font-display text-2xl leading-relaxed sm:text-3xl">
               {cloze.before}<span className="mx-1 inline-block min-w-24 border-b-2 border-foreground px-1 font-bold">{answered !== null ? cloze.answer : "\u00a0"}</span>{cloze.after}
             </p>
-            {showHint || answered !== null ? (
-              <p className="mt-4 text-muted-foreground">{word.french}{word.example_fr ? ` — « ${word.example_fr} »` : ""}</p>
-            ) : (
-              <Button variant="ghost" size="sm" className="mt-4" onClick={() => setShowHint(true)}>💡 Indice</Button>
-            )}
+            <p className="mt-4 text-lg text-muted-foreground">
+              {word.example_fr ? `« ${word.example_fr} »` : ""}
+              <span className="mt-1 block text-base">Mot à trouver : <b>{word.french}</b></span>
+            </p>
           </>
         ) : (
           <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" || reverse ? word.french : word.german}</p>
