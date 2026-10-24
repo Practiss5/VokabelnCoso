@@ -1,6 +1,6 @@
 // Wort-Tetris: pure game rules (scoring, combos, bonuses, boss and word picking).
 
-export type TWord = { id: string; german: string; french: string; listTitle?: string; foreign?: boolean };
+export type TWord = { id: string; german: string; french: string; listTitle?: string | undefined; foreign?: boolean };
 export type TLevel = 1 | 2 | 3;
 export const LEVEL_NAMES: Record<TLevel, string> = { 1: "Traduction", 2: "Prononciation", 3: "Orthographe" };
 export const LEVEL_SKILL: Record<TLevel, string> = { 1: "translation", 2: "speaking", 3: "writing" };
