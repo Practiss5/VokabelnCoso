@@ -335,7 +335,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
         </p>
       ) : brick && level === 1 ? (
         <div className="grid gap-2 sm:grid-cols-3">
-          {brick.choices.map((c) => <Button key={c} variant="outline" className="h-auto min-h-12 whitespace-normal text-base" onClick={() => resolve(c === brick.word.french, `Tu as choisi « ${c} »`)}>{c}</Button>)}
+          {brick.choices.map((c) => <Button key={c} variant="outline" className="h-auto min-h-12 whitespace-normal border-neon-cyan/60 bg-arcade text-base text-arcade-fg hover:bg-neon-cyan/20 hover:text-arcade-fg" onClick={() => resolve(c === brick.word.french, `Tu as choisi « ${c} »`)}>{c}</Button>)}
         </div>
       ) : brick && level === 2 && !keyboard && canRecognize() ? (
         <div className="space-y-2 text-center">
