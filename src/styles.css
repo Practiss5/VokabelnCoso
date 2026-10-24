@@ -28,6 +28,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-arcade: oklch(0.16 0.04 280);
+  --color-arcade-fg: oklch(0.96 0.02 280);
+  --color-neon-cyan: oklch(0.85 0.15 200);
+  --color-neon-pink: oklch(0.72 0.25 350);
+  --color-neon-lime: oklch(0.88 0.22 135);
+  --color-neon-amber: oklch(0.85 0.17 75);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);

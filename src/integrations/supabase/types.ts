@@ -290,6 +290,54 @@ export type Database = {
           },
         ]
       }
+      tetris_games: {
+        Row: {
+          created_at: string
+          id: string
+          level_reached: number
+          list_id: string
+          missed_word_ids: string[]
+          score: number
+          speaking_ko: number
+          speaking_ok: number
+          student_id: string
+          translation_ko: number
+          translation_ok: number
+          writing_ko: number
+          writing_ok: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level_reached?: number
+          list_id: string
+          missed_word_ids?: string[]
+          score?: number
+          speaking_ko?: number
+          speaking_ok?: number
+          student_id?: string
+          translation_ko?: number
+          translation_ok?: number
+          writing_ko?: number
+          writing_ok?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level_reached?: number
+          list_id?: string
+          missed_word_ids?: string[]
+          score?: number
+          speaking_ko?: number
+          speaking_ok?: number
+          student_id?: string
+          translation_ko?: number
+          translation_ok?: number
+          writing_ko?: number
+          writing_ok?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
