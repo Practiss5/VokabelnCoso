@@ -241,7 +241,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
         </div>
         <div className="flex justify-center gap-2">
           <Button onClick={startGame} size="lg">▶ Jouer</Button>
-          <Button variant="outline" onClick={onQuit}>Retour</Button>
+          <Button variant="outline" className="text-foreground" onClick={onQuit}>Retour</Button>
         </div>
       </div>
     );
@@ -284,7 +284,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
         )}
         <div className="flex justify-center gap-2">
           <Button onClick={startGame}>Rejouer</Button>
-          <Button variant="outline" onClick={onQuit}>Retour à l'apprentissage</Button>
+          <Button variant="outline" className="text-foreground" onClick={onQuit}>Retour à l'apprentissage</Button>
         </div>
       </div>
     );
