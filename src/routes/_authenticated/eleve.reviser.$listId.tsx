@@ -7,6 +7,7 @@ import { meQuery } from "@/lib/session";
 import { hasCloze, orderQueue, type Word } from "@/lib/vocab";
 import { ReviewSession } from "@/components/ReviewSession";
 import { MatchGame } from "@/components/MatchGame";
+import { WortTetris } from "@/components/WortTetris";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 
@@ -14,7 +15,10 @@ type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
-  validateSearch: (s: Record<string, unknown>): { jeu?: boolean } => (s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
+  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean } => ({
+    ...(s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
+    ...(s['tetris'] === true || s['tetris'] === "true" ? { tetris: true } : {}),
+  }),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
     <AppShell>
@@ -63,9 +67,12 @@ function Review() {
     setMatchWords(data);
   }
 
-  const { jeu } = Route.useSearch();
+  const { jeu, tetris: tetrisSearch } = Route.useSearch();
+  const [tetris, setTetris] = useState(false);
+  useEffect(() => { if (tetrisSearch) setTetris(true); }, [tetrisSearch]);
   useEffect(() => { if (jeu) void startMatch(); }, [jeu]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (tetris) return <WortTetris listId={listId} onQuit={() => setTetris(false)} />;
   if (matchWords) return <MatchGame listId={listId} words={matchWords} onQuit={() => setMatchWords(null)} />;
 
   if (!mode || !session)
@@ -83,6 +90,10 @@ function Review() {
           <button onClick={startMatch} className="word-card border-2 border-accent p-5 text-left transition-transform hover:-translate-y-0.5">
             <h2 className="text-2xl font-bold">Cartes à relier ⚡</h2>
             <p className="mt-2 text-sm text-muted-foreground">Reliez les paires sans vous tromper et battez le record de la classe. (Ne compte pas pour les devoirs.)</p>
+          </button>
+          <button onClick={() => setTetris(true)} className="word-card border-2 border-primary p-5 text-left transition-transform hover:-translate-y-0.5">
+            <h2 className="text-2xl font-bold">Wort-Tetris 🧱</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Jeu d'arcade : traduction, prononciation, orthographe et boss. (Ne compte pas pour les devoirs.)</p>
           </button>
         </div>
       </div>

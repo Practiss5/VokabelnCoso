@@ -146,7 +146,7 @@ const STEPS = [
 
 /** Lets the student pick one exercise type over all class words, besides the daily session. */
 function ChooseStep() {
-  const [game, setGame] = useState(false);
+  const [game, setGame] = useState<null | "match" | "tetris">(null);
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
@@ -154,14 +154,15 @@ function ChooseStep() {
         {STEPS.map((s) => (
           <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode }} className="word-card p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
         ))}
-        <button onClick={() => setGame((g) => !g)} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</button>
+        <button onClick={() => setGame((g) => (g === "match" ? null : "match"))} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</button>
+        <button onClick={() => setGame((g) => (g === "tetris" ? null : "tetris"))} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</button>
       </div>
-      {game && <GameLists />}
+      {game && <GameLists tetris={game === "tetris"} />}
     </section>
   );
 }
 
-function GameLists() {
+function GameLists({ tetris }: { tetris: boolean }) {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data } = useQuery({
     queryKey: ["game-lists", me!.classId],
@@ -176,7 +177,7 @@ function GameLists() {
       <p className="mb-2 text-sm">Sur quelle liste veux-tu jouer ?</p>
       <div className="flex flex-wrap gap-2">
         {data.map((l) => (
-          <Button key={l.id} asChild variant="outline"><Link to="/eleve/reviser/$listId" params={{ listId: l.id }} search={{ jeu: true }}>{l.title}</Link></Button>
+          <Button key={l.id} asChild variant="outline"><Link to="/eleve/reviser/$listId" params={{ listId: l.id }} search={tetris ? { tetris: true } : { jeu: true }}>{l.title}</Link></Button>
         ))}
         {!data.length && <span className="text-sm text-muted-foreground">Aucune liste pour l'instant.</span>}
       </div>

@@ -118,7 +118,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
       setComboLeft((s) => Math.max(0, s - dt));
       setY((v) => {
         const nv = v + (dt / dur) * (slowLeftRef.current > 0 ? 0.5 : 1);
-        if (nv >= 1) { setTimeout(() => resolve(false, "Trop tard !"), 0); return 1; }
+        if (nv >= 1) { setTimeout(() => resolveRef.current(false, "Trop tard !"), 0); return 1; }
         return nv;
       });
       raf = requestAnimationFrame(tick);
@@ -128,6 +128,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
   }, [paused, level, boss]); // eslint-disable-line react-hooks/exhaustive-deps
   const slowLeftRef = useRef(0); slowLeftRef.current = slowLeft;
   const resolving = useRef(false);
+  const resolveRef = useRef<(ok: boolean, why?: string) => void>(() => {});
 
   function resolve(ok: boolean, why?: string) {
     if (!brick || resolving.current) return;
@@ -181,6 +182,8 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
     const nl = (level + 1) as TLevel;
     setLevel(nl); setInLevel(0); setPhase("play"); setTimeout(() => spawn(nl, null), 0);
   }
+
+  resolveRef.current = resolve;
 
   async function speak() {
     if (!brick || listening) return;
