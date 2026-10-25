@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { germanVoice, spokenGerman } from "@/lib/speech";
 
-export function GermanAudio({ text, label = "Écouter le mot" }: { text: string; label?: string }) {
+export function GermanAudio({ text, label = "Écouter le mot", autoPlay = false, large = false }: { text: string; label?: string; autoPlay?: boolean; large?: boolean }) {
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [playing, setPlaying] = useState(false);
   const current = useRef<SpeechSynthesisUtterance | null>(null);
@@ -26,6 +26,11 @@ export function GermanAudio({ text, label = "Écouter le mot" }: { text: string;
       current.current = null;
     }
   }, [text]);
+
+  const auto = useRef(false);
+  useEffect(() => {
+    if (autoPlay && voice && !auto.current && spokenGerman(text)) { auto.current = true; listen(); }
+  }); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!voice || !spokenGerman(text)) return null;
 
@@ -57,7 +62,7 @@ export function GermanAudio({ text, label = "Écouter le mot" }: { text: string;
   }
 
   return (
-    <Button type="button" size="icon" variant="outline" className="h-11 w-11 shrink-0"
+    <Button type="button" size="icon" variant="outline" className={large ? "h-20 w-20 shrink-0 rounded-full [&_svg]:size-9" : "h-11 w-11 shrink-0"}
       aria-label={playing ? "Arrêter la lecture" : label} title={playing ? "Arrêter la lecture" : label}
       aria-pressed={playing} onClick={listen}>
       {playing ? <Square aria-hidden="true" /> : <Volume2 aria-hidden="true" />}

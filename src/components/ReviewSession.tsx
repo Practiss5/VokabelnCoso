@@ -44,7 +44,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
   async function answer(correct: boolean, given?: string) {
     if (answered !== null || !item || !word || !mode) return;
-    const err = correct ? null : mode === "typing" || mode === "speaking" ? diagnoseAnswer(given ?? "", word.german) : mode === "context" ? "context" : "translation";
+    const err = correct ? null : mode === "typing" || mode === "speaking" || mode === "dictation" ? diagnoseAnswer(given ?? "", word.german) : mode === "context" ? "context" : "translation";
     setErrorType(err);
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
@@ -53,7 +53,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
       retried.current.add(word.id);
       setQueue((q) => [...q, item]);
     }
-    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode, _correct: correct };
+    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : mode, _correct: correct };
     if (given) args._given = given;
     if (err) args._error = err;
     const { error } = await supabase.rpc("record_answer", args);
@@ -88,6 +88,12 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
     setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
   }
 
+  const [canSpeak, setCanSpeak] = useState(true);
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) { setCanSpeak(false); return; }
+    const t = setTimeout(() => setCanSpeak(window.speechSynthesis.getVoices().some((v) => /^de(?:[-_]|$)/i.test(v.lang))), 1500);
+    return () => clearTimeout(t);
+  }, []);
   const finished = !item;
   useEffect(() => {
     if (!finished) return;
@@ -135,7 +141,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : "Deutsch"}
         </p>
         {cloze ? (
           <>
@@ -147,12 +153,16 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
               <span className="mt-1 block text-base">Mot à trouver : <b>{word.french}</b></span>
             </p>
           </>
+        ) : mode === "dictation" ? (
+          answered !== null
+            ? <><p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{word.german}</p><p className="mt-2 text-xl">{word.french}</p></>
+            : <p className="mt-2 text-sm text-muted-foreground">Le mot est lu à voix haute. Touche le haut-parleur pour le réécouter.</p>
         ) : (
           <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" || reverse ? word.french : word.german}</p>
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
         <div className="mt-3 flex justify-center">
-          <GermanAudio key={`${index}-${answered}`} text={reviewSpeech(word, reverse ? "typing" : mode, answered !== null)}
+          <GermanAudio key={`${index}-${answered}`} autoPlay={mode === "dictation" && answered === null} large={mode === "dictation" && answered === null} text={reviewSpeech(word, reverse ? "typing" : mode, answered !== null)}
             label={mode === "context" ? "Écouter la phrase" : "Écouter le mot"} />
         </div>
       </div>
@@ -220,7 +230,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
         </div>
       )}
 
-      {mode === "typing" && (
+      {mode === "dictation" && !canSpeak && (
+        <p className="rounded-lg bg-secondary p-3 text-center text-sm">Aucune voix allemande sur cet appareil : la dictée est impossible ici. Essaie un autre mode ou un autre navigateur.</p>
+      )}
+      {(mode === "typing" || mode === "dictation") && (
         <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isWrittenCorrect(typed, word.german), typed); else next(); }} className="space-y-3">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
@@ -274,7 +287,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
             {answered ? "Richtig ! ✓" : "Pas encore… ✗"}
           </p>
           {answered === false && mode === "choice" && <p className="text-center">Bonne réponse : <b>{target}</b></p>}
-          {mode !== "typing" && mode !== "context" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
+          {mode !== "typing" && mode !== "dictation" && mode !== "context" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
         </>
       )}
     </div>
