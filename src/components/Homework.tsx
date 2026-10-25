@@ -88,7 +88,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
 
   function exportCsv(title: string, dueAt: string, st: { s: { full_name: string }; r: ReturnType<typeof homeworkStatus> }[]) {
     const due = new Date(dueAt).toLocaleDateString("fr-FR");
-    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r }) => ({ name: s.full_name || "—", done: r.done, parts: r.parts })));
+    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r }) => ({ name: s.full_name || "—", done: r.done, total: r.total, parts: r.parts })));
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
