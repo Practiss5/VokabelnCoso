@@ -53,7 +53,7 @@ function ListEditor() {
 
   async function addWord(e: React.FormEvent) {
     e.preventDefault();
-    if (data && normGerman(data.words.some((w) => normGerman(w.german) === normGerman(de)) ? de : "") === normGerman(de) && data.words.some((w) => normGerman(w.german) === normGerman(de))) {
+    if (data && data.words.some((w) => normGerman(w.german) === normGerman(de))) {
       toast.error(`« ${de.trim()} » est déjà dans cette liste`);
       return;
     }
