@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseImport } from "@/lib/import";
+import { duplicateIndexes, parseImport } from "@/lib/import";
+
+describe("duplicateIndexes", () => {
+  it("flags words already in the list (case/space-insensitive) and repeats in the paste", () => {
+    const rows = [{ german: "Der  Hund" }, { german: "die Katze" }, { german: "die Katze" }];
+    expect([...duplicateIndexes(rows, ["der Hund"])]).toEqual([0, 2]);
+  });
+});
 
 describe("parseImport", () => {
   it("reads Quizlet tab export", () => {
