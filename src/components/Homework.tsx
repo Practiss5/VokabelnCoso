@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+/** Same thresholds as the original, as clean 0–1 rates; old homework (no thresholds) = QCM 80 % + Écriture 60 %. */
+export const sameReq = (r: HwRequirements | null): HwRequirements => {
+  if (!r) return { choice: 0.8, typing: 0.6 };
+  const out: HwRequirements = {};
+  for (const [k, v] of Object.entries(r)) { const n = Number(v); if (Number.isFinite(n)) out[k as HwMode] = Math.round((n > 1 ? n / 100 : n) * 100) / 100; }
+  return out;
+};
 const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 type Hw = {
@@ -33,6 +40,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<HwRequirements>({ choice: 0.7, typing: 0.7 });
   const [dup, setDup] = useState<string | null>(null);
+  const [dupReq, setDupReq] = useState<HwRequirements>({});
   const { data } = useQuery({
     queryKey: ["homeworks", classId],
     queryFn: async () => {
@@ -90,7 +98,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     await supabase.from("list_assignments").upsert({ list_id: h.list_id, class_id: cls }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
     const { error } = await supabase.from("homeworks").insert({
       teacher_id: u.user!.id, class_id: cls, list_id: h.list_id, due_at: new Date(dueStr).toISOString(),
-      instructions: h.instructions, word_ids: h.word_ids, requirements: h.requirements,
+      instructions: h.instructions, word_ids: h.word_ids, requirements: dupReq,
     });
     if (error) { toast.error(error.message); return; }
     toast.success(`Devoir dupliqué vers ${data?.classes.find((c) => c.id === cls)?.name ?? "la classe"}`);
@@ -192,7 +200,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               </div>
               <div className="flex flex-wrap gap-1">
                 <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st)}>⬇️ Excel / CSV</Button>
-                <Button size="sm" variant="outline" onClick={() => setDup(dup === h.id ? null : h.id)}>📋 Dupliquer</Button>
+                <Button size="sm" variant="outline" onClick={() => { setDup(dup === h.id ? null : h.id); setDupReq(sameReq(h.requirements)); }}>📋 Dupliquer</Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
               </div>
               {dup === h.id && (
@@ -206,6 +214,15 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                   <label>Date limite
                     <Input name="due" type="datetime-local" required defaultValue={toLocalInput(h.due_at)} className="mt-1 h-9" />
                   </label>
+                  <div className="flex w-full flex-wrap gap-2">
+                    {HW_MODES.filter((m) => dupReq[m.id] != null).map((m) => (
+                      <label key={m.id} className="flex items-center gap-1">{m.label}
+                        <select value={dupReq[m.id]} onChange={(e) => setDupReq((r) => ({ ...r, [m.id]: Number(e.target.value) }))} className="h-8 rounded-md border border-input bg-background px-2">
+                          {HW_RATES.map((v) => <option key={v} value={v}>{Math.round(v * 100)} %</option>)}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
                   <Button size="sm" type="submit">Dupliquer</Button>
                   {data.classes.length < 2 && <p className="w-full text-xs text-muted-foreground">Tu n'as pas d'autre classe pour l'instant.</p>}
                 </form>
@@ -251,7 +268,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
         return (
           <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : cd.level === "urgent" || cd.level === "late" ? "border-destructive" : "border-accent"} border-2`}>
             <div>
-              {!r.done && <span className={`mb-1 inline-block rounded-full px-3 py-1 text-sm font-bold ${badge}`}>{cd.label}</span>}
+              <span className={`mb-2 inline-block rounded-full px-3 py-1 text-sm font-bold ${r.done ? "bg-success text-success-foreground" : badge}`}>{r.done && cd.level !== "late" ? `✅ Fait · ${cd.label.replace(/^\S+\s/, "")}` : cd.label}</span>
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}

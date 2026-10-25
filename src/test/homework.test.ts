@@ -94,3 +94,10 @@ describe("dueCountdown", () => {
   it("is soon under 3 days", () => expect(dueCountdown(now + 2 * 86400000 + 4 * 3600000, now)).toEqual({ label: "⚠️ Reste 2 j 4 h", level: "soon" }));
   it("is ok from 3 days", () => expect(dueCountdown(now + 3 * 86400000, now).level).toBe("ok"));
 });
+
+import { sameReq } from "@/components/Homework";
+describe("duplicate keeps thresholds", () => {
+  it("copies each exercise threshold", () => expect(sameReq({ choice: 0.9, speaking: 1 })).toEqual({ choice: 0.9, speaking: 1 }));
+  it("reads percents and text", () => expect(sameReq({ typing: 70, choice: "0.8" as unknown as number })).toEqual({ typing: 0.7, choice: 0.8 }));
+  it("old homework becomes QCM 80 % + Écriture 60 %", () => expect(sameReq(null)).toEqual({ choice: 0.8, typing: 0.6 }));
+});
