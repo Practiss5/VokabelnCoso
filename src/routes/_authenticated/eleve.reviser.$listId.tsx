@@ -15,9 +15,10 @@ type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
-  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean } => ({
+  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string } => ({
     ...(s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
     ...(s['tetris'] === true || s['tetris'] === "true" ? { tetris: true } : {}),
+    ...(typeof s['devoir'] === "string" ? { devoir: s['devoir'] } : {}),
   }),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
@@ -42,6 +43,17 @@ function Review() {
   const [session, setSession] = useState<{ words: Word[]; pool: Word[]; caughtUp: boolean } | null>(null);
   const [title, setTitle] = useState("");
   const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
+  const { devoir } = Route.useSearch();
+  // Homework: only its words and its required exercises.
+  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[] } | null>(null);
+  useEffect(() => {
+    if (!devoir) { setHw(null); return; }
+    void supabase.from("homeworks").select("word_ids, requirements").eq("id", devoir).maybeSingle().then(({ data }) => {
+      if (!data) return;
+      const req = (data.requirements ?? null) as Record<string, number> | null;
+      setHw({ word_ids: data.word_ids, modes: req ? MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id) });
+    });
+  }, [devoir]);
 
   async function start(m: Mode) {
     const [list, words, prog] = await Promise.all([
@@ -52,7 +64,9 @@ function Review() {
         .eq("student_id", me!.id).eq("skill", SKILL_OF_MODE[m]),
     ]);
     if (list.error || !words.data?.length) { toast.error("Liste introuvable ou vide"); return; }
-    const usable = m === "context" ? words.data.filter(hasCloze) : words.data;
+    const hwIds = hw?.word_ids?.length ? new Set(hw.word_ids) : null;
+    const base = hwIds ? words.data.filter((w) => hwIds.has(w.id)) : words.data;
+    const usable = m === "context" ? base.filter(hasCloze) : base;
     if (!usable.length) { toast.error("Cette liste n'a pas encore de phrases d'exemple."); return; }
     const progress = (prog.data ?? []).map((p) => ({ ...p, repetitions: p.step }));
     const { queue, caughtUp } = orderQueue(usable, progress, new Date());
@@ -79,14 +93,16 @@ function Review() {
     return (
       <div className="space-y-6">
         <Link to="/eleve" className="text-sm underline">← Mes listes</Link>
-        <h1 className="text-4xl font-bold">Choisir un mode</h1>
+        <h1 className="text-4xl font-bold">{hw ? "Mon devoir" : "Choisir un mode"}</h1>
+        {hw && <p className="text-sm text-muted-foreground">Fais chacun de ces exercices pour valider ton devoir{hw.word_ids?.length ? ` (${hw.word_ids.length} mots choisis par ton enseignant)` : ""}.</p>}
         <div className="grid gap-4 sm:grid-cols-2">
-          {MODES.map((m) => (
+          {MODES.filter((m) => !hw || hw.modes.includes(m.id)).map((m) => (
             <button key={m.id} onClick={() => start(m.id)} className="word-card p-5 text-left transition-transform hover:-translate-y-0.5">
               <h2 className="text-2xl font-bold">{m.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{m.desc}</p>
             </button>
           ))}
+          {!hw && <>
           <button onClick={startMatch} className="word-card border-2 border-accent p-5 text-left transition-transform hover:-translate-y-0.5">
             <h2 className="text-2xl font-bold">Cartes à relier ⚡</h2>
             <p className="mt-2 text-sm text-muted-foreground">Reliez les paires sans vous tromper et battez le record de la classe. (Ne compte pas pour les devoirs.)</p>
@@ -95,6 +111,7 @@ function Review() {
             <h2 className="text-2xl font-bold">Wort-Tetris 🧱</h2>
             <p className="mt-2 text-sm text-muted-foreground">Jeu d'arcade : traduction, prononciation, orthographe et boss. (Ne compte pas pour les devoirs.)</p>
           </button>
+          </>}
         </div>
       </div>
     );

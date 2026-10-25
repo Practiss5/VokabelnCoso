@@ -46,7 +46,9 @@ export type Database = {
           id: string
           instructions: string
           list_id: string
+          requirements: Json | null
           teacher_id: string
+          word_ids: string[] | null
         }
         Insert: {
           class_id: string
@@ -55,7 +57,9 @@ export type Database = {
           id?: string
           instructions?: string
           list_id: string
+          requirements?: Json | null
           teacher_id: string
+          word_ids?: string[] | null
         }
         Update: {
           class_id?: string
@@ -64,7 +68,9 @@ export type Database = {
           id?: string
           instructions?: string
           list_id?: string
+          requirements?: Json | null
           teacher_id?: string
+          word_ids?: string[] | null
         }
         Relationships: [
           {

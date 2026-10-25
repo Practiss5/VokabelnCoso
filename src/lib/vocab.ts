@@ -257,30 +257,50 @@ export const HW_WRITING_RATE = 0.6;
 const QCM_OR_ABOVE = new Set(["choice", "speaking", "typing", "context"]);
 const WRITING = new Set(["typing", "context"]);
 
+export type HwMode = "flashcard" | "choice" | "speaking" | "typing" | "context";
+export const HW_MODES: { id: HwMode; label: string }[] = [
+  { id: "flashcard", label: "Cartes" },
+  { id: "choice", label: "QCM" },
+  { id: "speaking", label: "Prononciation" },
+  { id: "typing", label: "Écriture" },
+  { id: "context", label: "Phrases à trou" },
+];
+export const HW_RATES = [0.6, 0.7, 0.8, 0.9, 1] as const;
+export type HwRequirements = Partial<Record<HwMode, number>>;
+export type HwPart = { key: string; label: string; got: number; need: number; rate: number };
+
 /**
- * Homework is done when, between assignment and deadline, at least 80 % of the
- * words were answered correctly at QCM level or above AND 60 % in writing.
+ * Homework is done when, between assignment and deadline, every required part reaches its rate
+ * of the homework words answered correctly. With custom requirements each chosen mode counts on
+ * its own; without them (older homework) the rule is 80 % at QCM level or above + 60 % in writing.
  */
 export function homeworkStatus(
   wordIds: string[],
   reviews: { word_id: string; created_at: string; mode?: string; correct?: boolean }[],
   createdAt: string,
   dueAt: string,
+  requirements?: HwRequirements | null,
 ) {
   const start = new Date(createdAt).getTime();
   const end = new Date(dueAt).getTime();
   const ids = new Set(wordIds);
-  const qcm = new Set<string>(), writing = new Set<string>();
+  const groups: { key: string; label: string; rate: number; modes: Set<string> }[] =
+    requirements && Object.keys(requirements).length
+      ? HW_MODES.filter((m) => requirements[m.id] != null).map((m) => ({ key: m.id, label: m.label, rate: requirements[m.id]!, modes: new Set([m.id]) }))
+      : [
+          { key: "qcm", label: "QCM", rate: HW_QCM_RATE, modes: QCM_OR_ABOVE },
+          { key: "writing", label: "Écriture", rate: HW_WRITING_RATE, modes: WRITING },
+        ];
+  const sets = groups.map(() => new Set<string>());
   for (const r of reviews) {
     const t = new Date(r.created_at).getTime();
     if (!ids.has(r.word_id) || t < start || t > end || !r.correct) continue;
-    if (QCM_OR_ABOVE.has(r.mode ?? "")) qcm.add(r.word_id);
-    if (WRITING.has(r.mode ?? "")) writing.add(r.word_id);
+    groups.forEach((g, i) => { if (g.modes.has(r.mode ?? "")) sets[i]!.add(r.word_id); });
   }
   const total = ids.size;
-  const qcmNeed = Math.ceil(total * HW_QCM_RATE), writingNeed = Math.ceil(total * HW_WRITING_RATE);
-  const done = total > 0 && qcm.size >= qcmNeed && writing.size >= writingNeed;
-  return { done, total, qcm: qcm.size, qcmNeed, writing: writing.size, writingNeed };
+  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.rate, got: sets[i]!.size, need: Math.ceil(total * g.rate - 1e-9) }));
+  const done = total > 0 && parts.every((p) => p.got >= p.need);
+  return { done, total, parts };
 }
 
 /** Streak: consecutive days (ending today or yesterday) with at least `goal` answers. */
@@ -314,9 +334,10 @@ export function pickQuizWords<T>(words: T[], count: number, seed: number): T[] {
 }
 
 /** Homework export for spreadsheets (French Excel: ";" separator). */
-export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; qcm: number; qcmNeed: number; writing: number; writingNeed: number }[]): string {
+export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; parts: HwPart[] }[]): string {
   const q = (v: string | number) => (typeof v === "number" ? String(v) : `"${v.replace(/"/g, '""')}"`);
-  const lines = [["Élève", "Statut", "QCM réussis", "QCM requis", "Écrit réussis", "Écrit requis", "Liste", "Date limite"].map(q).join(";")];
-  for (const r of rows) lines.push([r.name, r.done ? "Fait" : late ? "Non fait" : "À faire", r.qcm, r.qcmNeed, r.writing, r.writingNeed, title, due].map(q).join(";"));
+  const heads = (rows[0]?.parts ?? []).flatMap((p) => [`${p.label} réussis`, `${p.label} requis (${Math.round(p.rate * 100)} %)`]);
+  const lines = [["Élève", "Statut", ...heads, "Liste", "Date limite"].map(q).join(";")];
+  for (const r of rows) lines.push([r.name, r.done ? "Fait" : late ? "Non fait" : "À faire", ...r.parts.flatMap((p) => [p.got, p.need]), title, due].map(q).join(";"));
   return lines.join("\r\n");
 }
