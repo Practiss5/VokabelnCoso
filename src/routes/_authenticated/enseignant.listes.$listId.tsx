@@ -214,7 +214,7 @@ function ListEditor() {
 }
 
 type W = { id: string; german: string; french: string; example_de: string; example_fr: string };
-function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange: () => void }) {
+function WordRow({ word, listId, duplicate, allWords, onChange }: { word: W; listId: string; duplicate: boolean; allWords: W[]; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [de, setDe] = useState(word.german);
   const [fr, setFr] = useState(word.french);
@@ -230,6 +230,7 @@ function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange
   }
   async function save() {
     if (exDe.trim() && !/\[[^\]]+\]/.test(exDe)) { toast.error("Mettez le mot à trouver entre crochets [ ]"); return; }
+    if (isDuplicateGerman(de, word.id, allWords)) { toast.error(`« ${de.trim()} » existe déjà dans cette liste`); return; }
     const { error } = await supabase.from("words").update({ german: de.trim(), french: fr.trim(), example_de: exDe.trim(), example_fr: exFr.trim() }).eq("id", word.id);
     if (error) { toast.error(error.message); return; }
     setEditing(false); onChange();
@@ -257,7 +258,7 @@ function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange
     <li className="flex flex-wrap items-center justify-between gap-2 py-2">
       <div className="min-w-0 flex-1 basis-64">
         <div className="flex items-center gap-2">
-          <span className="min-w-0 break-words"><b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span></span>
+          <span className="min-w-0 break-words"><b>{word.german}</b> {duplicate && <span title="Ce mot apparaît plusieurs fois dans la liste">⚠️</span>} <span className="text-muted-foreground">— {word.french}</span></span>
           <GermanAudio text={word.german} />
         </div>
         {word.example_de && <div className="mt-1 flex items-center gap-2">
