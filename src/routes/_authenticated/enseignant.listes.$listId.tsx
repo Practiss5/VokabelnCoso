@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GermanAudio } from "@/components/GermanAudio";
-import { duplicateIndexes, parseImport, type ImportRow } from "@/lib/import";
+import { duplicateIndexes, duplicateWordIds, isDuplicateGerman, normGerman, parseImport, type ImportRow } from "@/lib/import";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
   head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -53,6 +53,10 @@ function ListEditor() {
 
   async function addWord(e: React.FormEvent) {
     e.preventDefault();
+    if (data && normGerman(data.words.some((w) => normGerman(w.german) === normGerman(de)) ? de : "") === normGerman(de) && data.words.some((w) => normGerman(w.german) === normGerman(de))) {
+      toast.error(`« ${de.trim()} » est déjà dans cette liste`);
+      return;
+    }
     const { error } = await supabase.from("words").insert({ list_id: listId, german: de.trim(), french: fr.trim() });
     if (error) { toast.error(error.message); return; }
     setDe(""); setFr(""); refresh();
