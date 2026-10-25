@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GermanAudio } from "@/components/GermanAudio";
-import { parseImport, type ImportRow } from "@/lib/import";
+import { duplicateIndexes, parseImport, type ImportRow } from "@/lib/import";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
   head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -59,7 +59,8 @@ function ListEditor() {
   }
   const [preview, setPreview] = useState<ImportRow[] | null>(null);
   async function addBulk() {
-    const rows = (preview ?? []).filter((r) => r.german.trim() && r.french.trim())
+    const dups = duplicateIndexes(preview ?? [], (data?.words ?? []).map((w) => w.german));
+    const rows = (preview ?? []).filter((r, i) => r.german.trim() && r.french.trim() && !dups.has(i))
       .map((r) => ({ list_id: listId, german: r.german.trim(), french: r.french.trim() }));
     if (!rows.length) { toast.error("Aucune ligne valide"); return; }
     const { error } = await supabase.from("words").insert(rows);
@@ -158,27 +159,34 @@ function ListEditor() {
           </p>
           <Textarea rows={6} value={bulk} onChange={(e) => { setBulk(e.target.value); setPreview(null); }} className="mt-2" placeholder={"der Hund\tle chien\ndas Haus, ¨-er = la maison"} />
           <Button className="mt-2" variant="secondary" disabled={!bulk.trim()} onClick={() => setPreview(parseImport(bulk))}>Aperçu</Button>
-          {preview && (
+          {preview && (() => {
+            const dups = duplicateIndexes(preview, data.words.map((w) => w.german));
+            const valid = preview.filter((r, i) => r.german.trim() && r.french.trim() && !dups.has(i)).length;
+            return (
             <div className="mt-3 space-y-2">
               <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs font-medium text-muted-foreground"><span>Allemand</span><span>Français</span><span /></div>
               {preview.map((r, i) => {
                 const upd = (p: Partial<ImportRow>) => setPreview(preview.map((x, j) => (j === i ? { ...x, ...p } : x)));
                 const bad = !r.german.trim() || !r.french.trim();
+                const dup = dups.has(i);
                 return (
-                  <div key={i} className={`grid grid-cols-[1fr_1fr_auto] gap-2 ${bad ? "rounded border border-destructive p-1" : ""}`}>
+                  <div key={i} className={`grid grid-cols-[1fr_1fr_auto] items-center gap-2 ${bad ? "rounded border border-destructive p-1" : dup ? "rounded border border-dashed p-1 opacity-60" : ""}`}>
                     <Input value={r.german} onChange={(e) => upd({ german: e.target.value })} />
                     <Input value={r.french} onChange={(e) => upd({ french: e.target.value })} />
                     <Button size="sm" variant="ghost" onClick={() => setPreview(preview.filter((_, j) => j !== i))}>✕</Button>
+                    {dup && <span className="col-span-3 text-xs text-muted-foreground">⚠️ Déjà présent : ne sera pas ajouté</span>}
                   </div>
                 );
               })}
               <div className="flex flex-wrap gap-2">
-                <Button onClick={addBulk}>Ajouter ces {preview.filter((r) => r.german.trim() && r.french.trim()).length} mots</Button>
+                <Button onClick={addBulk} disabled={!valid}>Ajouter ces {valid} mots</Button>
                 <Button variant="outline" onClick={() => setPreview(preview.map((r) => ({ ...r, german: r.french, french: r.german })))}>⇄ Inverser les colonnes</Button>
               </div>
+              {dups.size > 0 && <p className="text-xs text-muted-foreground">{dups.size} mot(s) déjà présent(s) ignoré(s).</p>}
               {preview.some((r) => !r.german.trim() || !r.french.trim()) && <p className="text-xs text-destructive">Les lignes encadrées en rouge sont incomplètes et ne seront pas ajoutées.</p>}
             </div>
-          )}
+            );
+          })()}
         </details>
       </section>
     </div>

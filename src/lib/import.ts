@@ -41,3 +41,17 @@ export function parseImport(text: string): ImportRow[] {
     return { german, french, ok: !!german && !!french };
   });
 }
+
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Indexes of rows whose German word is already in the list or appears earlier in the paste. */
+export function duplicateIndexes(rows: { german: string }[], existing: string[]): Set<number> {
+  const seen = new Set(existing.map(norm));
+  const dup = new Set<number>();
+  rows.forEach((r, i) => {
+    const k = norm(r.german);
+    if (!k) return;
+    if (seen.has(k)) dup.add(i); else seen.add(k);
+  });
+  return dup;
+}
