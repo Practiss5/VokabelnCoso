@@ -11,6 +11,7 @@ export function spokenGerman(text: string) {
 
 // Never read an answer that the exercise still expects the student to produce.
 export function reviewSpeech(word: Word, mode: DailyMode, revealed: boolean) {
+  if (mode === "dictation") return word.german;
   if ((mode === "typing" || mode === "speaking") && !revealed) return "";
   if (mode === "context") return revealed ? spokenGerman(word.example_de ?? "") : "";
   return word.german;
