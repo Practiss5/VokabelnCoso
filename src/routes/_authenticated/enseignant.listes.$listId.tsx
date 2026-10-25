@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GermanAudio } from "@/components/GermanAudio";
-import { duplicateIndexes, parseImport, type ImportRow } from "@/lib/import";
+import { duplicateIndexes, duplicateWordIds, isDuplicateGerman, normGerman, parseImport, type ImportRow } from "@/lib/import";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
   head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -53,6 +53,10 @@ function ListEditor() {
 
   async function addWord(e: React.FormEvent) {
     e.preventDefault();
+    if (data && data.words.some((w) => normGerman(w.german) === normGerman(de))) {
+      toast.error(`« ${de.trim()} » est déjà dans cette liste`);
+      return;
+    }
     const { error } = await supabase.from("words").insert({ list_id: listId, german: de.trim(), french: fr.trim() });
     if (error) { toast.error(error.message); return; }
     setDe(""); setFr(""); refresh();
@@ -106,6 +110,16 @@ function ListEditor() {
 
   if (!data) return <p>Chargement…</p>;
   const missing = data.words.filter((w) => !w.example_de.trim()).length;
+  const dupIds = duplicateWordIds(data.words);
+  async function cleanDuplicates() {
+    const n = dupIds.size;
+    if (!n) return;
+    if (!confirm(`Supprimer les ${n} mot(s) en double (on garde la première occurrence) ?`)) return;
+    const { error } = await supabase.from("words").delete().in("id", [...dupIds]);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${n} doublon(s) supprimé(s)`);
+    refresh();
+  }
 
   return (
     <div className="space-y-8">
@@ -148,8 +162,14 @@ function ListEditor() {
           <span>Phrases d'exemple : {data.words.length - missing}/{data.words.length}. Écrivez le mot à trouver entre crochets : <code>Ich habe einen [Hund].</code></span>
           <Button size="sm" disabled={genBusy || missing === 0} onClick={generateAll}>{genBusy ? "Génération…" : `✨ Proposer les phrases (${data.list.level})`}</Button>
         </div>
+        {dupIds.size > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive bg-destructive/10 p-3 text-sm">
+            <span>⚠️ {dupIds.size} mot(s) en double dans cette liste (déjà présent une ou plusieurs fois, majuscules et espaces ignorés).</span>
+            <Button size="sm" variant="outline" onClick={cleanDuplicates}>Nettoyer les doublons</Button>
+          </div>
+        )}
         <ul className="mt-4 divide-y">
-          {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} onChange={refresh} />)}
+          {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} duplicate={dupIds.has(w.id)} allWords={data.words} onChange={refresh} />)}
         </ul>
         <details className="mt-6">
           <summary className="cursor-pointer text-sm font-medium">📥 Import rapide (Quizlet, Excel, Word)</summary>
@@ -194,7 +214,7 @@ function ListEditor() {
 }
 
 type W = { id: string; german: string; french: string; example_de: string; example_fr: string };
-function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange: () => void }) {
+function WordRow({ word, listId, duplicate, allWords, onChange }: { word: W; listId: string; duplicate: boolean; allWords: W[]; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [de, setDe] = useState(word.german);
   const [fr, setFr] = useState(word.french);
@@ -210,6 +230,7 @@ function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange
   }
   async function save() {
     if (exDe.trim() && !/\[[^\]]+\]/.test(exDe)) { toast.error("Mettez le mot à trouver entre crochets [ ]"); return; }
+    if (isDuplicateGerman(de, word.id, allWords)) { toast.error(`« ${de.trim()} » existe déjà dans cette liste`); return; }
     const { error } = await supabase.from("words").update({ german: de.trim(), french: fr.trim(), example_de: exDe.trim(), example_fr: exFr.trim() }).eq("id", word.id);
     if (error) { toast.error(error.message); return; }
     setEditing(false); onChange();
@@ -237,7 +258,7 @@ function WordRow({ word, listId, onChange }: { word: W; listId: string; onChange
     <li className="flex flex-wrap items-center justify-between gap-2 py-2">
       <div className="min-w-0 flex-1 basis-64">
         <div className="flex items-center gap-2">
-          <span className="min-w-0 break-words"><b>{word.german}</b> <span className="text-muted-foreground">— {word.french}</span></span>
+          <span className="min-w-0 break-words"><b>{word.german}</b> {duplicate && <span title="Ce mot apparaît plusieurs fois dans la liste">⚠️</span>} <span className="text-muted-foreground">— {word.french}</span></span>
           <GermanAudio text={word.german} />
         </div>
         {word.example_de && <div className="mt-1 flex items-center gap-2">
