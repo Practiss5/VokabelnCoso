@@ -12,6 +12,9 @@ describe("German audio", () => {
   it("returns no voice when German is unavailable", () => {
     expect(germanVoice([voice("fr-FR", true)])).toBeNull();
   });
+  it("dictation reads the German word before it is revealed", () => {
+    expect(reviewSpeech(word, "dictation", false)).toBe("der Hund");
+  });
   it("removes exercise brackets from spoken sentences", () => {
     expect(spokenGerman("Mein [Hund] spielt.")).toBe("Mein Hund spielt.");
   });
