@@ -269,6 +269,17 @@ export const HW_RATES = [0.6, 0.7, 0.8, 0.9, 1] as const;
 export type HwRequirements = Partial<Record<HwMode, number>>;
 export type HwPart = { key: string; label: string; got: number; need: number; rate: number };
 
+/** Saved rate → whole percent among 60/70/80/90/100 (accepts 0.7, "0.7" or 70). */
+export function hwPercent(rate: unknown): number | null {
+  let n = typeof rate === "string" ? Number(rate.replace(",", ".")) : typeof rate === "number" ? rate : NaN;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n <= 1) n *= 100;
+  const pct = Math.round(n / 10) * 10;
+  return Math.min(100, Math.max(60, pct));
+}
+/** Words needed for a whole percent, in exact integer math (70 % of 10 = 7, of 3 = 3). */
+export const hwNeed = (total: number, pct: number) => Math.ceil((total * pct) / 100);
+
 /**
  * Homework is done when, between assignment and deadline, every required part reaches its rate
  * of the homework words answered correctly. With custom requirements each chosen mode counts on
@@ -284,13 +295,15 @@ export function homeworkStatus(
   const start = new Date(createdAt).getTime();
   const end = new Date(dueAt).getTime();
   const ids = new Set(wordIds);
-  const groups: { key: string; label: string; rate: number; modes: Set<string> }[] =
-    requirements && Object.keys(requirements).length
-      ? HW_MODES.filter((m) => requirements[m.id] != null).map((m) => ({ key: m.id, label: m.label, rate: requirements[m.id]!, modes: new Set([m.id]) }))
-      : [
-          { key: "qcm", label: "QCM", rate: HW_QCM_RATE, modes: QCM_OR_ABOVE },
-          { key: "writing", label: "Écriture", rate: HW_WRITING_RATE, modes: WRITING },
-        ];
+  // Each checked mode keeps its own threshold and counts only its own correct answers.
+  const custom = HW_MODES.flatMap((m) => {
+    const pct = requirements ? hwPercent(requirements[m.id]) : null;
+    return pct == null ? [] : [{ key: m.id, label: m.label, pct, modes: new Set<string>([m.id]) }];
+  });
+  const groups = custom.length ? custom : [
+    { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, modes: QCM_OR_ABOVE },
+    { key: "writing", label: "Écriture", pct: HW_WRITING_RATE * 100, modes: WRITING },
+  ];
   const sets = groups.map(() => new Set<string>());
   for (const r of reviews) {
     const t = new Date(r.created_at).getTime();
@@ -298,7 +311,7 @@ export function homeworkStatus(
     groups.forEach((g, i) => { if (g.modes.has(r.mode ?? "")) sets[i]!.add(r.word_id); });
   }
   const total = ids.size;
-  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.rate, got: sets[i]!.size, need: Math.ceil(total * g.rate - 1e-9) }));
+  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.pct / 100, got: sets[i]!.size, need: hwNeed(total, g.pct) }));
   const done = total > 0 && parts.every((p) => p.got >= p.need);
   return { done, total, parts };
 }

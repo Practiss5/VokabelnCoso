@@ -35,6 +35,21 @@ describe("homeworkStatus", () => {
     expect(homeworkStatus(ten, ok(10, "typing"), C, D, { choice: 0.6 }).done).toBe(false);
     expect(homeworkStatus(ten, ok(6, "flashcard"), C, D, { flashcard: 0.6 }).done).toBe(true);
   });
+  it("custom: each threshold gives the exact number of words", () => {
+    const need = (n: number, rate: number) => homeworkStatus(Array.from({ length: n }, (_, i) => `x${i}`), [], C, D, { typing: rate }).parts[0]?.need;
+    expect([0.6, 0.7, 0.8, 0.9, 1].map((r) => need(10, r))).toEqual([6, 7, 8, 9, 10]);
+    expect([0.6, 0.7, 0.8, 0.9, 1].map((r) => need(3, r))).toEqual([2, 3, 3, 3, 3]);
+    expect([0.6, 0.7, 0.8, 0.9, 1].map((r) => need(7, r))).toEqual([5, 5, 6, 7, 7]);
+  });
+  it("custom: two modes with different thresholds are checked separately", () => {
+    const s = homeworkStatus(ten, [...ok(6, "choice"), ...ok(9, "typing")], C, D, { choice: 0.6, typing: 1 });
+    expect(s.parts.map((p) => [p.key, p.got, p.need])).toEqual([["choice", 6, 6], ["typing", 9, 10]]);
+    expect(s.done).toBe(false);
+  });
+  it("custom: thresholds saved as text or percent still work", () => {
+    expect(homeworkStatus(ten, ok(9, "choice"), C, D, { choice: "0.9" as unknown as number }).parts[0]?.need).toBe(9);
+    expect(homeworkStatus(ten, ok(8, "choice"), C, D, { choice: 80 }).done).toBe(true);
+  });
   it("custom: only the selected words count", () => {
     expect(homeworkStatus(["w0", "w1"], ok(2, "choice"), C, D, { choice: 1 }).done).toBe(true);
   });
