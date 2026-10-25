@@ -85,3 +85,12 @@ describe("paper quiz & export", () => {
     expect(homeworkCsv("Haus", "x", true, [row]).split("\r\n")[1]).toContain('"Non fait"');
   });
 });
+
+import { dueCountdown } from "@/lib/vocab";
+describe("dueCountdown", () => {
+  const now = Date.UTC(2026, 9, 25, 12, 0);
+  it("is late once past", () => expect(dueCountdown(now - 1000, now).level).toBe("late"));
+  it("is urgent under 24 h", () => expect(dueCountdown(now + 5 * 3600000 + 30 * 60000, now)).toEqual({ label: "🚨 Plus que 5 h 30", level: "urgent" }));
+  it("is soon under 3 days", () => expect(dueCountdown(now + 2 * 86400000 + 4 * 3600000, now)).toEqual({ label: "⚠️ Reste 2 j 4 h", level: "soon" }));
+  it("is ok from 3 days", () => expect(dueCountdown(now + 3 * 86400000, now).level).toBe("ok"));
+});
