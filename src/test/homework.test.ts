@@ -18,7 +18,7 @@ describe("homeworkStatus", () => {
   });
   it("ignores flashcards, wrong answers and answers outside the period", () => {
     const s = homeworkStatus(ids, [r("a", "flashcard"), r("b", "typing", false), r("c", "typing", true, "2026-10-24T10:00:00Z")], C, D);
-    expect(s.parts[0].got).toBe(0);
+    expect(s.parts[0]?.got).toBe(0);
   });
   const ten = Array.from({ length: 10 }, (_, i) => `w${i}`);
   const ok = (n: number, mode: string) => ten.slice(0, n).map((w) => r(w, mode));

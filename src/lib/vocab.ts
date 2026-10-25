@@ -295,10 +295,10 @@ export function homeworkStatus(
   for (const r of reviews) {
     const t = new Date(r.created_at).getTime();
     if (!ids.has(r.word_id) || t < start || t > end || !r.correct) continue;
-    groups.forEach((g, i) => { if (g.modes.has(r.mode ?? "")) sets[i].add(r.word_id); });
+    groups.forEach((g, i) => { if (g.modes.has(r.mode ?? "")) sets[i]!.add(r.word_id); });
   }
   const total = ids.size;
-  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.rate, got: sets[i].size, need: Math.ceil(total * g.rate - 1e-9) }));
+  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.rate, got: sets[i]!.size, need: Math.ceil(total * g.rate - 1e-9) }));
   const done = total > 0 && parts.every((p) => p.got >= p.need);
   return { done, total, parts };
 }
