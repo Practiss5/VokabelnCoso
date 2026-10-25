@@ -33,6 +33,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<HwRequirements>({ choice: 0.7, typing: 0.7 });
   const [dup, setDup] = useState<string | null>(null);
+  const [dupReq, setDupReq] = useState<HwRequirements>({});
   const { data } = useQuery({
     queryKey: ["homeworks", classId],
     queryFn: async () => {
@@ -192,7 +193,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               </div>
               <div className="flex flex-wrap gap-1">
                 <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st)}>⬇️ Excel / CSV</Button>
-                <Button size="sm" variant="outline" onClick={() => setDup(dup === h.id ? null : h.id)}>📋 Dupliquer</Button>
+                <Button size="sm" variant="outline" onClick={() => { setDup(dup === h.id ? null : h.id); setDupReq(sameReq(h.requirements)); }}>📋 Dupliquer</Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
               </div>
               {dup === h.id && (
@@ -206,6 +207,15 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                   <label>Date limite
                     <Input name="due" type="datetime-local" required defaultValue={toLocalInput(h.due_at)} className="mt-1 h-9" />
                   </label>
+                  <div className="flex w-full flex-wrap gap-2">
+                    {HW_MODES.filter((m) => dupReq[m.id] != null).map((m) => (
+                      <label key={m.id} className="flex items-center gap-1">{m.label}
+                        <select value={dupReq[m.id]} onChange={(e) => setDupReq((r) => ({ ...r, [m.id]: Number(e.target.value) }))} className="h-8 rounded-md border border-input bg-background px-2">
+                          {HW_RATES.map((v) => <option key={v} value={v}>{Math.round(v * 100)} %</option>)}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
                   <Button size="sm" type="submit">Dupliquer</Button>
                   {data.classes.length < 2 && <p className="w-full text-xs text-muted-foreground">Tu n'as pas d'autre classe pour l'instant.</p>}
                 </form>
