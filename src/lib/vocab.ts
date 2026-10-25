@@ -121,6 +121,7 @@ export const MODE_LABELS: Record<string, string> = {
   speaking: "Prononciation",
   typing: "Écriture",
   context: "Phrase",
+  dictation: "Dictée",
 };
 
 export type ErrorType = "article" | "spelling" | "translation" | "context";
@@ -178,7 +179,7 @@ export const SKILL_LABELS: Record<string, string> = {
   context: "En contexte",
 };
 
-export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context";
+export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation";
 export type SkillState = {
   word_id: string; skill: string; step: number; due_at: string;
   wrong_count: number; correct_count: number; last_reviewed_at: string | null;

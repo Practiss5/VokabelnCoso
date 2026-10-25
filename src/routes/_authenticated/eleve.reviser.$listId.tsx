@@ -11,8 +11,8 @@ import { WortTetris } from "@/components/WortTetris";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 
-type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context";
-const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context" } as const;
+type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation";
+const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
   validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string } => ({
@@ -34,6 +34,7 @@ const MODES: { id: Mode; title: string; desc: string }[] = [
   { id: "speaking", title: "Prononciation 🎙️", desc: "Le mot français s'affiche : dites-le en allemand, avec l'article." },
   { id: "typing", title: "Écriture", desc: "Écrivez le mot allemand à partir du français." },
   { id: "context", title: "Phrases à trou", desc: "Complétez une phrase allemande avec le bon mot." },
+  { id: "dictation", title: "Dictée 🎧", desc: "Écoutez le mot allemand (sans le voir) et écrivez-le." },
 ];
 
 function Review() {
