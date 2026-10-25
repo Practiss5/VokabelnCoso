@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+/** Same thresholds as the original, as clean 0–1 rates; old homework (no thresholds) = QCM 80 % + Écriture 60 %. */
+export const sameReq = (r: HwRequirements | null): HwRequirements => {
+  if (!r) return { choice: 0.8, typing: 0.6 };
+  const out: HwRequirements = {};
+  for (const [k, v] of Object.entries(r)) { const n = Number(v); if (Number.isFinite(n)) out[k as HwMode] = Math.round((n > 1 ? n / 100 : n) * 100) / 100; }
+  return out;
+};
 const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 type Hw = {
@@ -91,7 +98,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     await supabase.from("list_assignments").upsert({ list_id: h.list_id, class_id: cls }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
     const { error } = await supabase.from("homeworks").insert({
       teacher_id: u.user!.id, class_id: cls, list_id: h.list_id, due_at: new Date(dueStr).toISOString(),
-      instructions: h.instructions, word_ids: h.word_ids, requirements: h.requirements,
+      instructions: h.instructions, word_ids: h.word_ids, requirements: dupReq,
     });
     if (error) { toast.error(error.message); return; }
     toast.success(`Devoir dupliqué vers ${data?.classes.find((c) => c.id === cls)?.name ?? "la classe"}`);
@@ -261,7 +268,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
         return (
           <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : cd.level === "urgent" || cd.level === "late" ? "border-destructive" : "border-accent"} border-2`}>
             <div>
-              {!r.done && <span className={`mb-1 inline-block rounded-full px-3 py-1 text-sm font-bold ${badge}`}>{cd.label}</span>}
+              <span className={`mb-2 inline-block rounded-full px-3 py-1 text-sm font-bold ${r.done ? "bg-success text-success-foreground" : badge}`}>{r.done && cd.level !== "late" ? `✅ Fait · ${cd.label.replace(/^\S+\s/, "")}` : cd.label}</span>
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
