@@ -8,13 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-/** Same thresholds as the original, as clean 0–1 rates; old homework (no thresholds) = QCM 80 % + Écriture 60 %. */
-export const sameReq = (r: HwRequirements | null): HwRequirements => {
-  if (!r) return { choice: 0.8, typing: 0.6 };
-  const out: HwRequirements = {};
-  for (const [k, v] of Object.entries(r)) { const n = Number(v); if (Number.isFinite(n)) out[k as HwMode] = Math.round((n > 1 ? n / 100 : n) * 100) / 100; }
-  return out;
-};
+/** Copy of a homework for another class: same list, words, instructions and thresholds, untouched. */
+export const dupPayload = (h: { list_id: string; instructions: string; word_ids: string[] | null; requirements: HwRequirements | null }, teacherId: string, classId: string, dueIso: string) =>
+  ({ teacher_id: teacherId, class_id: classId, list_id: h.list_id, due_at: dueIso, instructions: h.instructions, word_ids: h.word_ids, requirements: h.requirements });
 const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 type Hw = {
@@ -95,10 +91,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     if (!cls || !dueStr) return;
     const { data: u } = await supabase.auth.getUser();
     await supabase.from("list_assignments").upsert({ list_id: h.list_id, class_id: cls }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
-    const { error } = await supabase.from("homeworks").insert({
-      teacher_id: u.user!.id, class_id: cls, list_id: h.list_id, due_at: new Date(dueStr).toISOString(),
-      instructions: h.instructions, word_ids: h.word_ids, requirements: h.requirements,
-    });
+    const { error } = await supabase.from("homeworks").insert(dupPayload(h, u.user!.id, cls, new Date(dueStr).toISOString()));
     if (error) { toast.error(error.message); return; }
     toast.success(`Devoir dupliqué vers ${data?.classes.find((c) => c.id === cls)?.name ?? "la classe"}`);
     setDup(null);
