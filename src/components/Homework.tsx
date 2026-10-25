@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeStreak, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
+import { computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 type Hw = {
   id: string; list_id: string; due_at: string; instructions: string; created_at: string;
@@ -31,17 +32,19 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<HwRequirements>({ choice: 0.7, typing: 0.7 });
+  const [dup, setDup] = useState<string | null>(null);
   const { data } = useQuery({
     queryKey: ["homeworks", classId],
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
-      const [hw, lists] = await Promise.all([
+      const [hw, lists, classes] = await Promise.all([
         supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).order("due_at", { ascending: false }),
         supabase.from("vocab_lists").select("id, title").eq("teacher_id", u.user!.id).order("title"),
+        supabase.from("classes").select("id, name").eq("teacher_id", u.user!.id).order("name"),
       ]);
       const ids = students.map((s) => s.id);
       const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
-      return { hw: (hw.data ?? []) as unknown as Hw[], lists: lists.data ?? [], rev };
+      return { hw: (hw.data ?? []) as unknown as Hw[], lists: lists.data ?? [], classes: classes.data ?? [], rev };
     },
   });
   const { data: listWords } = useQuery({
@@ -79,6 +82,20 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     setText(""); setDue(""); setListId(""); setPicked(new Set());
     qc.invalidateQueries({ queryKey: ["homeworks", classId] });
     qc.invalidateQueries({ queryKey: ["class", classId] });
+  }
+  async function duplicate(h: Hw, f: FormData) {
+    const cls = String(f.get("cls") ?? ""), dueStr = String(f.get("due") ?? "");
+    if (!cls || !dueStr) return;
+    const { data: u } = await supabase.auth.getUser();
+    await supabase.from("list_assignments").upsert({ list_id: h.list_id, class_id: cls }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
+    const { error } = await supabase.from("homeworks").insert({
+      teacher_id: u.user!.id, class_id: cls, list_id: h.list_id, due_at: new Date(dueStr).toISOString(),
+      instructions: h.instructions, word_ids: h.word_ids, requirements: h.requirements,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Devoir dupliqué vers ${data?.classes.find((c) => c.id === cls)?.name ?? "la classe"}`);
+    setDup(null);
+    qc.invalidateQueries({ queryKey: ["homeworks", cls] });
   }
   async function remove(id: string) {
     if (!confirm("Supprimer ce devoir ?")) return;
@@ -173,10 +190,26 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                 <p className="text-xs text-muted-foreground">{rule.map((p) => `${p.label} ${Math.round(p.rate * 100)} %`).join(" · ")}</p>
                 <p className="text-sm font-semibold">{doneN}/{students.length} élèves ont fait le devoir</p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st)}>⬇️ Excel / CSV</Button>
+                <Button size="sm" variant="outline" onClick={() => setDup(dup === h.id ? null : h.id)}>📋 Dupliquer</Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
               </div>
+              {dup === h.id && (
+                <form onSubmit={(e) => { e.preventDefault(); void duplicate(h, new FormData(e.currentTarget)); }} className="flex w-full flex-wrap items-end gap-2 rounded-md bg-secondary p-2 text-sm">
+                  <label>Vers la classe
+                    <select name="cls" required className="mt-1 block h-9 rounded-md border border-input bg-background px-2">
+                      <option value="">Choisir…</option>
+                      {data.classes.filter((c) => c.id !== classId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </label>
+                  <label>Date limite
+                    <Input name="due" type="datetime-local" required defaultValue={toLocalInput(h.due_at)} className="mt-1 h-9" />
+                  </label>
+                  <Button size="sm" type="submit">Dupliquer</Button>
+                  {data.classes.length < 2 && <p className="w-full text-xs text-muted-foreground">Tu n'as pas d'autre classe pour l'instant.</p>}
+                </form>
+              )}
             </div>
             <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
               {st.map(({ s, r }) => (
@@ -196,6 +229,8 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
 
 /** Student: upcoming homework shown at the top of the home page. */
 export function StudentHomework({ studentId, classId }: { studentId: string; classId: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
   const { data } = useQuery({
     queryKey: ["my-homeworks", classId],
     queryFn: async () => {
@@ -206,13 +241,17 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
     },
   });
   if (!data?.length) return null;
+  // `now` ticks every 30 s (see hook above) so the countdown stays live.
   return (
     <section className="space-y-3">
       {data.map(({ h, r }) => {
         const late = new Date(h.due_at).getTime() < Date.now();
+        const cd = dueCountdown(h.due_at, now);
+        const badge = { late: "bg-destructive text-destructive-foreground", urgent: "bg-destructive text-destructive-foreground animate-pulse", soon: "bg-accent text-accent-foreground", ok: "bg-secondary text-secondary-foreground" }[cd.level];
         return (
-          <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : "border-accent"} border-2`}>
+          <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : cd.level === "urgent" || cd.level === "late" ? "border-destructive" : "border-accent"} border-2`}>
             <div>
+              {!r.done && <span className={`mb-1 inline-block rounded-full px-3 py-1 text-sm font-bold ${badge}`}>{cd.label}</span>}
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
