@@ -15,9 +15,10 @@ type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
-  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean } => ({
+  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string } => ({
     ...(s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
     ...(s['tetris'] === true || s['tetris'] === "true" ? { tetris: true } : {}),
+    ...(typeof s['devoir'] === "string" ? { devoir: s['devoir'] } : {}),
   }),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (

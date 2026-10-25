@@ -3,14 +3,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeStreak, homeworkCsv, homeworkStatus } from "@/lib/vocab";
+import { computeStreak, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
-type Hw = { id: string; list_id: string; due_at: string; instructions: string; created_at: string; vocab_lists: { title: string; words: { id: string }[] } | null };
-const HW_SELECT = "id, list_id, due_at, instructions, created_at, vocab_lists(title, words(id))";
+type Hw = {
+  id: string; list_id: string; due_at: string; instructions: string; created_at: string;
+  word_ids: string[] | null; requirements: HwRequirements | null;
+  vocab_lists: { title: string; words: { id: string }[] } | null;
+};
+const HW_SELECT = "id, list_id, due_at, instructions, created_at, word_ids, requirements, vocab_lists(title, words(id))";
+/** Words of the homework: the selected ones (still in the list), or the whole list. */
+const hwWords = (h: Hw) => {
+  const all = h.vocab_lists?.words.map((w) => w.id) ?? [];
+  return h.word_ids?.length ? all.filter((id) => h.word_ids!.includes(id)) : all;
+};
+const partsText = (parts: ReturnType<typeof homeworkStatus>["parts"]) =>
+  parts.map((p) => `${p.label} ${p.got}/${p.need} ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ");
 
 /** Teacher: give homework to a class and see who did it. */
 export function TeacherHomework({ classId, students }: { classId: string; students: { id: string; full_name: string }[] }) {
@@ -18,6 +29,8 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   const [listId, setListId] = useState("");
   const [due, setDue] = useState("");
   const [text, setText] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [req, setReq] = useState<HwRequirements>({ choice: 0.7, typing: 0.7 });
   const { data } = useQuery({
     queryKey: ["homeworks", classId],
     queryFn: async () => {
@@ -28,19 +41,42 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
       ]);
       const ids = students.map((s) => s.id);
       const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
-      return { hw: (hw.data ?? []) as Hw[], lists: lists.data ?? [], rev };
+      return { hw: (hw.data ?? []) as unknown as Hw[], lists: lists.data ?? [], rev };
     },
   });
+  const { data: listWords } = useQuery({
+    queryKey: ["hw-list-words", listId],
+    enabled: !!listId,
+    queryFn: async () => (await supabase.from("words").select("id, german, french").eq("list_id", listId).order("created_at")).data ?? [],
+  });
+
+  function chooseList(id: string) {
+    setListId(id);
+    setPicked(new Set());
+    if (id) void supabase.from("words").select("id").eq("list_id", id).then(({ data: w }) => setPicked(new Set((w ?? []).map((x) => x.id))));
+  }
+  function toggleWord(id: string) {
+    setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+  function toggleMode(m: HwMode) {
+    setReq((r) => { const n = { ...r }; if (n[m] != null) delete n[m]; else n[m] = 0.7; return n; });
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
+    if (!picked.size) { toast.error("Choisis au moins un mot."); return; }
+    if (!Object.keys(req).length) { toast.error("Choisis au moins un exercice."); return; }
     const { data: u } = await supabase.auth.getUser();
     // Make sure the class can open the list.
     await supabase.from("list_assignments").upsert({ list_id: listId, class_id: classId }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
-    const { error } = await supabase.from("homeworks").insert({ teacher_id: u.user!.id, class_id: classId, list_id: listId, due_at: new Date(due).toISOString(), instructions: text.trim() });
+    const allPicked = listWords && picked.size === listWords.length;
+    const { error } = await supabase.from("homeworks").insert({
+      teacher_id: u.user!.id, class_id: classId, list_id: listId, due_at: new Date(due).toISOString(), instructions: text.trim(),
+      word_ids: allPicked ? null : [...picked], requirements: req,
+    });
     if (error) { toast.error(error.message); return; }
     toast.success("Devoir donné à la classe");
-    setText(""); setDue(""); setListId("");
+    setText(""); setDue(""); setListId(""); setPicked(new Set());
     qc.invalidateQueries({ queryKey: ["homeworks", classId] });
     qc.invalidateQueries({ queryKey: ["class", classId] });
   }
@@ -52,7 +88,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
 
   function exportCsv(title: string, dueAt: string, st: { s: { full_name: string }; r: ReturnType<typeof homeworkStatus> }[]) {
     const due = new Date(dueAt).toLocaleDateString("fr-FR");
-    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r }) => ({ name: s.full_name || "—", ...r })));
+    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r }) => ({ name: s.full_name || "—", done: r.done, parts: r.parts })));
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -64,10 +100,10 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   return (
     <section className="word-card space-y-4 p-4">
       <h2 className="text-xl font-bold">📅 Devoirs</h2>
-      <form onSubmit={create} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <form onSubmit={create} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm">Liste à réviser
-            <select required value={listId} onChange={(e) => setListId(e.target.value)} className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3">
+            <select required value={listId} onChange={(e) => chooseList(e.target.value)} className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3">
               <option value="">Choisir…</option>
               {data?.lists.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
             </select>
@@ -76,23 +112,65 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
             <Input required type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className="mt-1" />
           </label>
           <label className="text-sm sm:col-span-2">Consigne (facultatif)
-            <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex. : réviser en mode Écriture" className="mt-1" />
+            <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex. : apprendre les mots de la page 12" className="mt-1" />
           </label>
         </div>
+
+        {listId && listWords && (
+          <fieldset className="rounded-lg border p-3">
+            <legend className="px-1 text-sm font-semibold">Mots du devoir : {picked.size} sur {listWords.length}</legend>
+            <div className="mb-2 flex gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setPicked(new Set(listWords.map((w) => w.id)))}>Tout cocher</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setPicked(new Set())}>Tout décocher</Button>
+            </div>
+            <div className="grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2">
+              {listWords.map((w) => (
+                <label key={w.id} className="flex cursor-pointer items-center gap-2 rounded bg-secondary px-2 py-1 text-sm">
+                  <input type="checkbox" checked={picked.has(w.id)} onChange={() => toggleWord(w.id)} className="h-4 w-4" />
+                  <span><b>{w.german}</b> — {w.french}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        <fieldset className="rounded-lg border p-3">
+          <legend className="px-1 text-sm font-semibold">Exercices demandés et seuil de réussite</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {HW_MODES.map((m) => {
+              const on = req[m.id] != null;
+              return (
+                <div key={m.id} className="flex items-center justify-between gap-2 rounded bg-secondary px-2 py-1.5">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="checkbox" checked={on} onChange={() => toggleMode(m.id)} className="h-4 w-4" />
+                    {m.label}
+                  </label>
+                  <select aria-label={`Seuil ${m.label}`} disabled={!on} value={req[m.id] ?? 0.7}
+                    onChange={(e) => setReq((r) => ({ ...r, [m.id]: Number(e.target.value) }))}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-40">
+                    {HW_RATES.map((v) => <option key={v} value={v}>{Math.round(v * 100)} %</option>)}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Le devoir est « fait » quand, avant la date limite, l'élève a réussi le pourcentage demandé des mots dans chaque exercice coché.</p>
+        </fieldset>
         <Button type="submit">Donner en devoir</Button>
       </form>
-      <p className="text-xs text-muted-foreground">Un devoir est « fait » quand, avant la date limite, l'élève a réussi au moins 80 % des mots en QCM (ou plus difficile) et 60 % des mots à l'écrit.</p>
       {data?.hw.map((h) => {
-        const words = h.vocab_lists?.words.map((w) => w.id) ?? [];
-        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at) }));
+        const words = hwWords(h);
+        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements) }));
         const doneN = st.filter((x) => x.r.done).length;
         const late = new Date(h.due_at).getTime() < Date.now();
+        const rule = st[0]?.r.parts ?? homeworkStatus(words, [], h.created_at, h.due_at, h.requirements).parts;
         return (
           <div key={h.id} className="rounded-lg border p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-bold">{h.vocab_lists?.title}</p>
+                <p className="font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal text-muted-foreground">· {words.length} mot{words.length > 1 ? "s" : ""}</span></p>
                 <p className="text-sm text-muted-foreground">Pour {fmt(h.due_at)}{late ? " · terminé" : ""}{h.instructions ? ` · ${h.instructions}` : ""}</p>
+                <p className="text-xs text-muted-foreground">{rule.map((p) => `${p.label} ${Math.round(p.rate * 100)} %`).join(" · ")}</p>
                 <p className="text-sm font-semibold">{doneN}/{students.length} élèves ont fait le devoir</p>
               </div>
               <div className="flex gap-1">
@@ -104,7 +182,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               {st.map(({ s, r }) => (
                 <li key={s.id} className="flex justify-between gap-2 rounded bg-secondary px-2 py-1">
                   <span>{s.full_name || "—"}</span>
-                  <span className={r.done ? "font-semibold text-success" : "text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} ⏳ QCM ${r.qcm}/${r.qcmNeed} · Écrit ${r.writing}/${r.writingNeed}`}</span>
+                  <span className={r.done ? "font-semibold text-success" : "text-right text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} · ${partsText(r.parts)}`}</span>
                 </li>
               ))}
             </ul>
@@ -122,9 +200,9 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
     queryKey: ["my-homeworks", classId],
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
-      const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as Hw[];
+      const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
       const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId)).data ?? [] : [];
-      return hw.map((h) => ({ h, r: homeworkStatus(h.vocab_lists?.words.map((w) => w.id) ?? [], rev, h.created_at, h.due_at) }));
+      return hw.map((h) => ({ h, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements) }));
     },
   });
   if (!data?.length) return null;
@@ -136,11 +214,11 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
           <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : "border-accent"} border-2`}>
             <div>
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
-              <p className="text-xl font-bold">{h.vocab_lists?.title}</p>
+              <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
-              {!r.done && <p className="text-sm text-muted-foreground">QCM : {r.qcm}/{r.qcmNeed} mots {r.qcm >= r.qcmNeed ? "✅" : "⏳"} · Écriture : {r.writing}/{r.writingNeed} mots {r.writing >= r.writingNeed ? "✅" : "⏳"}</p>}
+              {!r.done && <p className="text-sm text-muted-foreground">{r.parts.map((p) => `${p.label} : ${p.got}/${p.need} mots (${Math.round(p.rate * 100)} %) ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ")}</p>}
             </div>
-            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }}>Commencer le devoir</Link></Button>}
+            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id }}>Commencer le devoir</Link></Button>}
           </div>
         );
       })}
