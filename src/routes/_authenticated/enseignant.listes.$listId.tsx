@@ -110,6 +110,16 @@ function ListEditor() {
 
   if (!data) return <p>Chargement…</p>;
   const missing = data.words.filter((w) => !w.example_de.trim()).length;
+  const dupIds = duplicateWordIds(data.words);
+  async function cleanDuplicates() {
+    const n = dupIds.size;
+    if (!n) return;
+    if (!confirm(`Supprimer les ${n} mot(s) en double (on garde la première occurrence) ?`)) return;
+    const { error } = await supabase.from("words").delete().in("id", [...dupIds]);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${n} doublon(s) supprimé(s)`);
+    refresh();
+  }
 
   return (
     <div className="space-y-8">
@@ -152,8 +162,14 @@ function ListEditor() {
           <span>Phrases d'exemple : {data.words.length - missing}/{data.words.length}. Écrivez le mot à trouver entre crochets : <code>Ich habe einen [Hund].</code></span>
           <Button size="sm" disabled={genBusy || missing === 0} onClick={generateAll}>{genBusy ? "Génération…" : `✨ Proposer les phrases (${data.list.level})`}</Button>
         </div>
+        {dupIds.size > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive bg-destructive/10 p-3 text-sm">
+            <span>⚠️ {dupIds.size} mot(s) en double dans cette liste (déjà présent une ou plusieurs fois, majuscules et espaces ignorés).</span>
+            <Button size="sm" variant="outline" onClick={cleanDuplicates}>Nettoyer les doublons</Button>
+          </div>
+        )}
         <ul className="mt-4 divide-y">
-          {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} onChange={refresh} />)}
+          {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} duplicate={dupIds.has(w.id)} allWords={data.words} onChange={refresh} />)}
         </ul>
         <details className="mt-6">
           <summary className="cursor-pointer text-sm font-medium">📥 Import rapide (Quizlet, Excel, Word)</summary>
