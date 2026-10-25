@@ -358,3 +358,14 @@ export function homeworkCsv(title: string, due: string, late: boolean, rows: { n
   }
   return lines.join("\r\n");
 }
+
+/** Homework countdown badge: "urgent" under 24 h, "soon" under 3 days, "late" past due. */
+export function dueCountdown(dueAt: string | number | Date, now: number = Date.now()): { label: string; level: "late" | "urgent" | "soon" | "ok" } {
+  const ms = new Date(dueAt).getTime() - now;
+  if (ms <= 0) return { label: "⌛ En retard", level: "late" };
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  if (h < 1) return { label: `🚨 Plus que ${m} min`, level: "urgent" };
+  if (h < 24) return { label: `🚨 Plus que ${h} h ${String(m).padStart(2, "0")}`, level: "urgent" };
+  const d = Math.floor(h / 24), rh = h % 24;
+  return { label: `${d < 3 ? "⚠️" : "⏳"} Reste ${d} j${rh ? ` ${rh} h` : ""}`, level: d < 3 ? "soon" : "ok" };
+}
