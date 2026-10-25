@@ -15,6 +15,6 @@ describe("parseImport", () => {
     expect(parseImport("le chien ; der Hund\nla maison ; das Haus")[1]).toMatchObject({ german: "das Haus", french: "la maison" });
   });
   it("flags lines without separator", () => {
-    expect(parseImport("Hund")[0].ok).toBe(false);
+    expect(parseImport("Hund")[0]?.ok).toBe(false);
   });
 });
