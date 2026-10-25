@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GermanAudio } from "@/components/GermanAudio";
+import { parseImport, type ImportRow } from "@/lib/import";
 
 export const Route = createFileRoute("/_authenticated/enseignant/listes/$listId")({
   head: () => ({ meta: [{ title: "Liste de vocabulaire — Vocabulaire Allemand" }, { name: "description", content: "Modifier une liste de vocabulaire." }, { property: "og:title", content: "Liste de vocabulaire — Vocabulaire Allemand" }, { property: "og:description", content: "Modifier une liste de vocabulaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -56,14 +57,15 @@ function ListEditor() {
     if (error) { toast.error(error.message); return; }
     setDe(""); setFr(""); refresh();
   }
+  const [preview, setPreview] = useState<ImportRow[] | null>(null);
   async function addBulk() {
-    const rows = bulk.split("\n").map((l) => l.split(/[;\t=]/)).map((p) => ({ list_id: listId, german: (p[0] ?? "").trim(), french: (p[1] ?? "").trim() }))
-      .filter((r) => r.german && r.french);
-    if (!rows.length) { toast.error("Aucune ligne valide (format : allemand ; français)"); return; }
+    const rows = (preview ?? []).filter((r) => r.german.trim() && r.french.trim())
+      .map((r) => ({ list_id: listId, german: r.german.trim(), french: r.french.trim() }));
+    if (!rows.length) { toast.error("Aucune ligne valide"); return; }
     const { error } = await supabase.from("words").insert(rows);
     if (error) { toast.error(error.message); return; }
     toast.success(`${rows.length} mots ajoutés`);
-    setBulk(""); refresh();
+    setBulk(""); setPreview(null); refresh();
   }
   async function toggleClass(classId: string, on: boolean) {
     const { error } = on
@@ -149,10 +151,34 @@ function ListEditor() {
           {data.words.map((w) => <WordRow key={w.id} word={w} listId={listId} onChange={refresh} />)}
         </ul>
         <details className="mt-6">
-          <summary className="cursor-pointer text-sm font-medium">Ajouter plusieurs mots d'un coup</summary>
-          <p className="mt-2 text-sm text-muted-foreground">Un mot par ligne : <code>der Hund ; le chien</code></p>
-          <Textarea rows={6} value={bulk} onChange={(e) => setBulk(e.target.value)} className="mt-2" />
-          <Button className="mt-2" variant="secondary" onClick={addBulk}>Importer</Button>
+          <summary className="cursor-pointer text-sm font-medium">📥 Import rapide (Quizlet, Excel, Word)</summary>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Colle un mot par ligne. Séparateurs reconnus : tabulation (export Quizlet / Excel), <code>=</code>, <code>;</code>, <code> - </code> ou virgule.
+            L'ordre allemand / français est détecté tout seul. Ex. : <code>der Hund = le chien</code>
+          </p>
+          <Textarea rows={6} value={bulk} onChange={(e) => { setBulk(e.target.value); setPreview(null); }} className="mt-2" placeholder={"der Hund\tle chien\ndas Haus, ¨-er = la maison"} />
+          <Button className="mt-2" variant="secondary" disabled={!bulk.trim()} onClick={() => setPreview(parseImport(bulk))}>Aperçu</Button>
+          {preview && (
+            <div className="mt-3 space-y-2">
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs font-medium text-muted-foreground"><span>Allemand</span><span>Français</span><span /></div>
+              {preview.map((r, i) => {
+                const upd = (p: Partial<ImportRow>) => setPreview(preview.map((x, j) => (j === i ? { ...x, ...p } : x)));
+                const bad = !r.german.trim() || !r.french.trim();
+                return (
+                  <div key={i} className={`grid grid-cols-[1fr_1fr_auto] gap-2 ${bad ? "rounded border border-destructive p-1" : ""}`}>
+                    <Input value={r.german} onChange={(e) => upd({ german: e.target.value })} />
+                    <Input value={r.french} onChange={(e) => upd({ french: e.target.value })} />
+                    <Button size="sm" variant="ghost" onClick={() => setPreview(preview.filter((_, j) => j !== i))}>✕</Button>
+                  </div>
+                );
+              })}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={addBulk}>Ajouter ces {preview.filter((r) => r.german.trim() && r.french.trim()).length} mots</Button>
+                <Button variant="outline" onClick={() => setPreview(preview.map((r) => ({ ...r, german: r.french, french: r.german })))}>⇄ Inverser les colonnes</Button>
+              </div>
+              {preview.some((r) => !r.german.trim() || !r.french.trim()) && <p className="text-xs text-destructive">Les lignes encadrées en rouge sont incomplètes et ne seront pas ajoutées.</p>}
+            </div>
+          )}
         </details>
       </section>
     </div>
