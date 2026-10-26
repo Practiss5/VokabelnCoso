@@ -7,6 +7,7 @@ import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 import { TeacherHomework } from "@/components/Homework";
+import { StudentCodes } from "@/components/StudentCodes";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -30,17 +31,19 @@ function ClassPage() {
       if (cls.error) throw cls.error;
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
-      const [reviews, progress, lists] = await Promise.all([
+      const [reviews, progress, lists, codes] = await Promise.all([
         ids.length ? supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids) : Promise.resolve({ data: [] }),
         ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
+        supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
+      const labelByStudent = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
       const rows = students.map((s) => {
         const r = (reviews.data ?? []).filter((x) => x.student_id === s.id);
         const p = (progress.data ?? []).filter((x) => x.student_id === s.id);
         const correct = r.filter((x) => x.correct).length;
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
-        return { ...s, total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
+        return { ...s, label: labelByStudent.get(s.id) ?? "", total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
       });
       // Hardest words for the class: most errors, then lowest success rate.
       const byWord = new Map<string, { german: string; french: string; ok: number; ko: number; students: Set<string>; errs: Record<string, number> }>();
