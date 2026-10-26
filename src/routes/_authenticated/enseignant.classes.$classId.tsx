@@ -68,6 +68,15 @@ function ClassPage() {
     navigate({ to: "/enseignant" });
   }
 
+  async function purgeYear() {
+    if (!confirm("Clôturer l'année ? Toute la progression des élèves de la classe sera effacée et leurs codes désactivés. Les listes, devoirs et la classe sont conservés.")) return;
+    const { error } = await supabase.rpc("purge_class_data", { _class: classId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Année clôturée : progression effacée et codes désactivés.");
+    qc.invalidateQueries({ queryKey: ["class", classId] });
+    qc.invalidateQueries({ queryKey: ["student-codes", classId] });
+  }
+
   if (!data) return <p>Chargement…</p>;
   return (
     <div className="space-y-6">
@@ -77,12 +86,16 @@ function ClassPage() {
           <h1 className="text-4xl font-bold">{data.cls.name}</h1>
           <p className="mt-2">Code à donner aux élèves : <span className="rounded bg-accent px-2 py-1 font-mono text-lg font-bold">{data.cls.join_code}</span></p>
         </div>
-        <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={purgeYear}>🧹 Clôturer l'année</Button>
+          <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">
         Listes attribuées : {data.lists.length ? data.lists.map((l) => l.title).join(", ") : "aucune"}
       </p>
-      <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.full_name }))} />
+      <StudentCodes classId={classId} />
+      <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.label || r.full_name }))} />
       <section className="word-card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left">
@@ -91,7 +104,7 @@ function ClassPage() {
           <tbody className="divide-y">
             {data.rows.map((r) => (
               <tr key={r.id}>
-                <td className="p-3 font-medium">{r.full_name || "—"}</td>
+                <td className="p-3 font-medium">{r.label || r.full_name || "—"}</td>
                 <td className="p-3">{r.total}</td>
                 <td className="p-3">{r.rate === null ? "—" : `${r.rate} %`}</td>
                 <td className="p-3">{r.seen}</td>

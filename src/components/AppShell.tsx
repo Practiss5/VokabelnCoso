@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { DysToggle } from "@/components/DysToggle";
+import { displayEmail } from "@/lib/student-code";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: me } = useSuspenseQuery(meQuery);
@@ -28,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-3">
             <DysToggle />
             <span className="hidden text-sm text-muted-foreground sm:inline">
-              {me?.fullName || me?.email} · {me?.isTeacher ? "Enseignant" : "Élève"}
+              {me?.fullName || displayEmail(me?.email ?? "")} · {me?.isTeacher ? "Enseignant" : "Élève"}
             </span>
             <Button size="sm" variant="outline" onClick={signOut}>Déconnexion</Button>
           </div>
