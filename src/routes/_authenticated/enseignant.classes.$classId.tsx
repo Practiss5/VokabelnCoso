@@ -7,6 +7,7 @@ import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 import { TeacherHomework } from "@/components/Homework";
+import { StudentCodes } from "@/components/StudentCodes";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -30,17 +31,19 @@ function ClassPage() {
       if (cls.error) throw cls.error;
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
-      const [reviews, progress, lists] = await Promise.all([
+      const [reviews, progress, lists, codes] = await Promise.all([
         ids.length ? supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids) : Promise.resolve({ data: [] }),
         ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
+        supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
+      const labelByStudent = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
       const rows = students.map((s) => {
         const r = (reviews.data ?? []).filter((x) => x.student_id === s.id);
         const p = (progress.data ?? []).filter((x) => x.student_id === s.id);
         const correct = r.filter((x) => x.correct).length;
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
-        return { ...s, total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
+        return { ...s, label: labelByStudent.get(s.id) ?? "", total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
       });
       // Hardest words for the class: most errors, then lowest success rate.
       const byWord = new Map<string, { german: string; french: string; ok: number; ko: number; students: Set<string>; errs: Record<string, number> }>();
@@ -65,6 +68,15 @@ function ClassPage() {
     navigate({ to: "/enseignant" });
   }
 
+  async function purgeYear() {
+    if (!confirm("Clôturer l'année ? Toute la progression des élèves de la classe sera effacée et leurs codes désactivés. Les listes, devoirs et la classe sont conservés.")) return;
+    const { error } = await supabase.rpc("purge_class_data", { _class: classId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Année clôturée : progression effacée et codes désactivés.");
+    qc.invalidateQueries({ queryKey: ["class", classId] });
+    qc.invalidateQueries({ queryKey: ["student-codes", classId] });
+  }
+
   if (!data) return <p>Chargement…</p>;
   return (
     <div className="space-y-6">
@@ -74,12 +86,16 @@ function ClassPage() {
           <h1 className="text-4xl font-bold">{data.cls.name}</h1>
           <p className="mt-2">Code à donner aux élèves : <span className="rounded bg-accent px-2 py-1 font-mono text-lg font-bold">{data.cls.join_code}</span></p>
         </div>
-        <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={purgeYear}>🧹 Clôturer l'année</Button>
+          <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">
         Listes attribuées : {data.lists.length ? data.lists.map((l) => l.title).join(", ") : "aucune"}
       </p>
-      <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.full_name }))} />
+      <StudentCodes classId={classId} />
+      <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.label || r.full_name }))} />
       <section className="word-card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left">
@@ -88,7 +104,7 @@ function ClassPage() {
           <tbody className="divide-y">
             {data.rows.map((r) => (
               <tr key={r.id}>
-                <td className="p-3 font-medium">{r.full_name || "—"}</td>
+                <td className="p-3 font-medium">{r.label || r.full_name || "—"}</td>
                 <td className="p-3">{r.total}</td>
                 <td className="p-3">{r.rate === null ? "—" : `${r.rate} %`}</td>
                 <td className="p-3">{r.seen}</td>

@@ -30,8 +30,8 @@ function Index() {
           Apprends. Révise. Progresse. Sprich Deutsch !
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg"><Link to="/auth">Se connecter</Link></Button>
-          <Button asChild size="lg" variant="outline"><Link to="/auth" search={{ mode: "signup" }}>Créer un compte élève</Link></Button>
+          <Button asChild size="lg"><Link to="/auth">Se connecter avec mon code</Link></Button>
+          <Button asChild size="lg" variant="outline"><Link to="/auth" search={{ tab: "prof" }}>Espace enseignant</Link></Button>
         </div>
       </div>
     </main>

@@ -296,6 +296,51 @@ export type Database = {
           },
         ]
       }
+      student_codes: {
+        Row: {
+          class_id: string
+          code: string
+          created_at: string
+          id: string
+          label: string
+          revoked: boolean
+          student_id: string | null
+        }
+        Insert: {
+          class_id: string
+          code: string
+          created_at?: string
+          id?: string
+          label?: string
+          revoked?: boolean
+          student_id?: string | null
+        }
+        Update: {
+          class_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          revoked?: boolean
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_codes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_codes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tetris_games: {
         Row: {
           created_at: string
@@ -487,6 +532,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_student_code: {
+        Args: { _code: string }
+        Returns: {
+          activated: boolean
+          class_name: string
+        }[]
+      }
       class_match_top: {
         Args: { _list: string }
         Returns: {
@@ -496,6 +548,24 @@ export type Database = {
         }[]
       }
       copy_folder: { Args: { _code: string }; Returns: string }
+      generate_student_codes: {
+        Args: { _class: string; _count: number }
+        Returns: {
+          class_id: string
+          code: string
+          created_at: string
+          id: string
+          label: string
+          revoked: boolean
+          student_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "student_codes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -507,6 +577,7 @@ export type Database = {
       join_class: { Args: { _code: string }; Returns: string }
       my_class_id: { Args: never; Returns: string }
       owns_list: { Args: { _list: string }; Returns: boolean }
+      purge_class_data: { Args: { _class: string }; Returns: undefined }
       record_answer: {
         Args: {
           _correct: boolean
