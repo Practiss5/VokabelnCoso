@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isValidCode, isValidPin, loginEmail, normalizeCode, studentEmail } from "@/lib/student-code";
+import { studentLogin } from "@/lib/student-login.functions";
 
 type Tab = "eleve" | "prof";
 type ProfMode = "login" | "signup" | "forgot";
@@ -105,11 +106,15 @@ function StudentLogin() {
     setBusy(true);
     try {
       if (info.activated) {
-        const { error } = await supabase.auth.signInWithPassword({ email: studentEmail(code), password: pin });
-        if (error) {
-          toast.error("Code secret incorrect.");
+        const res = await studentLogin({ data: { code, pin } });
+        if (!res.ok) {
+          if (res.reason === "locked") toast.error(`Trop d'essais. Réessaie dans ${res.minutes} min.`);
+          else if (res.locked_minutes) toast.error(`Code secret incorrect. Accès bloqué ${res.locked_minutes} min.`);
+          else toast.error("Code secret incorrect.");
           return;
         }
+        const { error } = await supabase.auth.setSession({ access_token: res.access_token, refresh_token: res.refresh_token });
+        if (error) throw error;
         navigate({ to: "/espace" });
       } else {
         if (pin !== pin2) {
