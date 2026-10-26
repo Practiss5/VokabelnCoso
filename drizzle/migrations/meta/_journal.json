@@ -85,6 +85,13 @@
       "when": 1792993869745,
       "tag": "0011_student_code_login",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793016825495,
+      "tag": "0012_student_login_attempts",
+      "breakpoints": true
     }
   ]
 }
