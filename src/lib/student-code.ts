@@ -43,6 +43,6 @@ export function isValidPin(pin: string): boolean {
 /** Nom lisible dans l'en-tête : masque les e-mails synthétiques. */
 export function displayEmail(email: string): string {
   if (email.endsWith("@eleve.vokabeln.local")) return "Élève";
-  if (email.endsWith("@prof.vokabeln.local")) return email.split("@")[0].replace(/^t-/, "");
+  if (email.endsWith("@prof.vokabeln.local")) return email.split("@")[0]?.replace(/^t-/, "") ?? email;
   return email;
 }
