@@ -341,6 +341,30 @@ export type Database = {
           },
         ]
       }
+      student_login_attempts: {
+        Row: {
+          code: string
+          failures: number
+          lock_level: number
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          failures?: number
+          lock_level?: number
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          failures?: number
+          lock_level?: number
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tetris_games: {
         Row: {
           created_at: string
