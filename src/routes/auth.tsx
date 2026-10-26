@@ -160,6 +160,9 @@ function StudentLogin() {
           <p className="text-xs text-muted-foreground">
             Aucune adresse e-mail n'est nécessaire. Si tu as perdu ton code, demande-le à ton enseignant.
           </p>
+          <p className="text-xs text-muted-foreground">
+            Ancien compte créé avec une adresse e-mail ? Connecte-toi dans l'onglet « Enseignant » avec ton e-mail : ton espace élève s'ouvrira normalement.
+          </p>
         </form>
       ) : (
         <form onSubmit={submitPin} className="mt-6 space-y-4">
