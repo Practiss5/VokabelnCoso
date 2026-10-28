@@ -238,14 +238,19 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
       const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId)).data ?? [] : [];
-      return hw.map((h) => ({ h, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements) }));
+      return hw.map((h) => {
+        const ws = new Set(hwWords(h));
+        // Any answer (even wrong) on a homework word since assignment means the homework is started.
+        const started = rev.some((x) => ws.has(x.word_id) && x.created_at >= h.created_at);
+        return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements) };
+      });
     },
   });
   if (!data?.length) return null;
   // `now` ticks every 30 s (see hook above) so the countdown stays live.
   return (
     <section className="space-y-3">
-      {data.map(({ h, r }) => {
+      {data.map(({ h, r, started }) => {
         const late = new Date(h.due_at).getTime() < Date.now();
         const cd = dueCountdown(h.due_at, now);
         const badge = { late: "bg-destructive text-destructive-foreground", urgent: "bg-destructive text-destructive-foreground animate-pulse", soon: "bg-accent text-accent-foreground", ok: "bg-secondary text-secondary-foreground" }[cd.level];
@@ -258,7 +263,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
               {!r.done && <p className="text-sm text-muted-foreground">{r.parts.map((p) => `${p.label} : ${p.got}/${p.need} mots (${Math.round(p.rate * 100)} %) ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ")}</p>}
             </div>
-            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, ...(nextHomeworkMode(r.parts) ? { exo: nextHomeworkMode(r.parts) as "choice" } : {}) }}>{r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
+            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, ...(nextHomeworkMode(r.parts) ? { exo: nextHomeworkMode(r.parts) as "choice" } : {}) }}>{started || r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
           </div>
         );
       })}
