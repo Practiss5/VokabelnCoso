@@ -90,7 +90,7 @@ export function orderQueue(
   words: Word[],
   progress: Progress[],
   now: Date,
-  limit = 15,
+  limit = DAILY_GOAL,
 ): { queue: Word[]; caughtUp: boolean } {
   const map = new Map(progress.map((p) => [p.word_id, p]));
   const scored = words.map((w) => {
