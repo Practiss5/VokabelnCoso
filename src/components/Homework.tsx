@@ -258,7 +258,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
               {!r.done && <p className="text-sm text-muted-foreground">{r.parts.map((p) => `${p.label} : ${p.got}/${p.need} mots (${Math.round(p.rate * 100)} %) ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ")}</p>}
             </div>
-            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, exo: (nextHomeworkMode(r.parts) ?? undefined) as "choice" | undefined }}>{r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
+            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, ...(nextHomeworkMode(r.parts) ? { exo: nextHomeworkMode(r.parts) as "choice" } : {}) }}>{r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
           </div>
         );
       })}
