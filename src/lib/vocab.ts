@@ -238,7 +238,7 @@ export function buildDailySession(words: Word[], skills: SkillState[], now: Date
 export const REASON_LABELS: Record<DailyItem["reason"], string> = {
   overdue: "À revoir", fragile: "Mot fragile", recent: "Récemment appris", new: "Nouveau",
 };
-export const DAILY_GOAL = 16;
+export const DAILY_GOAL = 20;
 
 /** Split "Ich habe einen [Hund]." into the text around the gap and the expected answer. */
 export function parseCloze(sentence: string | undefined): { before: string; answer: string; after: string } | null {
@@ -369,4 +369,11 @@ export function dueCountdown(dueAt: string | number | Date, now: number = Date.n
   if (h < 24) return { label: `🚨 Plus que ${h} h ${String(m).padStart(2, "0")}`, level: "urgent" };
   const d = Math.floor(h / 24), rh = h % 24;
   return { label: `${d < 3 ? "⚠️" : "⏳"} Reste ${d} j${rh ? ` ${rh} h` : ""}`, level: d < 3 ? "soon" : "ok" };
+}
+
+/** Exercise to open when the student clicks "Continuer mon devoir": the first one not yet validated. */
+export function nextHomeworkMode(parts: { key: string; got: number; need: number }[]): string | null {
+  const p = parts.find((x) => x.got < x.need);
+  if (!p) return null;
+  return p.key === "qcm" ? "choice" : p.key === "writing" ? "typing" : p.key;
 }

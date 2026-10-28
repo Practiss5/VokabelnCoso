@@ -15,10 +15,11 @@ type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictat
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
-  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string; exo?: Mode } => ({
     ...(s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
     ...(s['tetris'] === true || s['tetris'] === "true" ? { tetris: true } : {}),
     ...(typeof s['devoir'] === "string" ? { devoir: s['devoir'] } : {}),
+    ...(MODES.some((m) => m.id === s['exo']) ? { exo: s['exo'] as Mode } : {}),
   }),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
@@ -44,7 +45,7 @@ function Review() {
   const [session, setSession] = useState<{ words: Word[]; pool: Word[]; caughtUp: boolean } | null>(null);
   const [title, setTitle] = useState("");
   const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
-  const { devoir } = Route.useSearch();
+  const { devoir, exo } = Route.useSearch();
   // Homework: only its words and its required exercises.
   const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[] } | null>(null);
   useEffect(() => {
@@ -55,6 +56,11 @@ function Review() {
       setHw({ word_ids: data.word_ids, modes: req ? MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id) });
     });
   }, [devoir]);
+  // "Continuer mon devoir": open the first unfinished exercise directly, once the homework is loaded.
+  const [autoStarted, setAutoStarted] = useState(false);
+  useEffect(() => {
+    if (exo && hw && !autoStarted && hw.modes.includes(exo)) { setAutoStarted(true); void start(exo); }
+  }, [exo, hw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(m: Mode) {
     const [list, words, prog] = await Promise.all([

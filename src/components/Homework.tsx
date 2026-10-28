@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
+import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -258,7 +258,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
               {!r.done && <p className="text-sm text-muted-foreground">{r.parts.map((p) => `${p.label} : ${p.got}/${p.need} mots (${Math.round(p.rate * 100)} %) ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ")}</p>}
             </div>
-            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id }}>Commencer le devoir</Link></Button>}
+            {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, ...(nextHomeworkMode(r.parts) ? { exo: nextHomeworkMode(r.parts) as "choice" } : {}) }}>{r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
           </div>
         );
       })}
@@ -283,7 +283,7 @@ export function StudentStreak({ studentId }: { studentId: string }) {
     },
   });
   if (!data) return null;
-  const msg = data.days === 0 ? "Fais tes 16 mots aujourd'hui pour allumer ta flamme !" : data.today ? "Objectif du jour atteint. Reviens demain pour entretenir ta flamme !" : "Fais tes 16 mots aujourd'hui pour garder ta série !";
+  const msg = data.days === 0 ? `Fais tes ${DAILY_GOAL} mots aujourd'hui pour allumer ta flamme !` : data.today ? "Objectif du jour atteint. Reviens demain pour entretenir ta flamme !" : `Fais tes ${DAILY_GOAL} mots aujourd'hui pour garder ta série !`;
   return (
     <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
       <span aria-hidden className={`text-4xl ${data.days ? "" : "opacity-30 grayscale"}`}>🔥</span>
