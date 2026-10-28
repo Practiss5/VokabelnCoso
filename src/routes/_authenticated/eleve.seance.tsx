@@ -3,7 +3,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { meQuery } from "@/lib/session";
 import { dailyQuery } from "@/lib/daily";
-import { hasCloze, MODE_LABELS, orderQueue, type DailyMode } from "@/lib/vocab";
+import { DAILY_GOAL, hasCloze, MODE_LABELS, orderQueue, type DailyMode } from "@/lib/vocab";
 import { AppShell } from "@/components/AppShell";
 import { ReviewSession, type SessionItem } from "@/components/ReviewSession";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ function Daily() {
     // Chosen step: all class words in that mode, ordered by that skill's own schedule.
     const usable = mode === "context" ? data.words.filter(hasCloze) : data.words;
     const progress = data.skills.filter((s) => s.skill === SKILL_OF_MODE[mode]).map((s) => ({ ...s, repetitions: s.step }));
-    return orderQueue(usable, progress, new Date(), 16).queue.map((word) => ({ word, mode }));
+    return orderQueue(usable, progress, new Date(), DAILY_GOAL).queue.map((word) => ({ word, mode }));
   }, [data, mode]);
   if (!me?.classId) return <p>Rejoignez d'abord une classe. <Link to="/eleve" className="underline">Accueil</Link></p>;
   if (!data || !frozen) return <p>Préparation de votre séance…</p>;

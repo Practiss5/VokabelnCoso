@@ -65,7 +65,7 @@ function DailyCard() {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data } = useQuery(dailyQuery(me!.id, me!.classId!));
   if (!data) return <div className="word-card p-6">Chargement…</div>;
-  // Goal adapts to small lists: 16 answers minimum, no daily cap.
+  // Goal adapts to small lists: DAILY_GOAL answers minimum, no daily cap.
   const goal = DAILY_GOAL;
   const pct = Math.min(100, Math.round((data.doneToday / goal) * 100));
   const counts = data.items.reduce<Record<string, number>>((m, i) => ({ ...m, [i.reason]: (m[i.reason] ?? 0) + 1 }), {});

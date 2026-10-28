@@ -57,14 +57,14 @@ describe("homeworkStatus", () => {
 
 describe("computeStreak", () => {
   const day = (d: number, n: number) => Array(n).fill(`2026-10-${d}T10:00:00`);
-  it("counts consecutive days with at least 16 answers", () => {
-    expect(computeStreak([...day(21, 16), ...day(22, 20), ...day(23, 16)], new Date("2026-10-23T12:00:00"))).toEqual({ days: 3, today: true });
+  it("counts consecutive days with at least 20 answers", () => {
+    expect(computeStreak([...day(21, 20), ...day(22, 25), ...day(23, 20)], new Date("2026-10-23T12:00:00"))).toEqual({ days: 3, today: true });
   });
   it("keeps yesterday's streak alive and breaks on a gap", () => {
-    expect(computeStreak([...day(20, 16), ...day(22, 16)], new Date("2026-10-23T12:00:00"))).toEqual({ days: 1, today: false });
+    expect(computeStreak([...day(20, 20), ...day(22, 20)], new Date("2026-10-23T12:00:00"))).toEqual({ days: 1, today: false });
   });
-  it("does not count a day below 16 answers", () => {
-    expect(computeStreak(day(23, 15), new Date("2026-10-23T12:00:00")).days).toBe(0);
+  it("does not count a day below 20 answers", () => {
+    expect(computeStreak(day(23, 19), new Date("2026-10-23T12:00:00")).days).toBe(0);
   });
 });
 
@@ -101,4 +101,15 @@ describe("duplicate keeps thresholds", () => {
   it("copies the exact thresholds", () => expect(dupPayload(h, "T", "C2", "x").requirements).toEqual({ choice: 0.9, typing: 0.7, speaking: 1 }));
   it("keeps old homework on the old rule", () => expect(dupPayload({ ...h, requirements: null }, "T", "C2", "x").requirements).toBeNull());
   it("targets the new class with the same words", () => expect(dupPayload(h, "T", "C2", "x")).toMatchObject({ class_id: "C2", word_ids: ["a"], list_id: "L" }));
+});
+
+import { nextHomeworkMode } from "@/lib/vocab";
+describe("nextHomeworkMode", () => {
+  it("opens the first exercise not yet validated", () => {
+    expect(nextHomeworkMode([{ key: "choice", got: 7, need: 7 }, { key: "typing", got: 2, need: 7 }])).toBe("typing");
+  });
+  it("maps the old rule to QCM then Écriture, and returns null when done", () => {
+    expect(nextHomeworkMode([{ key: "qcm", got: 0, need: 8 }, { key: "writing", got: 0, need: 6 }])).toBe("choice");
+    expect(nextHomeworkMode([{ key: "choice", got: 7, need: 7 }])).toBeNull();
+  });
 });
