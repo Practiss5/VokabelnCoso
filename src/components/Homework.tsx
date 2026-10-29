@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
+import { formatDuration } from "@/lib/study-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -106,9 +107,9 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     qc.invalidateQueries({ queryKey: ["homeworks", classId] });
   }
 
-  function exportCsv(title: string, dueAt: string, st: { s: { full_name: string }; r: ReturnType<typeof homeworkStatus> }[]) {
+  function exportCsv(title: string, dueAt: string, st: { s: { full_name: string }; r: ReturnType<typeof homeworkStatus>; seconds: number }[]) {
     const due = new Date(dueAt).toLocaleDateString("fr-FR");
-    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r }) => ({ name: s.full_name || "—", done: r.done, total: r.total, parts: r.parts })));
+    const csv = homeworkCsv(title, due, new Date(dueAt).getTime() < Date.now(), st.map(({ s, r, seconds }) => ({ name: s.full_name || "—", done: r.done, total: r.total, parts: r.parts, seconds })));
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -184,6 +185,9 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         const doneN = st.filter((x) => x.r.done).length;
         const late = new Date(h.due_at).getTime() < Date.now();
         const rule = st[0]?.r.parts ?? homeworkStatus(words, [], h.created_at, h.due_at, h.requirements).parts;
+        const secs = (id: string) => data.time.get(`${h.id}:${id}`) ?? 0;
+        const timed = students.map((s) => secs(s.id)).filter((x) => x > 0);
+        const avg = timed.length ? timed.reduce((a, b) => a + b, 0) / timed.length : 0;
         return (
           <div key={h.id} className="rounded-lg border p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -191,10 +195,10 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                 <p className="font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal text-muted-foreground">· {words.length} mot{words.length > 1 ? "s" : ""}</span></p>
                 <p className="text-sm text-muted-foreground">Pour {fmt(h.due_at)}{late ? " · terminé" : ""}{h.instructions ? ` · ${h.instructions}` : ""}</p>
                 <p className="text-xs text-muted-foreground">{rule.map((p) => `${p.label} ${Math.round(p.rate * 100)} %`).join(" · ")}</p>
-                <p className="text-sm font-semibold">{doneN}/{students.length} élèves ont fait le devoir</p>
+                <p className="text-sm font-semibold">{doneN}/{students.length} élèves ont fait le devoir{avg ? ` · Temps moyen : ${formatDuration(avg)}` : ""}</p>
               </div>
               <div className="flex flex-wrap gap-1">
-                <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st)}>⬇️ Excel / CSV</Button>
+                <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st.map((x) => ({ ...x, seconds: secs(x.s.id) })))}>⬇️ Excel / CSV</Button>
                 <Button size="sm" variant="outline" onClick={() => { setDup(dup === h.id ? null : h.id); }}>📋 Dupliquer</Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
               </div>
@@ -219,7 +223,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               {st.map(({ s, r }) => (
                 <li key={s.id} className="flex justify-between gap-2 rounded bg-secondary px-2 py-1">
                   <span>{s.full_name || "—"}</span>
-                  <span className={r.done ? "font-semibold text-success" : "text-right text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} · ${partsText(r.parts)}`}</span>
+                  <span className={r.done ? "font-semibold text-success" : "text-right text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} · ${partsText(r.parts)}`} · ⏱️ {formatDuration(secs(s.id))}</span>
                 </li>
               ))}
             </ul>
