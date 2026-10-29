@@ -288,11 +288,11 @@ export function StudentStreak({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const since = new Date(Date.now() - 400 * 86400000).toISOString();
       const [rv, mg] = await Promise.all([
-        supabase.from("reviews").select("created_at").eq("student_id", studentId).gte("created_at", since).limit(20000),
+        fetchAllReviews((from, to) => supabase.from("reviews").select("created_at").eq("student_id", studentId).gte("created_at", since).order("created_at").order("id").range(from, to)),
         supabase.from("match_games").select("created_at, pairs").eq("student_id", studentId).gte("created_at", since).limit(5000),
       ]);
       // Each matched pair in the game counts as one answer toward the daily flame.
-      const dates = (rv.data ?? []).map((x) => x.created_at);
+      const dates = rv.map((x) => x.created_at);
       for (const g of mg.data ?? []) for (let i = 0; i < g.pairs; i++) dates.push(g.created_at);
       return computeStreak(dates, new Date());
     },

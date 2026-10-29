@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 import { TeacherHomework } from "@/components/Homework";
 import { StudentCodes } from "@/components/StudentCodes";
+import { fetchAllReviews } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -32,7 +33,8 @@ function ClassPage() {
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
       const [reviews, progress, lists, codes] = await Promise.all([
-        ids.length ? supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids) : Promise.resolve({ data: [] }),
+        ids.length ? fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids).order("created_at").order("id").range(from, to)).then((data) => ({ data })) : Promise.resolve({ data: [] }),
+        // skill_progress may also exceed 1000 rows in active classes.
         ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
