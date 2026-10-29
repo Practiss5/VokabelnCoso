@@ -47,7 +47,8 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         supabase.from("classes").select("id, name").eq("teacher_id", u.user!.id).order("name"),
       ]);
       const ids = students.map((s) => s.id);
-      const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
+      const oldest = (hw.data ?? []).reduce<string | null>((m, h) => { const c = (h as { created_at: string }).created_at; return !m || c < m ? c : m; }, null);
+      const rev = ids.length && oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       const hwIds = (hw.data ?? []).map((h) => (h as { id: string }).id);
       const times = hwIds.length ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", hwIds)).data ?? [] : [];
       const time = new Map(times.map((t) => [`${t.homework_id}:${t.student_id}`, t.seconds]));
@@ -244,7 +245,8 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
-      const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId)).data ?? [] : [];
+      const oldest = hw.reduce<string | null>((m, h) => (!m || h.created_at < m ? h.created_at : m), null);
+      const rev = oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       return hw.map((h) => {
         const ws = new Set(hwWords(h));
         // Any answer (even wrong) on a homework word since assignment means the homework is started.
