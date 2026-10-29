@@ -38,6 +38,35 @@ export type Database = {
         }
         Relationships: []
       }
+      homework_time: {
+        Row: {
+          homework_id: string
+          seconds: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          homework_id: string
+          seconds?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          homework_id?: string
+          seconds?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_time_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homeworks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       homeworks: {
         Row: {
           class_id: string
@@ -556,6 +585,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_homework_time: {
+        Args: { _hw: string; _seconds: number }
+        Returns: undefined
+      }
       check_student_code: {
         Args: { _code: string }
         Returns: {
