@@ -47,7 +47,10 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
       ]);
       const ids = students.map((s) => s.id);
       const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
-      return { hw: (hw.data ?? []) as unknown as Hw[], lists: lists.data ?? [], classes: classes.data ?? [], rev };
+      const hwIds = (hw.data ?? []).map((h) => (h as { id: string }).id);
+      const times = hwIds.length ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", hwIds)).data ?? [] : [];
+      const time = new Map(times.map((t) => [`${t.homework_id}:${t.student_id}`, t.seconds]));
+      return { hw: (hw.data ?? []) as unknown as Hw[], lists: lists.data ?? [], classes: classes.data ?? [], rev, time };
     },
   });
   const { data: listWords } = useQuery({
