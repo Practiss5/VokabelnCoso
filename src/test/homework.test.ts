@@ -113,3 +113,22 @@ describe("nextHomeworkMode", () => {
     expect(nextHomeworkMode([{ key: "choice", got: 7, need: 7 }])).toBeNull();
   });
 });
+
+import { formatDuration, isActiveSecond } from "@/lib/study-time";
+import { homeworkCsv as csvT } from "@/lib/vocab";
+describe("temps passé sur un devoir", () => {
+  it("pause après 60 s sans action ou onglet caché", () => {
+    expect(isActiveSecond(true, 0, 60_000)).toBe(true);
+    expect(isActiveSecond(true, 0, 61_000)).toBe(false);
+    expect(isActiveSecond(false, 0, 1_000)).toBe(false);
+  });
+  it("affiche les minutes", () => {
+    expect(formatDuration(0)).toBe("—");
+    expect(formatDuration(840)).toBe("14 min");
+  });
+  it("colonne Temps passé dans l'export", () => {
+    const c = csvT("L", "1.1", false, [{ name: "A", done: true, total: 1, parts: [], seconds: 840 }]);
+    expect(c).toContain("Temps passé (min)");
+    expect(c.split("\r\n")[1]).toContain(";14;");
+  });
+});
