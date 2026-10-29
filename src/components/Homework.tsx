@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
+import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -47,7 +48,8 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         supabase.from("classes").select("id, name").eq("teacher_id", u.user!.id).order("name"),
       ]);
       const ids = students.map((s) => s.id);
-      const rev = ids.length ? (await supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids)).data ?? [] : [];
+      const oldest = (hw.data ?? []).reduce<string | null>((m, h) => { const c = (h as { created_at: string }).created_at; return !m || c < m ? c : m; }, null);
+      const rev = ids.length && oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       const hwIds = (hw.data ?? []).map((h) => (h as { id: string }).id);
       const times = hwIds.length ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", hwIds)).data ?? [] : [];
       const time = new Map(times.map((t) => [`${t.homework_id}:${t.student_id}`, t.seconds]));
@@ -244,7 +246,8 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
-      const rev = hw.length ? (await supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId)).data ?? [] : [];
+      const oldest = hw.reduce<string | null>((m, h) => (!m || h.created_at < m ? h.created_at : m), null);
+      const rev = oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       return hw.map((h) => {
         const ws = new Set(hwWords(h));
         // Any answer (even wrong) on a homework word since assignment means the homework is started.
@@ -285,11 +288,11 @@ export function StudentStreak({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const since = new Date(Date.now() - 400 * 86400000).toISOString();
       const [rv, mg] = await Promise.all([
-        supabase.from("reviews").select("created_at").eq("student_id", studentId).gte("created_at", since).limit(20000),
+        fetchAllReviews((from, to) => supabase.from("reviews").select("created_at").eq("student_id", studentId).gte("created_at", since).order("created_at").order("id").range(from, to)),
         supabase.from("match_games").select("created_at, pairs").eq("student_id", studentId).gte("created_at", since).limit(5000),
       ]);
       // Each matched pair in the game counts as one answer toward the daily flame.
-      const dates = (rv.data ?? []).map((x) => x.created_at);
+      const dates = rv.map((x) => x.created_at);
       for (const g of mg.data ?? []) for (let i = 0; i < g.pairs; i++) dates.push(g.created_at);
       return computeStreak(dates, new Date());
     },
