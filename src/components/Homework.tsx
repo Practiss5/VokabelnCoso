@@ -237,11 +237,9 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   );
 }
 
-/** Student: upcoming homework shown at the top of the home page. */
-export function StudentHomework({ studentId, classId }: { studentId: string; classId: string }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
-  const { data } = useQuery({
+/** Student's recent homework with completion status (shared by home widgets). */
+export function myHomeworksQuery(studentId: string, classId: string) {
+  return {
     queryKey: ["my-homeworks", classId],
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
@@ -255,7 +253,19 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
         return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements) };
       });
     },
-  });
+  };
+}
+
+/** True while at least one homework is still to do (not done, not past due). */
+export function hasPendingHomework(items: { h: { due_at: string }; r: { done: boolean } }[], now = Date.now()): boolean {
+  return items.some(({ h, r }) => !r.done && new Date(h.due_at).getTime() >= now);
+}
+
+/** Student: upcoming homework shown at the top of the home page. */
+export function StudentHomework({ studentId, classId }: { studentId: string; classId: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
+  const { data } = useQuery(myHomeworksQuery(studentId, classId));
   if (!data?.length) return null;
   // `now` ticks every 30 s (see hook above) so the countdown stays live.
   return (

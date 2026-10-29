@@ -7,7 +7,7 @@ import { meQuery } from "@/lib/session";
 import { DAILY_GOAL, isMastered, REASON_LABELS } from "@/lib/vocab";
 import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
-import { StudentHomework, StudentStreak } from "@/components/Homework";
+import { hasPendingHomework, myHomeworksQuery, StudentHomework, StudentStreak } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -31,7 +31,7 @@ function StudentHome() {
       </div>
       <StudentStreak studentId={me.id} />
       <StudentHomework studentId={me.id} classId={me.classId} />
-      <DailyCard />
+      <DailyIfNoHomework studentId={me.id} classId={me.classId} />
       <ChooseStep />
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">Mes listes</h2>
@@ -39,6 +39,13 @@ function StudentHome() {
       </section>
     </div>
   );
+}
+
+/** Hides the daily session while homework is still to do, so students do their homework first. */
+function DailyIfNoHomework({ studentId, classId }: { studentId: string; classId: string }) {
+  const { data } = useQuery(myHomeworksQuery(studentId, classId));
+  if (!data || hasPendingHomework(data)) return null;
+  return <DailyCard />;
 }
 
 function JoinClass() {
