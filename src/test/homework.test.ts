@@ -76,8 +76,8 @@ describe("paper quiz & export", () => {
   });
   it("exports one line per student with the status", () => {
     const csv = homeworkCsv("Haus", "23/10/2026", false, [{ name: "Léa", done: true, total: 5, parts: [{ key: "qcm", label: "QCM", rate: 0.8, got: 4, need: 4 }, { key: "writing", label: "Écriture", rate: 0.6, got: 3, need: 3 }] }]);
-    expect(csv.split("\r\n")[0]).toBe('"Élève";"Statut";"Mots du devoir";"QCM (seuil 80 %)";"Écriture (seuil 60 %)";"Liste";"Date limite"');
-    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";5;"80 % (4/5)";"60 % (3/5)";"Haus";"23/10/2026"');
+    expect(csv.split("\r\n")[0]).toBe('"Élève";"Statut";"Mots du devoir";"QCM (seuil 80 %)";"Écriture (seuil 60 %)";"Temps passé (min)";"Liste";"Date limite"');
+    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";5;"80 % (4/5)";"60 % (3/5)";0;"Haus";"23/10/2026"');
   });
   it("says 'À faire' before the deadline and 'Non fait' after it", () => {
     const row = { name: "Tom", done: false, total: 5, parts: [{ key: "choice", label: "QCM", rate: 0.7, got: 1, need: 4 }] };
@@ -111,5 +111,24 @@ describe("nextHomeworkMode", () => {
   it("maps the old rule to QCM then Écriture, and returns null when done", () => {
     expect(nextHomeworkMode([{ key: "qcm", got: 0, need: 8 }, { key: "writing", got: 0, need: 6 }])).toBe("choice");
     expect(nextHomeworkMode([{ key: "choice", got: 7, need: 7 }])).toBeNull();
+  });
+});
+
+import { formatDuration, isActiveSecond } from "@/lib/study-time";
+import { homeworkCsv as csvT } from "@/lib/vocab";
+describe("temps passé sur un devoir", () => {
+  it("pause après 60 s sans action ou onglet caché", () => {
+    expect(isActiveSecond(true, 0, 60_000)).toBe(true);
+    expect(isActiveSecond(true, 0, 61_000)).toBe(false);
+    expect(isActiveSecond(false, 0, 1_000)).toBe(false);
+  });
+  it("affiche les minutes", () => {
+    expect(formatDuration(0)).toBe("—");
+    expect(formatDuration(840)).toBe("14 min");
+  });
+  it("colonne Temps passé dans l'export", () => {
+    const c = csvT("L", "1.1", false, [{ name: "A", done: true, total: 1, parts: [], seconds: 840 }]);
+    expect(c).toContain("Temps passé (min)");
+    expect(c.split("\r\n")[1]).toContain(";14;");
   });
 });

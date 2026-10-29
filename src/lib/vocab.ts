@@ -348,14 +348,14 @@ export function pickQuizWords<T>(words: T[], count: number, seed: number): T[] {
 }
 
 /** Homework export for spreadsheets (French Excel: ";" separator). */
-export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; total: number; parts: HwPart[] }[]): string {
+export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; total: number; parts: HwPart[]; seconds?: number }[]): string {
   const q = (v: string | number) => (typeof v === "number" ? String(v) : `"${v.replace(/"/g, '""')}"`);
   // One column per chosen exercise: the student's real score (% of the homework words), threshold in the header.
   const heads = (rows[0]?.parts ?? []).map((p) => `${p.label} (seuil ${Math.round(p.rate * 100)} %)`);
-  const lines = [["Élève", "Statut", "Mots du devoir", ...heads, "Liste", "Date limite"].map(q).join(";")];
+  const lines = [["Élève", "Statut", "Mots du devoir", ...heads, "Temps passé (min)", "Liste", "Date limite"].map(q).join(";")];
   for (const r of rows) {
     const scores = r.parts.map((p) => `${r.total ? Math.round((p.got / r.total) * 100) : 0} % (${p.got}/${r.total})`);
-    lines.push([r.name, r.done ? "Fait" : late ? "Non fait" : "À faire", r.total, ...scores, title, due].map(q).join(";"));
+    lines.push([r.name, r.done ? "Fait" : late ? "Non fait" : "À faire", r.total, ...scores, Math.round((r.seconds ?? 0) / 60), title, due].map(q).join(";"));
   }
   return lines.join("\r\n");
 }
