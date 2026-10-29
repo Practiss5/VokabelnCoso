@@ -34,8 +34,7 @@ function ClassPage() {
       const ids = students.map((s) => s.id);
       const [reviews, progress, lists, codes] = await Promise.all([
         ids.length ? fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids).order("created_at").order("id").range(from, to)).then((data) => ({ data })) : Promise.resolve({ data: [] }),
-        // skill_progress may also exceed 1000 rows in active classes.
-        ids.length ? supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids) : Promise.resolve({ data: [] }),
+        ids.length ? fetchAllReviews((from, to) => supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids).order("student_id").order("word_id").order("skill").range(from, to)).then((data) => ({ data })) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
