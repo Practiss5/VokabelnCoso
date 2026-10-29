@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
+import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
