@@ -76,8 +76,8 @@ describe("paper quiz & export", () => {
   });
   it("exports one line per student with the status", () => {
     const csv = homeworkCsv("Haus", "23/10/2026", false, [{ name: "Léa", done: true, total: 5, parts: [{ key: "qcm", label: "QCM", rate: 0.8, got: 4, need: 4 }, { key: "writing", label: "Écriture", rate: 0.6, got: 3, need: 3 }] }]);
-    expect(csv.split("\r\n")[0]).toBe('"Élève";"Statut";"Mots du devoir";"QCM (seuil 80 %)";"Écriture (seuil 60 %)";"Liste";"Date limite"');
-    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";5;"80 % (4/5)";"60 % (3/5)";"Haus";"23/10/2026"');
+    expect(csv.split("\r\n")[0]).toBe('"Élève";"Statut";"Mots du devoir";"QCM (seuil 80 %)";"Écriture (seuil 60 %)";"Temps passé (min)";"Liste";"Date limite"');
+    expect(csv.split("\r\n")[1]).toBe('"Léa";"Fait";5;"80 % (4/5)";"60 % (3/5)";0;"Haus";"23/10/2026"');
   });
   it("says 'À faire' before the deadline and 'Non fait' after it", () => {
     const row = { name: "Tom", done: false, total: 5, parts: [{ key: "choice", label: "QCM", rate: 0.7, got: 1, need: 4 }] };
