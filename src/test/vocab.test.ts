@@ -181,3 +181,9 @@ describe("pluriels et coquilles", () => {
   it("mauvais article ≠ Presque", () => expect(isNearMiss("der Katze", "die Katze")).toBe(false));
   it("deux lettres fausses ≠ Presque", () => expect(isNearMiss("die Kaxe", "die Katzi")).toBe(false));
 });
+
+import { isNearMiss as _nm, diagnoseAnswer as _dg } from "@/lib/vocab";
+_t("point sous la lettre: 'Presque !' et faute d'orthographe détectés", () => {
+  _e(_nm("die Statt", "die Stạdt")).toBe(true);
+  _e(_dg("die Statt", "die Stạdt")).toBe("spelling");
+});
