@@ -170,3 +170,14 @@ describe("slash alternatives inside a phrase", () => {
     expect(isWrittenCorrect("der Knabe", "der Junge/der Knabe")).toBe(true);
   });
 });
+
+import { isNearMiss } from "@/lib/vocab";
+describe("pluriels et coquilles", () => {
+  it("guillemets et tirets du pluriel ignorés", () => {
+    expect(isWrittenCorrect('die Stadt, "e', "die Stadt, ”-e")).toBe(true);
+    expect(isWrittenCorrect("das Kind, er", "das Kind, -er")).toBe(true);
+  });
+  it("une lettre fausse = Presque", () => expect(isNearMiss("die Kaze", "die Katze")).toBe(true));
+  it("mauvais article ≠ Presque", () => expect(isNearMiss("der Katze", "die Katze")).toBe(false));
+  it("deux lettres fausses ≠ Presque", () => expect(isNearMiss("die Kaxe", "die Katzi")).toBe(false));
+});
