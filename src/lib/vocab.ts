@@ -14,6 +14,9 @@ export type Progress = {
 export function normalizeAnswer(s: string): string {
   const umlaut = (c: string) => (c === "a" ? "ä" : c === "o" ? "ö" : "ü");
   return s
+    // Textbook marks under letters (ạ, a̱) are not real spelling: drop them.
+    .normalize("NFD")
+    .replace(/[\u0323\u0331\u0332]/g, "")
     .normalize("NFC")
     .toLowerCase()
     .trim()
