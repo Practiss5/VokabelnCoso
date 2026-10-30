@@ -50,13 +50,25 @@ export function answerOptions(expected: string): string[] {
 export function isWrittenCorrect(typed: string, expected: string): boolean {
   if (!typed.trim()) return false;
   const squish = (s: string) =>
-    normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.?!:¿¡«»]/g, "");
+    normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.?!:¿¡«»"'“”„‟’‘´`\-–—‑]/g, "");
   const t = squish(typed);
   return answerOptions(expected).some((o) => {
     if (squish(o) === t) return true;
     // Nouns like "die Stadt, ”-e": the singular with article is enough.
     const m = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i);
     return !!m && squish(m[0]) === t;
+  });
+}
+
+/** One wrong/missing/extra letter (article still right): worth a "Presque !" second try. */
+export function isNearMiss(typed: string, expected: string): boolean {
+  if (!typed.trim() || isWrittenCorrect(typed, expected)) return false;
+  if (diagnoseAnswer(typed, expected) === "article") return false;
+  const sq = (s: string) => normalizeAnswer(s).replace(/[^a-zäöüß]/g, "");
+  const t = sq(typed);
+  return answerOptions(expected).some((o) => {
+    const sing = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i)?.[0];
+    return [o, sing].some((x) => x && levenshtein(sq(x), t) === 1);
   });
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
   type DailyItem, type DailyMode, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
@@ -120,7 +120,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
     if (!cloze) return;
     if (isWrittenCorrect(typed, cloze.answer)) { answer(true, typed); return; }
     // First miss: no penalty yet, show a hint and allow a second try.
-    if (!secondTry) { setSecondTry(true); setErrorType(diagnoseAnswer(typed, cloze.answer)); return; }
+    if (!secondTry) { setSecondTry(true); setErrorType(isNearMiss(typed, cloze.answer) ? null : diagnoseAnswer(typed, cloze.answer)); return; }
     answer(false, typed);
   }
 
@@ -234,7 +234,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
         <p className="rounded-lg bg-secondary p-3 text-center text-sm">Aucune voix allemande sur cet appareil : la dictée est impossible ici. Essaie un autre mode ou un autre navigateur.</p>
       )}
       {(mode === "typing" || mode === "dictation") && (
-        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) answer(isWrittenCorrect(typed, word.german), typed); else next(); }} className="space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
+          if (isWrittenCorrect(typed, word.german)) return void answer(true, typed);
+          if (!secondTry && isNearMiss(typed, word.german)) { setSecondTry(true); return; }
+          answer(false, typed); }} className="space-y-3">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
           <div className="flex flex-wrap gap-1">
@@ -242,6 +245,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
               <Button key={ch} type="button" size="sm" variant="secondary" disabled={answered !== null} onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
             ))}
           </div>
+          {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
           {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
