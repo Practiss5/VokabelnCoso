@@ -1,3 +1,4 @@
+import { notifyAnswer } from "@/lib/study-time";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -57,6 +58,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
     if (given) args._given = given;
     if (err) args._error = err;
     const { error } = await supabase.rpc("record_answer", args);
+    if (!error) notifyAnswer();
     if (error) toast.error("Réponse non enregistrée : " + error.message);
   }
   function judgeSpoken(alts: string[]) {
