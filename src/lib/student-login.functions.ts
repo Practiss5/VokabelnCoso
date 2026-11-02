@@ -27,6 +27,14 @@ export const studentLogin = createServerFn({ method: "POST" })
     const remaining = lockRemainingMs(state, now);
     if (remaining > 0) return { ok: false, reason: "locked", minutes: Math.ceil(remaining / 60000) };
 
+    // A revoked (or deleted) code must never sign in, even with the right PIN.
+    const { data: codeRow } = await supabaseAdmin
+      .from("student_codes")
+      .select("revoked")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!codeRow || codeRow.revoked) return { ok: false, reason: "wrong" };
+
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
     const client = createClient(process.env["SUPABASE_URL"]!, key, {
       auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
