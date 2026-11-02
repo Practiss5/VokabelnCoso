@@ -364,7 +364,9 @@ export function pickQuizWords<T>(words: T[], count: number, seed: number): T[] {
 
 /** Homework export for spreadsheets (French Excel: ";" separator). */
 export function homeworkCsv(title: string, due: string, late: boolean, rows: { name: string; done: boolean; total: number; parts: HwPart[]; seconds?: number }[]): string {
-  const q = (v: string | number) => (typeof v === "number" ? String(v) : `"${v.replace(/"/g, '""')}"`);
+  // Neutralise spreadsheet formulas (=, +, -, @, tab, CR) planted in names.
+  const safe = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
+  const q = (v: string | number) => (typeof v === "number" ? String(v) : `"${safe(v).replace(/"/g, '""')}"`);
   // One column per chosen exercise: the student's real score (% of the homework words), threshold in the header.
   const heads = (rows[0]?.parts ?? []).map((p) => `${p.label} (seuil ${Math.round(p.rate * 100)} %)`);
   const lines = [["Élève", "Statut", "Mots du devoir", ...heads, "Temps passé (min)", "Liste", "Date limite"].map(q).join(";")];
