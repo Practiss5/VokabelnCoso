@@ -192,3 +192,12 @@ _t("pluriel jamais exigé, quelle que soit la notation", () => {
   for (const [a, e] of [["das Kind", "das Kind, -er"], ["die Katze", "die Katze, -n"], ["das Haus", "das Haus, ¨-er"], ["der Lehrer", "der Lehrer, -"], ["das Auto", "das Auto, -s"], ["der Apfel", "der Apfel (¨)"], ["die Stadt", "die Stadt (-¨e)"]] as const) _e(isWrittenCorrect(a, e)).toBe(true);
   _e(isWrittenCorrect("Apfel", "der Apfel (¨)")).toBe(false);
 });
+
+describe("points jamais exigés", () => {
+  it("point final, abréviation et points de suspension ignorés", () => {
+    expect(isWrittenCorrect("die Katze.", "die Katze")).toBe(true);
+    expect(isWrittenCorrect("Ich bin müde", "Ich bin müde.")).toBe(true);
+    expect(isWrittenCorrect("sich freuen auf", "sich freuen auf…")).toBe(true);
+    expect(isWrittenCorrect("etw", "etw. ...")).toBe(true);
+  });
+});

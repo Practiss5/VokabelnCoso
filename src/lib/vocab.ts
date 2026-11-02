@@ -53,7 +53,7 @@ export function answerOptions(expected: string): string[] {
 export function isWrittenCorrect(typed: string, expected: string): boolean {
   if (!typed.trim()) return false;
   const squish = (s: string) =>
-    normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.?!:¿¡«»"'“”„‟’‘´`\-–—‑]/g, "");
+    normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.…·•?!:¿¡«»"'“”„‟’‘´`\-–—‑]/g, "");
   const t = squish(typed);
   return answerOptions(expected).some((o) => {
     if (squish(o) === t) return true;
