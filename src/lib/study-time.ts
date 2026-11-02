@@ -27,8 +27,8 @@ export function notifyAnswer() {
 let cachedToken: string | null = null;
 /** Sends seconds with fetch keepalive so it survives tab close. */
 function sendTime(hw: string, seconds: number) {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/add_homework_time`;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+  const url = `${import.meta.env['VITE_SUPABASE_URL']}/rest/v1/rpc/add_homework_time`;
+  const key = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as string;
   const body = JSON.stringify({ _hw: hw, _seconds: seconds });
   if (!cachedToken) {
     void supabase.rpc("add_homework_time", { _hw: hw, _seconds: seconds });
