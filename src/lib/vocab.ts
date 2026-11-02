@@ -58,7 +58,7 @@ export function isWrittenCorrect(typed: string, expected: string): boolean {
   return answerOptions(expected).some((o) => {
     if (squish(o) === t) return true;
     // Nouns like "die Stadt, ”-e": the singular with article is enough.
-    const m = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i);
+    const m = o.trim().match(/^(der|die|das)\s+[^,(]+?(?=\s*[,(])/i);
     return !!m && squish(m[0]) === t;
   });
 }
@@ -70,7 +70,7 @@ export function isNearMiss(typed: string, expected: string): boolean {
   const sq = (s: string) => normalizeAnswer(s).replace(/[^a-zäöüß]/g, "");
   const t = sq(typed);
   return answerOptions(expected).some((o) => {
-    const sing = o.trim().match(/^(der|die|das)\s+[^,]+(?=,)/i)?.[0];
+    const sing = o.trim().match(/^(der|die|das)\s+[^,(]+?(?=\s*[,(])/i)?.[0];
     return [o, sing].some((x) => x && levenshtein(sq(x), t) === 1);
   });
 }

@@ -187,3 +187,8 @@ _t("point sous la lettre: 'Presque !' et faute d'orthographe détectés", () => 
   _e(_nm("die Statt", "die Stạdt")).toBe(true);
   _e(_dg("die Statt", "die Stạdt")).toBe("spelling");
 });
+
+_t("pluriel jamais exigé, quelle que soit la notation", () => {
+  for (const [a, e] of [["das Kind", "das Kind, -er"], ["die Katze", "die Katze, -n"], ["das Haus", "das Haus, ¨-er"], ["der Lehrer", "der Lehrer, -"], ["das Auto", "das Auto, -s"], ["der Apfel", "der Apfel (¨)"], ["die Stadt", "die Stadt (-¨e)"]] as const) _e(isWrittenCorrect(a, e)).toBe(true);
+  _e(isWrittenCorrect("Apfel", "der Apfel (¨)")).toBe(false);
+});
