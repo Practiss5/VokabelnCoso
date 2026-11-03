@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak, homeworkCsv, homeworkStatus, pickQuizWords } from "@/lib/vocab";
+import { computeStreak, homeworkCsv, homeworkStatus, pickQuizWords, qcmDirectionOf, qcmReverse } from "@/lib/vocab";
 
 const C = "2026-10-20T08:00:00Z", D = "2026-10-23T18:00:00Z", T = "2026-10-21T10:00:00Z";
 const ids = ["a", "b", "c", "d", "e"];
