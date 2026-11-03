@@ -16,8 +16,8 @@ import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
 
-export function ReviewSession({ items, pool, title, notice, onQuit, endActions }: {
-  items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode;
+export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
+  items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
 }) {
   const qc = useQueryClient();
   const [queue, setQueue] = useState(items);
@@ -143,7 +143,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : mode === "choice" ? "Allemand → choisis le français" : "Deutsch"}
         </p>
         {cloze ? (
           <>
