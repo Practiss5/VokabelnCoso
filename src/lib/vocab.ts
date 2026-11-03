@@ -282,7 +282,21 @@ export const HW_MODES: { id: HwMode; label: string }[] = [
   { id: "context", label: "Phrases à trou" },
 ];
 export const HW_RATES = [0.6, 0.7, 0.8, 0.9, 1] as const;
-export type HwRequirements = Partial<Record<HwMode, number>>;
+export type QcmDirection = "mixed" | "fr_de" | "de_fr";
+export const QCM_DIRECTIONS: { id: QcmDirection; label: string }[] = [
+  { id: "mixed", label: "Mixte" },
+  { id: "fr_de", label: "Français → Allemand" },
+  { id: "de_fr", label: "Allemand → Français" },
+];
+export type HwRequirements = Partial<Record<HwMode, number>> & { choice_dir?: QcmDirection };
+/** QCM direction saved in a homework; anything unknown (older homework) is mixed. */
+export const qcmDirectionOf = (req: unknown): QcmDirection => {
+  const d = (req as { choice_dir?: unknown } | null)?.choice_dir;
+  return d === "fr_de" || d === "de_fr" ? d : "mixed";
+};
+/** Is this QCM question French → German? Mixed draws at random. */
+export const qcmReverse = (dir: QcmDirection, rng: () => number = Math.random) =>
+  dir === "fr_de" ? true : dir === "de_fr" ? false : rng() < 0.5;
 export type HwPart = { key: string; label: string; got: number; need: number; rate: number };
 
 /** Saved rate → whole percent among 60/70/80/90/100 (accepts 0.7, "0.7" or 70). */
@@ -314,7 +328,9 @@ export function homeworkStatus(
   // Each checked mode keeps its own threshold and counts only its own correct answers.
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
-    return pct == null ? [] : [{ key: m.id, label: m.label, pct, modes: new Set<string>([m.id]) }];
+    const dir = m.id === "choice" ? qcmDirectionOf(requirements) : "mixed";
+    const label = dir === "mixed" ? m.label : `${m.label} (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
+    return pct == null ? [] : [{ key: m.id, label, pct, modes: new Set<string>([m.id]) }];
   });
   const groups = custom.length ? custom : [
     { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, modes: QCM_OR_ABOVE },

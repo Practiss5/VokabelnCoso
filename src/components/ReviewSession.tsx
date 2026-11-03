@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  buildChoices, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
-  type DailyItem, type DailyMode, type ErrorType, type Word,
+  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,8 @@ import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
 
-export function ReviewSession({ items, pool, title, notice, onQuit, endActions }: {
-  items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode;
+export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
+  items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
 }) {
   const qc = useQueryClient();
   const [queue, setQueue] = useState(items);
@@ -38,8 +38,8 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
   const word = item?.word;
   const mode = item?.mode;
   const cloze = mode === "context" && word ? parseCloze(word.example_de) : null;
-  // QCM direction is mixed automatically: about half the questions go French → German.
-  const reverse = useMemo(() => mode === "choice" && Math.random() < 0.5, [index, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // QCM direction: set by the homework, otherwise mixed (about half French → German).
+  const reverse = useMemo(() => mode === "choice" && qcmReverse(qcmDirection), [index, mode, qcmDirection]); // eslint-disable-line react-hooks/exhaustive-deps
   const target = word ? (reverse ? word.german : word.french) : "";
   const choices = useMemo(() => (word ? buildChoices(word, pool, Math.random, reverse) : []), [word, pool, reverse]);
 
@@ -143,7 +143,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions }
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : mode === "choice" ? "Allemand → choisis le français" : "Deutsch"}
         </p>
         {cloze ? (
           <>

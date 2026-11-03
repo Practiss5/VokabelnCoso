@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
+import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, QCM_DIRECTIONS, type HwMode, type HwRequirements, type QcmDirection } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
   function toggleMode(m: HwMode) {
-    setReq((r) => { const n = { ...r }; if (n[m] != null) delete n[m]; else n[m] = 0.7; return n; });
+    setReq((r) => { const n = { ...r }; if (n[m] != null) { delete n[m]; if (m === "choice") delete n.choice_dir; } else n[m] = 0.7; return n; });
   }
 
   async function create(e: React.FormEvent) {
@@ -168,11 +168,20 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
                     <input type="checkbox" checked={on} onChange={() => toggleMode(m.id)} className="h-4 w-4" />
                     {m.label}
                   </label>
+                  <div className="flex items-center gap-1">
+                  {m.id === "choice" && on && (
+                    <select aria-label="Sens du QCM" value={req.choice_dir ?? "mixed"}
+                      onChange={(e) => setReq((r) => ({ ...r, choice_dir: e.target.value as QcmDirection }))}
+                      className="h-8 rounded-md border border-input bg-background px-1 text-xs">
+                      {QCM_DIRECTIONS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                    </select>
+                  )}
                   <select aria-label={`Seuil ${m.label}`} disabled={!on} value={req[m.id] ?? 0.7}
                     onChange={(e) => setReq((r) => ({ ...r, [m.id]: Number(e.target.value) }))}
                     className="h-8 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-40">
                     {HW_RATES.map((v) => <option key={v} value={v}>{Math.round(v * 100)} %</option>)}
                   </select>
+                  </div>
                 </div>
               );
             })}

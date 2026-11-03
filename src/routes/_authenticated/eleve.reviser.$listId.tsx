@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { hasCloze, orderQueue, type Word } from "@/lib/vocab";
+import { hasCloze, orderQueue, qcmDirectionOf, type QcmDirection, type Word } from "@/lib/vocab";
 import { ReviewSession } from "@/components/ReviewSession";
 import { MatchGame } from "@/components/MatchGame";
 import { WortTetris } from "@/components/WortTetris";
@@ -49,13 +49,13 @@ function Review() {
   const { devoir, exo } = Route.useSearch();
   useHomeworkTimer(useActiveHomeworkId(listId, devoir));
   // Homework: only its words and its required exercises.
-  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[] } | null>(null);
+  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; dir: QcmDirection } | null>(null);
   useEffect(() => {
     if (!devoir) { setHw(null); return; }
     void supabase.from("homeworks").select("word_ids, requirements").eq("id", devoir).maybeSingle().then(({ data }) => {
       if (!data) return;
-      const req = (data.requirements ?? null) as Record<string, number> | null;
-      setHw({ word_ids: data.word_ids, modes: req ? MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id) });
+      const req = (data.requirements ?? null) as Record<string, unknown> | null;
+      setHw({ word_ids: data.word_ids, dir: qcmDirectionOf(req), modes: req ? MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id) });
     });
   }, [devoir]);
   // "Continuer mon devoir": open the first unfinished exercise directly, once the homework is loaded.
@@ -126,7 +126,7 @@ function Review() {
     );
 
   return (
-    <ReviewSession key={mode} title={title} pool={session.pool} onQuit={() => setMode(null)}
+    <ReviewSession key={mode} title={title} pool={session.pool} onQuit={() => setMode(null)} qcmDirection={hw?.dir ?? "mixed"}
       items={session.words.map((word) => ({ word, mode }))}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
       endActions={<Button onClick={() => setMode(null)}>Choisir un autre mode</Button>} />
