@@ -47,7 +47,7 @@ export async function flushAnswers(rpc: Rpc = defaultRpc): Promise<number> {
     let q = read();
     while (q.length) {
       let res: { error: { message: string } | null };
-      try { res = await rpc(q[0]); } catch (e) { res = { error: { message: String((e as Error)?.message ?? e) } }; }
+      try { res = await rpc(q[0]!); } catch (e) { res = { error: { message: String((e as Error)?.message ?? e) } }; }
       if (res.error && isNetworkError(res.error.message)) break;
       q = q.slice(1); write(q);
       if (!res.error) sent++;
