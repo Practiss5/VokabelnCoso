@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
+import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, QCM_DIRECTIONS, qcmDirectionOf, type HwMode, type HwRequirements, type QcmDirection } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
   function toggleMode(m: HwMode) {
-    setReq((r) => { const n = { ...r }; if (n[m] != null) delete n[m]; else n[m] = 0.7; return n; });
+    setReq((r) => { const n = { ...r }; if (n[m] != null) { delete n[m]; if (m === "choice") delete n.choice_dir; } else n[m] = 0.7; return n; });
   }
 
   async function create(e: React.FormEvent) {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { hasCloze, orderQueue, type Word } from "@/lib/vocab";
+import { hasCloze, orderQueue, qcmDirectionOf, type QcmDirection, type Word } from "@/lib/vocab";
 import { ReviewSession } from "@/components/ReviewSession";
 import { MatchGame } from "@/components/MatchGame";
 import { WortTetris } from "@/components/WortTetris";
