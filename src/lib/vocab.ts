@@ -328,7 +328,9 @@ export function homeworkStatus(
   // Each checked mode keeps its own threshold and counts only its own correct answers.
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
-    return pct == null ? [] : [{ key: m.id, label: m.label, pct, modes: new Set<string>([m.id]) }];
+    const dir = m.id === "choice" ? qcmDirectionOf(requirements) : "mixed";
+    const label = dir === "mixed" ? m.label : `${m.label} (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
+    return pct == null ? [] : [{ key: m.id, label, pct, modes: new Set<string>([m.id]) }];
   });
   const groups = custom.length ? custom : [
     { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, modes: QCM_OR_ABOVE },

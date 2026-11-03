@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, QCM_DIRECTIONS, qcmDirectionOf, type HwMode, type HwRequirements, type QcmDirection } from "@/lib/vocab";
+import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, QCM_DIRECTIONS, type HwMode, type HwRequirements, type QcmDirection } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";

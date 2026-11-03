@@ -132,3 +132,10 @@ describe("temps passé sur un devoir", () => {
     expect(c.split("\r\n")[1]).toContain(";14;");
   });
 });
+
+describe("QCM direction", () => {
+  it("defaults to mixed for old homework", () => expect(qcmDirectionOf({ choice: 0.7 })).toBe("mixed"));
+  it("French → German always reverses", () => expect(qcmReverse("fr_de", () => 0.9)).toBe(true));
+  it("German → French never reverses", () => expect(qcmReverse("de_fr", () => 0.1)).toBe(false));
+  it("duplicate keeps the direction", () => expect(dupPayload({ list_id: "L", instructions: "", word_ids: null, requirements: { choice: 0.7, choice_dir: "de_fr" } }, "T", "C", "x").requirements?.choice_dir).toBe("de_fr"));
+});
