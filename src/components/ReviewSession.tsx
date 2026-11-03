@@ -1,9 +1,9 @@
 import { notifyAnswer } from "@/lib/study-time";
+import { sendAnswer, startAnswerSync } from "@/lib/answer-queue";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
   buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
   type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
@@ -57,9 +57,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : mode, _correct: correct };
     if (given) args._given = given;
     if (err) args._error = err;
-    const { error } = await supabase.rpc("record_answer", args);
-    if (!error) notifyAnswer();
-    if (error) toast.error("Réponse non enregistrée : " + error.message);
+    const res = await sendAnswer(args);
+    if (res === "ok") notifyAnswer();
+    else if (res === "queued") toast("Connexion perdue : ta réponse est gardée et sera envoyée automatiquement.", { id: "offline" });
+    else toast.error("Réponse non enregistrée : " + res.error);
   }
   function judgeSpoken(alts: string[]) {
     if (!word) return;
@@ -91,6 +92,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   }
 
   const [canSpeak, setCanSpeak] = useState(true);
+  useEffect(() => { startAnswerSync(); }, []);
   useEffect(() => {
     if (!("speechSynthesis" in window)) { setCanSpeak(false); return; }
     const t = setTimeout(() => setCanSpeak(window.speechSynthesis.getVoices().some((v) => /^de(?:[-_]|$)/i.test(v.lang))), 1500);
