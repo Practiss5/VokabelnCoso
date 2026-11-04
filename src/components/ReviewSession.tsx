@@ -237,7 +237,42 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       {mode === "dictation" && !canSpeak && (
         <p className="rounded-lg bg-secondary p-3 text-center text-sm">Aucune voix allemande sur cet appareil : la dictée est impossible ici. Essaie un autre mode ou un autre navigateur.</p>
       )}
-      {(mode === "typing" || mode === "dictation") && (
+      {mode === "typing" && verb && (
+        <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
+          const res = checkVerbForms(forms, verb);
+          setFormsOk(res.ok);
+          const given = forms.map((f) => f.trim()).join(", ");
+          if (res.verdict === "correct") return void answer(true, given);
+          if (!secondTry && res.verdict === "near") { setSecondTry(true); return; }
+          answer(false, given); }} className="space-y-3">
+          {VERB_LABELS.map((label, i) => (
+            <label key={label} className="block space-y-1">
+              <span className="text-sm font-semibold">{label}</span>
+              <Input ref={(el) => { formRefs.current[i] = el; }} autoFocus={i === 0} autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
+                value={forms[i]} onFocus={() => setFocusIdx(i)}
+                onChange={(e) => { const v = e.target.value; setForms((f) => f.map((x, j) => (j === i ? v : x))); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && i < 2 && answered === null) { e.preventDefault(); formRefs.current[i + 1]?.focus(); } }}
+                className={`h-12 text-lg ${formsOk && answered !== null ? (formsOk[i] ? "border-primary" : "border-destructive") : ""}`} />
+            </label>
+          ))}
+          <div className="flex flex-wrap gap-1">
+            {["ä", "ö", "ü", "ß"].map((ch) => (
+              <Button key={ch} type="button" size="sm" variant="secondary" disabled={answered !== null}
+                onClick={() => { setForms((f) => f.map((x, j) => (j === focusIdx ? x + ch : x))); formRefs.current[focusIdx]?.focus(); }}>{ch}</Button>
+            ))}
+          </div>
+          {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
+          {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
+          {answered === false && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
+              <p>Bonne réponse : <b>{word.german}</b></p>
+              {formsOk && <p className="text-sm text-muted-foreground">{VERB_LABELS.map((l, i) => `${l} ${formsOk[i] ? "✅" : "❌"}`).join(" · ")}</p>}
+            </div>
+          )}
+          {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
+        </form>
+      )}
+      {((mode === "typing" && !verb) || mode === "dictation") && (
         <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
           if (isWrittenCorrect(typed, word.german)) return void answer(true, typed);
           if (!secondTry && isNearMiss(typed, word.german)) { setSecondTry(true); return; }
