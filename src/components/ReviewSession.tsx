@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS, verbForms, checkVerbForms,
   type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { reviewSpeech } from "@/lib/speech";
 import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
+const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
 export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
   items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
@@ -38,6 +39,11 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const word = item?.word;
   const mode = item?.mode;
   const cloze = mode === "context" && word ? parseCloze(word.example_de) : null;
+  const verb = mode === "typing" && word ? verbForms(word.german) : null;
+  const [forms, setForms] = useState(["", "", ""]);
+  const [formsOk, setFormsOk] = useState<boolean[] | null>(null);
+  const [focusIdx, setFocusIdx] = useState(0);
+  const formRefs = useRef<(HTMLInputElement | null)[]>([]);
   // QCM direction: set by the homework, otherwise mixed (about half French → German).
   const reverse = useMemo(() => mode === "choice" && qcmReverse(qcmDirection), [index, mode, qcmDirection]); // eslint-disable-line react-hooks/exhaustive-deps
   const target = word ? (reverse ? word.german : word.french) : "";
@@ -88,6 +94,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     }
   }
   function next() {
+    setForms(["", "", ""]); setFormsOk(null); setFocusIdx(0);
     setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
   }
 
