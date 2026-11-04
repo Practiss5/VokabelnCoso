@@ -201,3 +201,4 @@ describe("points jamais exigés", () => {
     expect(isWrittenCorrect("etw", "etw. ...")).toBe(true);
   });
 });
+

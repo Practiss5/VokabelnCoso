@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS,
+  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS, verbForms, checkVerbForms,
   type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { reviewSpeech } from "@/lib/speech";
 import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
+const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
 export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
   items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
@@ -38,6 +39,11 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const word = item?.word;
   const mode = item?.mode;
   const cloze = mode === "context" && word ? parseCloze(word.example_de) : null;
+  const verb = mode === "typing" && word ? verbForms(word.german) : null;
+  const [forms, setForms] = useState(["", "", ""]);
+  const [formsOk, setFormsOk] = useState<boolean[] | null>(null);
+  const [focusIdx, setFocusIdx] = useState(0);
+  const formRefs = useRef<(HTMLInputElement | null)[]>([]);
   // QCM direction: set by the homework, otherwise mixed (about half French → German).
   const reverse = useMemo(() => mode === "choice" && qcmReverse(qcmDirection), [index, mode, qcmDirection]); // eslint-disable-line react-hooks/exhaustive-deps
   const target = word ? (reverse ? word.german : word.french) : "";
@@ -88,6 +94,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     }
   }
   function next() {
+    setForms(["", "", ""]); setFormsOk(null); setFocusIdx(0);
     setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
   }
 
@@ -237,7 +244,42 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       {mode === "dictation" && !canSpeak && (
         <p className="rounded-lg bg-secondary p-3 text-center text-sm">Aucune voix allemande sur cet appareil : la dictée est impossible ici. Essaie un autre mode ou un autre navigateur.</p>
       )}
-      {(mode === "typing" || mode === "dictation") && (
+      {mode === "typing" && verb && (
+        <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
+          const res = checkVerbForms(forms, verb);
+          setFormsOk(res.ok);
+          const given = forms.map((f) => f.trim()).join(", ");
+          if (res.verdict === "correct") return void answer(true, given);
+          if (!secondTry && res.verdict === "near") { setSecondTry(true); return; }
+          answer(false, given); }} className="space-y-3">
+          {VERB_LABELS.map((label, i) => (
+            <label key={label} className="block space-y-1">
+              <span className="text-sm font-semibold">{label}</span>
+              <Input ref={(el) => { formRefs.current[i] = el; }} autoFocus={i === 0} autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
+                value={forms[i]} onFocus={() => setFocusIdx(i)}
+                onChange={(e) => { const v = e.target.value; setForms((f) => f.map((x, j) => (j === i ? v : x))); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && i < 2 && answered === null) { e.preventDefault(); formRefs.current[i + 1]?.focus(); } }}
+                className={`h-12 text-lg ${formsOk && answered !== null ? (formsOk[i] ? "border-primary" : "border-destructive") : ""}`} />
+            </label>
+          ))}
+          <div className="flex flex-wrap gap-1">
+            {["ä", "ö", "ü", "ß"].map((ch) => (
+              <Button key={ch} type="button" size="sm" variant="secondary" disabled={answered !== null}
+                onClick={() => { setForms((f) => f.map((x, j) => (j === focusIdx ? x + ch : x))); formRefs.current[focusIdx]?.focus(); }}>{ch}</Button>
+            ))}
+          </div>
+          {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
+          {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
+          {answered === false && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
+              <p>Bonne réponse : <b>{word.german}</b></p>
+              {formsOk && <p className="text-sm text-muted-foreground">{VERB_LABELS.map((l, i) => `${l} ${formsOk[i] ? "✅" : "❌"}`).join(" · ")}</p>}
+            </div>
+          )}
+          {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
+        </form>
+      )}
+      {((mode === "typing" && !verb) || mode === "dictation") && (
         <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
           if (isWrittenCorrect(typed, word.german)) return void answer(true, typed);
           if (!secondTry && isNearMiss(typed, word.german)) { setSecondTry(true); return; }
