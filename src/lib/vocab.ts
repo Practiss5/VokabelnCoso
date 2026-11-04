@@ -63,6 +63,30 @@ export function isWrittenCorrect(typed: string, expected: string): boolean {
   });
 }
 
+/** Verbs stored with their forms ("fahren, er fährt, ist gefahren") → the 3 parts, else null. */
+export function verbForms(german: string): [string, string, string] | null {
+  if (german.includes("/")) return null;
+  const p = german.split(",").map((s) => s.trim());
+  if (p.length !== 3 || p.some((s) => !s)) return null;
+  if (/^(der|die|das)\s/i.test(p[0])) return null;
+  if (!/^(er|sie|es)\s/i.test(p[1]) || !/^(hat|ist)\s/i.test(p[2])) return null;
+  return [p[0], p[1], p[2]];
+}
+
+/** One guided box: the pronoun "er" may be left out of the present form. */
+function verbPartOk(typed: string, expected: string, i: number): boolean {
+  if (isWrittenCorrect(typed, expected)) return true;
+  return i === 1 && isWrittenCorrect(typed, expected.replace(/^(er|sie|es)\s+/i, ""));
+}
+
+/** Guided verb answer: per-box result and overall verdict ("near" = only one-letter slips). */
+export function checkVerbForms(typed: string[], forms: [string, string, string]): { ok: boolean[]; verdict: "correct" | "near" | "wrong" } {
+  const ok = forms.map((f, i) => verbPartOk(typed[i] ?? "", f, i));
+  if (ok.every(Boolean)) return { ok, verdict: "correct" };
+  const near = forms.every((f, i) => ok[i] || isNearMiss(typed[i] ?? "", i === 1 ? f.replace(/^(er|sie|es)\s+/i, "") : f) || isNearMiss(typed[i] ?? "", f));
+  return { ok, verdict: near ? "near" : "wrong" };
+}
+
 /** One wrong/missing/extra letter (article still right): worth a "Presque !" second try. */
 export function isNearMiss(typed: string, expected: string): boolean {
   if (!typed.trim() || isWrittenCorrect(typed, expected)) return false;
