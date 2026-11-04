@@ -67,10 +67,11 @@ export function isWrittenCorrect(typed: string, expected: string): boolean {
 export function verbForms(german: string): [string, string, string] | null {
   if (german.includes("/")) return null;
   const p = german.split(",").map((s) => s.trim());
-  if (p.length !== 3 || p.some((s) => !s)) return null;
-  if (/^(der|die|das)\s/i.test(p[0])) return null;
-  if (!/^(er|sie|es)\s/i.test(p[1]) || !/^(hat|ist)\s/i.test(p[2])) return null;
-  return [p[0], p[1], p[2]];
+  const [a, b, c] = p;
+  if (p.length !== 3 || !a || !b || !c) return null;
+  if (/^(der|die|das)\s/i.test(a)) return null;
+  if (!/^(er|sie|es)\s/i.test(b) || !/^(hat|ist)\s/i.test(c)) return null;
+  return [a, b, c];
 }
 
 /** One guided box: the pronoun "er" may be left out of the present form. */
