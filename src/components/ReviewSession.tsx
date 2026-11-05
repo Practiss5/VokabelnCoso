@@ -14,7 +14,7 @@ import { GermanAudio } from "@/components/GermanAudio";
 import { reviewSpeech } from "@/lib/speech";
 import { canRecognize, listenGerman } from "@/lib/recognition";
 
-export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" };
+export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" | undefined };
 const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
 export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
