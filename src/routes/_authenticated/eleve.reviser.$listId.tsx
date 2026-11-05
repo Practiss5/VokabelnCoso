@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
-import { hasCloze, orderQueue, qcmDirectionOf, type QcmDirection, type Word } from "@/lib/vocab";
+import { hasCloze, hwSession, orderQueue, type DailyMode, type Word } from "@/lib/vocab";
 import { ReviewSession } from "@/components/ReviewSession";
 import { MatchGame } from "@/components/MatchGame";
 import { WortTetris } from "@/components/WortTetris";
@@ -12,15 +12,15 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useHomeworkTimer, useActiveHomeworkId } from "@/lib/study-time";
 
-type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation";
-const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
+type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation" | "listen" | "choice_de_fr" | "choice_fr_de" | "listen_de_fr" | "listen_fr_de";
+const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", listen: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/reviser/$listId")({
   validateSearch: (s: Record<string, unknown>): { jeu?: boolean; tetris?: boolean; devoir?: string; exo?: Mode } => ({
     ...(s['jeu'] === true || s['jeu'] === "true" ? { jeu: true } : {}),
     ...(s['tetris'] === true || s['tetris'] === "true" ? { tetris: true } : {}),
     ...(typeof s['devoir'] === "string" ? { devoir: s['devoir'] } : {}),
-    ...(MODES.some((m) => m.id === s['exo']) ? { exo: s['exo'] as Mode } : {}),
+    ...(ALL_MODES.some((m) => m.id === s['exo']) ? { exo: s['exo'] as Mode } : {}),
   }),
   head: () => ({ meta: [{ title: "Réviser — Vocabulaire Allemand" }, { name: "description", content: "Séance de révision." }, { property: "og:title", content: "Réviser — Vocabulaire Allemand" }, { property: "og:description", content: "Séance de révision." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => (
@@ -37,25 +37,34 @@ const MODES: { id: Mode; title: string; desc: string }[] = [
   { id: "typing", title: "Écriture", desc: "Écrivez le mot allemand à partir du français." },
   { id: "context", title: "Phrases à trou", desc: "Complétez une phrase allemande avec le bon mot." },
   { id: "dictation", title: "Dictée 🎧", desc: "Écoutez le mot allemand (sans le voir) et écrivez-le." },
+  { id: "listen", title: "QCM audio 🔊", desc: "Écoutez et choisissez la bonne réponse parmi trois." },
 ];
+// Exercises that exist only in homework (fixed direction).
+const HW_ONLY: { id: Mode; title: string; desc: string }[] = [
+  { id: "choice_de_fr", title: "QCM Allemand → Français", desc: "Le mot allemand s'affiche : choisissez la traduction française." },
+  { id: "choice_fr_de", title: "QCM Français → Allemand", desc: "Le mot français s'affiche : choisissez le mot allemand." },
+  { id: "listen_de_fr", title: "QCM audio Allemand → Français 🔊", desc: "Écoutez le mot allemand (sans le voir) et choisissez le français parmi trois." },
+  { id: "listen_fr_de", title: "QCM audio Français → Allemand 🔊", desc: "Le mot français s'affiche : écoutez trois mots allemands et choisissez le bon." },
+];
+const ALL_MODES = [...MODES, ...HW_ONLY];
 
 function Review() {
   const { listId } = Route.useParams();
   const { data: me } = useSuspenseQuery(meQuery);
   const [mode, setMode] = useState<Mode | null>(null);
-  const [session, setSession] = useState<{ words: Word[]; pool: Word[]; caughtUp: boolean } | null>(null);
+  const [session, setSession] = useState<{ words: Word[]; pool: Word[]; caughtUp: boolean; mode: DailyMode; dirs: ("fr_de" | "de_fr" | undefined)[] } | null>(null);
   const [title, setTitle] = useState("");
   const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
   const { devoir, exo } = Route.useSearch();
   useHomeworkTimer(useActiveHomeworkId(listId, devoir));
   // Homework: only its words and its required exercises.
-  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; dir: QcmDirection } | null>(null);
+  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: unknown } | null>(null);
   useEffect(() => {
     if (!devoir) { setHw(null); return; }
     void supabase.from("homeworks").select("word_ids, requirements").eq("id", devoir).maybeSingle().then(({ data }) => {
       if (!data) return;
       const req = (data.requirements ?? null) as Record<string, unknown> | null;
-      setHw({ word_ids: data.word_ids, dir: qcmDirectionOf(req), modes: req ? MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id) });
+      setHw({ word_ids: data.word_ids, req, modes: req ? ALL_MODES.map((m) => m.id).filter((id) => req[id] != null) : MODES.map((m) => m.id).filter((id) => id !== "listen") });
     });
   }, [devoir]);
   // "Continuer mon devoir": open the first unfinished exercise directly, once the homework is loaded.
@@ -65,12 +74,13 @@ function Review() {
   }, [exo, hw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(m: Mode) {
+    const sm = hw ? hwSession(m, hw.req) : { mode: m as DailyMode, dirs: [undefined] };
     const [list, words, prog] = await Promise.all([
       supabase.from("vocab_lists").select("title").eq("id", listId).single(),
       supabase.from("words").select("id, german, french, example_de, example_fr").eq("list_id", listId),
       // Each mode schedules its own skill: a QCM success does not delay the writing review.
       supabase.from("skill_progress").select("word_id, due_at, step, wrong_count, correct_count")
-        .eq("student_id", me!.id).eq("skill", SKILL_OF_MODE[m]),
+        .eq("student_id", me!.id).eq("skill", SKILL_OF_MODE[sm.mode as keyof typeof SKILL_OF_MODE] ?? "translation"),
     ]);
     if (list.error || !words.data?.length) { toast.error("Liste introuvable ou vide"); return; }
     const hwIds = hw?.word_ids?.length ? new Set(hw.word_ids) : null;
@@ -80,7 +90,7 @@ function Review() {
     const progress = (prog.data ?? []).map((p) => ({ ...p, repetitions: p.step }));
     const { queue, caughtUp } = orderQueue(usable, progress, new Date());
     setTitle(list.data.title);
-    setSession({ words: queue, pool: words.data, caughtUp });
+    setSession({ words: queue, pool: words.data, caughtUp, mode: sm.mode, dirs: sm.dirs });
     setMode(m);
   }
 
@@ -105,7 +115,7 @@ function Review() {
         <h1 className="text-4xl font-bold">{hw ? "Mon devoir" : "Choisir un mode"}</h1>
         {hw && <p className="text-sm text-muted-foreground">Fais chacun de ces exercices pour valider ton devoir{hw.word_ids?.length ? ` (${hw.word_ids.length} mots choisis par ton enseignant)` : ""}.</p>}
         <div className="grid gap-4 sm:grid-cols-2">
-          {MODES.filter((m) => !hw || hw.modes.includes(m.id)).map((m) => (
+          {(hw ? ALL_MODES.filter((m) => hw.modes.includes(m.id)).map((m) => m.id === "choice" && hwSession("choice", hw.req).dirs.length > 1 ? { ...m, title: "QCM mixte", desc: "Chaque mot dans les deux sens : allemand → français puis français → allemand." } : m) : MODES).map((m) => (
             <button key={m.id} onClick={() => start(m.id)} className="word-card p-5 text-left transition-transform hover:-translate-y-0.5">
               <h2 className="text-2xl font-bold">{m.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{m.desc}</p>
@@ -126,8 +136,8 @@ function Review() {
     );
 
   return (
-    <ReviewSession key={mode} title={title} pool={session.pool} onQuit={() => setMode(null)} qcmDirection={hw?.dir ?? "mixed"}
-      items={session.words.map((word) => ({ word, mode }))}
+    <ReviewSession key={mode} title={title} pool={session.pool} onQuit={() => setMode(null)} 
+      items={session.dirs.flatMap((dir) => session.words.map((word) => ({ word, mode: session.mode, dir })))}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
       endActions={<Button onClick={() => setMode(null)}>Choisir un autre mode</Button>} />
   );

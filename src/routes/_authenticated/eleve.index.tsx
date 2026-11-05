@@ -150,6 +150,7 @@ const STEPS = [
   { mode: "typing", title: "✍️ Écriture" },
   { mode: "context", title: "🧩 Phrases à trou" },
   { mode: "dictation", title: "🎧 Dictée" },
+  { mode: "listen", title: "🔊 QCM audio" },
 ] as const;
 
 /** Lets the student pick one exercise type over all class words, besides the daily session. */

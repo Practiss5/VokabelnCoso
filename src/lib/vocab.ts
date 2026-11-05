@@ -112,12 +112,12 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
 }
 
 /** Four options (one correct) drawn from the same list: French, or German when reversed. */
-export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random, reverse = false): string[] {
+export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random, reverse = false, count = 4): string[] {
   const key = reverse ? "german" : "french";
   const others = Array.from(
     new Set(pool.filter((w) => w.id !== target.id && w[key] !== target[key]).map((w) => w[key])),
   );
-  const distractors = shuffle(others, rng).slice(0, 3);
+  const distractors = shuffle(others, rng).slice(0, count - 1);
   return shuffle([target[key], ...distractors], rng);
 }
 
@@ -162,6 +162,7 @@ export const MODE_LABELS: Record<string, string> = {
   typing: "Écriture",
   context: "Phrase",
   dictation: "Dictée",
+  listen: "QCM audio",
 };
 
 export type ErrorType = "article" | "spelling" | "translation" | "context";
@@ -219,7 +220,7 @@ export const SKILL_LABELS: Record<string, string> = {
   context: "En contexte",
 };
 
-export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation";
+export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation" | "listen";
 export type SkillState = {
   word_id: string; skill: string; step: number; due_at: string;
   wrong_count: number; correct_count: number; last_reviewed_at: string | null;
@@ -295,13 +296,17 @@ export function clozeHint(answer: string): string {
 
 export const HW_QCM_RATE = 0.8;
 export const HW_WRITING_RATE = 0.6;
-const QCM_OR_ABOVE = new Set(["choice", "speaking", "typing", "context"]);
+const QCM_OR_ABOVE = new Set(["choice", "choice_de_fr", "choice_fr_de", "listen_de_fr", "listen_fr_de", "speaking", "typing", "context"]);
 const WRITING = new Set(["typing", "context"]);
 
-export type HwMode = "flashcard" | "choice" | "speaking" | "typing" | "context";
+export type HwMode = "flashcard" | "choice" | "choice_de_fr" | "choice_fr_de" | "listen_de_fr" | "listen_fr_de" | "speaking" | "typing" | "context";
 export const HW_MODES: { id: HwMode; label: string }[] = [
   { id: "flashcard", label: "Cartes" },
-  { id: "choice", label: "QCM" },
+  { id: "choice", label: "QCM mixte (les 2 sens)" },
+  { id: "choice_de_fr", label: "QCM Allemand → Français" },
+  { id: "choice_fr_de", label: "QCM Français → Allemand" },
+  { id: "listen_de_fr", label: "QCM audio Allemand → Français" },
+  { id: "listen_fr_de", label: "QCM audio Français → Allemand" },
   { id: "speaking", label: "Prononciation" },
   { id: "typing", label: "Écriture" },
   { id: "context", label: "Phrases à trou" },
@@ -322,6 +327,19 @@ export const qcmDirectionOf = (req: unknown): QcmDirection => {
 /** Is this QCM question French → German? Mixed draws at random. */
 export const qcmReverse = (dir: QcmDirection, rng: () => number = Math.random) =>
   dir === "fr_de" ? true : dir === "de_fr" ? false : rng() < 0.5;
+/**
+ * Answer kinds a homework mode needs per word. Mixed QCM needs both directions;
+ * old answers saved as plain "choice" (before directions were recorded) count for both.
+ */
+export function hwModeNeeds(m: HwMode, req?: unknown): Set<string>[] {
+  if (m === "choice") {
+    const dir = qcmDirectionOf(req);
+    if (dir === "fr_de") return [new Set(["choice", "choice_fr_de"])];
+    if (dir === "de_fr") return [new Set(["choice", "choice_de_fr"])];
+    return [new Set(["choice", "choice_de_fr"]), new Set(["choice", "choice_fr_de"])];
+  }
+  return [new Set([m])];
+}
 export type HwPart = { key: string; label: string; got: number; need: number; rate: number };
 
 /** Saved rate → whole percent among 60/70/80/90/100 (accepts 0.7, "0.7" or 70). */
@@ -353,22 +371,26 @@ export function homeworkStatus(
   // Each checked mode keeps its own threshold and counts only its own correct answers.
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
+    if (pct == null) return [];
     const dir = m.id === "choice" ? qcmDirectionOf(requirements) : "mixed";
-    const label = dir === "mixed" ? m.label : `${m.label} (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
-    return pct == null ? [] : [{ key: m.id, label, pct, modes: new Set<string>([m.id]) }];
+    const label = dir === "mixed" ? m.label : `QCM (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
+    return [{ key: m.id, label, pct, needs: hwModeNeeds(m.id, requirements) }];
   });
   const groups = custom.length ? custom : [
-    { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, modes: QCM_OR_ABOVE },
-    { key: "writing", label: "Écriture", pct: HW_WRITING_RATE * 100, modes: WRITING },
+    { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, needs: [QCM_OR_ABOVE] },
+    { key: "writing", label: "Écriture", pct: HW_WRITING_RATE * 100, needs: [WRITING] },
   ];
-  const sets = groups.map(() => new Set<string>());
+  // For each group and each required answer kind, the words answered correctly.
+  const sets = groups.map((g) => g.needs.map(() => new Set<string>()));
   for (const r of reviews) {
     const t = new Date(r.created_at).getTime();
     if (!ids.has(r.word_id) || t < start || t > end || !r.correct) continue;
-    groups.forEach((g, i) => { if (g.modes.has(r.mode ?? "")) sets[i]!.add(r.word_id); });
+    groups.forEach((g, i) => g.needs.forEach((n, j) => { if (n.has(r.mode ?? "")) sets[i]![j]!.add(r.word_id); }));
   }
   const total = ids.size;
-  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.pct / 100, got: sets[i]!.size, need: hwNeed(total, g.pct) }));
+  // A word counts only when every required kind is done (mixed QCM = both directions).
+  const got = (i: number) => [...ids].filter((id) => sets[i]!.every((s) => s.has(id))).length;
+  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.pct / 100, got: got(i), need: hwNeed(total, g.pct) }));
   const done = total > 0 && parts.every((p) => p.got >= p.need);
   return { done, total, parts };
 }
@@ -434,4 +456,11 @@ export function nextHomeworkMode(parts: { key: string; got: number; need: number
   const p = parts.find((x) => x.got < x.need);
   if (!p) return null;
   return p.key === "qcm" ? "choice" : p.key === "writing" ? "typing" : p.key;
+}
+/** Exercise to open for a homework mode: session mode + fixed direction (mixed QCM asks both). */
+export function hwSession(m: string, req?: unknown): { mode: DailyMode; dirs: ("fr_de" | "de_fr" | undefined)[] } {
+  const [base, a, b] = m.split("_");
+  if ((base === "choice" || base === "listen") && a && b) return { mode: base, dirs: [`${a}_${b}` as "fr_de" | "de_fr"] };
+  if (m === "choice") { const d = qcmDirectionOf(req); return { mode: "choice", dirs: d === "mixed" ? ["de_fr", "fr_de"] : [d] }; }
+  return { mode: m as DailyMode, dirs: [undefined] };
 }

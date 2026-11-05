@@ -139,3 +139,17 @@ describe("QCM direction", () => {
   it("German → French never reverses", () => expect(qcmReverse("de_fr", () => 0.1)).toBe(false));
   it("duplicate keeps the direction", () => expect(dupPayload({ list_id: "L", instructions: "", word_ids: null, requirements: { choice: 0.7, choice_dir: "de_fr" } }, "T", "C", "x").requirements?.choice_dir).toBe("de_fr"));
 });
+
+describe("QCM directions in homework", () => {
+  const C2 = "2026-10-20T08:00:00Z", D2 = "2026-10-23T18:00:00Z", T2 = "2026-10-21T10:00:00Z";
+  const a = (word_id: string, mode: string) => ({ word_id, mode, correct: true, created_at: T2 });
+  it("mixed QCM needs both directions for a word", () => {
+    expect(homeworkStatus(["a"], [a("a", "choice_de_fr")], C2, D2, { choice: 1 }).done).toBe(false);
+    expect(homeworkStatus(["a"], [a("a", "choice_de_fr"), a("a", "choice_fr_de")], C2, D2, { choice: 1 }).done).toBe(true);
+  });
+  it("old plain QCM answers still count", () => expect(homeworkStatus(["a"], [a("a", "choice")], C2, D2, { choice: 1 }).done).toBe(true));
+  it("separate direction only counts its own answers", () => {
+    expect(homeworkStatus(["a"], [a("a", "choice_fr_de")], C2, D2, { choice_de_fr: 1 }).done).toBe(false);
+    expect(homeworkStatus(["a"], [a("a", "listen_fr_de")], C2, D2, { listen_fr_de: 1 }).done).toBe(true);
+  });
+});
