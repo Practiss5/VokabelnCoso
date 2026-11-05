@@ -112,12 +112,12 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
 }
 
 /** Four options (one correct) drawn from the same list: French, or German when reversed. */
-export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random, reverse = false): string[] {
+export function buildChoices(target: Word, pool: Word[], rng: () => number = Math.random, reverse = false, count = 4): string[] {
   const key = reverse ? "german" : "french";
   const others = Array.from(
     new Set(pool.filter((w) => w.id !== target.id && w[key] !== target[key]).map((w) => w[key])),
   );
-  const distractors = shuffle(others, rng).slice(0, 3);
+  const distractors = shuffle(others, rng).slice(0, count - 1);
   return shuffle([target[key], ...distractors], rng);
 }
 
@@ -162,6 +162,7 @@ export const MODE_LABELS: Record<string, string> = {
   typing: "Écriture",
   context: "Phrase",
   dictation: "Dictée",
+  listen: "QCM audio",
 };
 
 export type ErrorType = "article" | "spelling" | "translation" | "context";
@@ -219,7 +220,7 @@ export const SKILL_LABELS: Record<string, string> = {
   context: "En contexte",
 };
 
-export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation";
+export type DailyMode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation" | "listen";
 export type SkillState = {
   word_id: string; skill: string; step: number; due_at: string;
   wrong_count: number; correct_count: number; last_reviewed_at: string | null;
@@ -455,4 +456,11 @@ export function nextHomeworkMode(parts: { key: string; got: number; need: number
   const p = parts.find((x) => x.got < x.need);
   if (!p) return null;
   return p.key === "qcm" ? "choice" : p.key === "writing" ? "typing" : p.key;
+}
+/** Exercise to open for a homework mode: session mode + fixed direction (mixed QCM asks both). */
+export function hwSession(m: string, req?: unknown): { mode: DailyMode; dirs: ("fr_de" | "de_fr" | undefined)[] } {
+  const [base, a, b] = m.split("_");
+  if ((base === "choice" || base === "listen") && a && b) return { mode: base, dirs: [`${a}_${b}` as "fr_de" | "de_fr"] };
+  if (m === "choice") { const d = qcmDirectionOf(req); return { mode: "choice", dirs: d === "mixed" ? ["de_fr", "fr_de"] : [d] }; }
+  return { mode: m as DailyMode, dirs: [undefined] };
 }

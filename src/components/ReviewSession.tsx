@@ -14,7 +14,7 @@ import { GermanAudio } from "@/components/GermanAudio";
 import { reviewSpeech } from "@/lib/speech";
 import { canRecognize, listenGerman } from "@/lib/recognition";
 
-export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"] };
+export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" };
 const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
 export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed" }: {
@@ -45,9 +45,12 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const [focusIdx, setFocusIdx] = useState(0);
   const formRefs = useRef<(HTMLInputElement | null)[]>([]);
   // QCM direction: set by the homework, otherwise mixed (about half French → German).
-  const reverse = useMemo(() => mode === "choice" && qcmReverse(qcmDirection), [index, mode, qcmDirection]); // eslint-disable-line react-hooks/exhaustive-deps
+  const isQcm = mode === "choice" || mode === "listen";
+  const reverse = useMemo(() => isQcm && (item?.dir ? item.dir === "fr_de" : qcmReverse(qcmDirection)), [index, mode, qcmDirection]); // eslint-disable-line react-hooks/exhaustive-deps
   const target = word ? (reverse ? word.german : word.french) : "";
-  const choices = useMemo(() => (word ? buildChoices(word, pool, Math.random, reverse) : []), [word, pool, reverse]);
+  const choices = useMemo(() => (word ? buildChoices(word, pool, Math.random, reverse, mode === "listen" ? 3 : 4) : []), [word, pool, reverse, mode]);
+  // Audio QCM French → German: the German options are only heard, never shown before answering.
+  const audioChoices = mode === "listen" && reverse;
 
   async function answer(correct: boolean, given?: string) {
     if (answered !== null || !item || !word || !mode) return;
@@ -60,7 +63,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       retried.current.add(word.id);
       setQueue((q) => [...q, item]);
     }
-    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : mode, _correct: correct };
+    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
     if (given) args._given = given;
     if (err) args._error = err;
     const res = await sendAnswer(args);
@@ -152,7 +155,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
 
       <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : reverse ? "Français → choisis l'allemand" : mode === "choice" ? "Allemand → choisis le français" : "Deutsch"}
+          {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : mode === "listen" ? (reverse ? "Français → écoute et choisis l'allemand" : "Écoute l'allemand → choisis le français") : reverse ? "Français → choisis l'allemand" : mode === "choice" ? "Allemand → choisis le français" : "Deutsch"}
         </p>
         {cloze ? (
           <>
@@ -164,16 +167,18 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
               <span className="mt-1 block text-base">Mot à trouver : <b>{word.french}</b></span>
             </p>
           </>
-        ) : mode === "dictation" ? (
+        ) : mode === "dictation" || (mode === "listen" && !reverse) ? (
           answered !== null
             ? <><p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{word.german}</p><p className="mt-2 text-xl">{word.french}</p></>
             : <p className="mt-2 text-sm text-muted-foreground">Le mot est lu à voix haute. Touche le haut-parleur pour le réécouter.</p>
+        ) : audioChoices ? (
+          <><p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{word.french}</p>{answered !== null && <p className="mt-2 text-xl">{word.german}</p>}</>
         ) : (
           <p className="mt-2 font-display text-4xl font-bold sm:text-5xl">{mode === "typing" || mode === "speaking" || reverse ? word.french : word.german}</p>
         )}
         {mode === "flashcard" && answered !== null && <p className="mt-4 text-xl">{word.french}</p>}
         <div className="mt-3 flex justify-center">
-          <GermanAudio key={`${index}-${answered}`} autoPlay={mode === "dictation" && answered === null} large={mode === "dictation" && answered === null} text={reviewSpeech(word, reverse ? "typing" : mode, answered !== null)}
+          <GermanAudio key={`${index}-${answered}`} autoPlay={(mode === "dictation" || (mode === "listen" && !reverse)) && answered === null} large={(mode === "dictation" || (mode === "listen" && !reverse)) && answered === null} text={reviewSpeech(word, reverse ? "typing" : mode === "listen" ? "dictation" : mode, answered !== null)}
             label={mode === "context" ? "Écouter la phrase" : "Écouter le mot"} />
         </div>
       </div>
@@ -185,7 +190,23 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         </div>
       )}
 
-      {mode === "choice" && (
+      {audioChoices && (
+        <div className="grid gap-3">
+          {choices.map((c, i) => {
+            const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
+            return (
+              <div key={c} className={`word-card flex min-h-14 items-center gap-3 px-4 py-2 ${state}`}>
+                <GermanAudio text={c} label={`Écouter ${"ABC"[i]}`} />
+                <button disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }} className="flex-1 text-left text-lg font-medium">
+                  {answered === null ? `Choisir ${"ABC"[i]}` : `${"ABC"[i]} · ${c}`}
+                </button>
+              </div>
+            );
+          })}
+          {!canSpeak && <p className="rounded-lg bg-secondary p-3 text-center text-sm">Aucune voix allemande sur cet appareil : cet exercice est impossible ici.</p>}
+        </div>
+      )}
+      {isQcm && !audioChoices && (
         <div className="grid gap-3">
           {choices.map((c) => {
             const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
@@ -336,7 +357,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           <p className={`text-center text-lg font-bold ${answered ? "text-success" : "text-destructive"}`}>
             {answered ? "Richtig ! ✓" : "Pas encore… ✗"}
           </p>
-          {answered === false && mode === "choice" && <p className="text-center">Bonne réponse : <b>{target}</b></p>}
+          {answered === false && isQcm && <p className="text-center">Bonne réponse : <b>{target}</b></p>}
           {mode !== "typing" && mode !== "dictation" && mode !== "context" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
         </>
       )}
