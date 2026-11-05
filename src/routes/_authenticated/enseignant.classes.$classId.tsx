@@ -88,6 +88,7 @@ function ClassPage() {
           <p className="mt-2">Code à donner aux élèves : <span className="rounded bg-accent px-2 py-1 font-mono text-lg font-bold">{data.cls.join_code}</span></p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild><Link to="/enseignant/bilan/$classId" params={{ classId }}>📄 Fiches bilan</Link></Button>
           <Button variant="outline" onClick={purgeYear}>🧹 Clôturer l'année</Button>
           <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
         </div>

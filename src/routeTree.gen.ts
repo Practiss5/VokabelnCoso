@@ -18,6 +18,7 @@ import { Route as AuthenticatedEleveIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEleveSeanceRouteImport } from './routes/_authenticated/eleve.seance'
 import { Route as AuthenticatedEnseignantIndexRouteImport } from './routes/_authenticated/enseignant.index'
 import { Route as AuthenticatedEleveReviserListIdRouteImport } from './routes/_authenticated/eleve.reviser.$listId'
+import { Route as AuthenticatedEnseignantBilanClassIdRouteImport } from './routes/_authenticated/enseignant.bilan.$classId'
 import { Route as AuthenticatedEnseignantClassesClassIdRouteImport } from './routes/_authenticated/enseignant.classes.$classId'
 import { Route as AuthenticatedEnseignantFicheListIdRouteImport } from './routes/_authenticated/enseignant.fiche.$listId'
 import { Route as AuthenticatedEnseignantListesListIdRouteImport } from './routes/_authenticated/enseignant.listes.$listId'
@@ -69,6 +70,12 @@ const AuthenticatedEleveReviserListIdRoute =
     path: '/eleve/reviser/$listId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEnseignantBilanClassIdRoute =
+  AuthenticatedEnseignantBilanClassIdRouteImport.update({
+    id: '/enseignant/bilan/$classId',
+    path: '/enseignant/bilan/$classId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEnseignantClassesClassIdRoute =
   AuthenticatedEnseignantClassesClassIdRouteImport.update({
     id: '/enseignant/classes/$classId',
@@ -97,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/eleve/': typeof AuthenticatedEleveIndexRoute
   '/enseignant/': typeof AuthenticatedEnseignantIndexRoute
   '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
+  '/enseignant/bilan/$classId': typeof AuthenticatedEnseignantBilanClassIdRoute
   '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/enseignant/fiche/$listId': typeof AuthenticatedEnseignantFicheListIdRoute
   '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
@@ -110,6 +118,7 @@ export interface FileRoutesByTo {
   '/eleve': typeof AuthenticatedEleveIndexRoute
   '/enseignant': typeof AuthenticatedEnseignantIndexRoute
   '/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
+  '/enseignant/bilan/$classId': typeof AuthenticatedEnseignantBilanClassIdRoute
   '/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/enseignant/fiche/$listId': typeof AuthenticatedEnseignantFicheListIdRoute
   '/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
@@ -125,6 +134,7 @@ export interface FileRoutesById {
   '/_authenticated/eleve/': typeof AuthenticatedEleveIndexRoute
   '/_authenticated/enseignant/': typeof AuthenticatedEnseignantIndexRoute
   '/_authenticated/eleve/reviser/$listId': typeof AuthenticatedEleveReviserListIdRoute
+  '/_authenticated/enseignant/bilan/$classId': typeof AuthenticatedEnseignantBilanClassIdRoute
   '/_authenticated/enseignant/classes/$classId': typeof AuthenticatedEnseignantClassesClassIdRoute
   '/_authenticated/enseignant/fiche/$listId': typeof AuthenticatedEnseignantFicheListIdRoute
   '/_authenticated/enseignant/listes/$listId': typeof AuthenticatedEnseignantListesListIdRoute
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/eleve/'
     | '/enseignant/'
     | '/eleve/reviser/$listId'
+    | '/enseignant/bilan/$classId'
     | '/enseignant/classes/$classId'
     | '/enseignant/fiche/$listId'
     | '/enseignant/listes/$listId'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/eleve'
     | '/enseignant'
     | '/eleve/reviser/$listId'
+    | '/enseignant/bilan/$classId'
     | '/enseignant/classes/$classId'
     | '/enseignant/fiche/$listId'
     | '/enseignant/listes/$listId'
@@ -167,6 +179,7 @@ export interface FileRouteTypes {
     | '/_authenticated/eleve/'
     | '/_authenticated/enseignant/'
     | '/_authenticated/eleve/reviser/$listId'
+    | '/_authenticated/enseignant/bilan/$classId'
     | '/_authenticated/enseignant/classes/$classId'
     | '/_authenticated/enseignant/fiche/$listId'
     | '/_authenticated/enseignant/listes/$listId'
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEleveReviserListIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/enseignant/bilan/$classId': {
+      id: '/_authenticated/enseignant/bilan/$classId'
+      path: '/enseignant/bilan/$classId'
+      fullPath: '/enseignant/bilan/$classId'
+      preLoaderRoute: typeof AuthenticatedEnseignantBilanClassIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/enseignant/classes/$classId': {
       id: '/_authenticated/enseignant/classes/$classId'
       path: '/enseignant/classes/$classId'
@@ -274,6 +294,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEleveIndexRoute: typeof AuthenticatedEleveIndexRoute
   AuthenticatedEnseignantIndexRoute: typeof AuthenticatedEnseignantIndexRoute
   AuthenticatedEleveReviserListIdRoute: typeof AuthenticatedEleveReviserListIdRoute
+  AuthenticatedEnseignantBilanClassIdRoute: typeof AuthenticatedEnseignantBilanClassIdRoute
   AuthenticatedEnseignantClassesClassIdRoute: typeof AuthenticatedEnseignantClassesClassIdRoute
   AuthenticatedEnseignantFicheListIdRoute: typeof AuthenticatedEnseignantFicheListIdRoute
   AuthenticatedEnseignantListesListIdRoute: typeof AuthenticatedEnseignantListesListIdRoute
@@ -285,6 +306,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEleveIndexRoute: AuthenticatedEleveIndexRoute,
   AuthenticatedEnseignantIndexRoute: AuthenticatedEnseignantIndexRoute,
   AuthenticatedEleveReviserListIdRoute: AuthenticatedEleveReviserListIdRoute,
+  AuthenticatedEnseignantBilanClassIdRoute:
+    AuthenticatedEnseignantBilanClassIdRoute,
   AuthenticatedEnseignantClassesClassIdRoute:
     AuthenticatedEnseignantClassesClassIdRoute,
   AuthenticatedEnseignantFicheListIdRoute:
