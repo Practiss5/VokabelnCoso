@@ -8,8 +8,8 @@ import { AppShell } from "@/components/AppShell";
 import { ReviewSession, type SessionItem } from "@/components/ReviewSession";
 import { Button } from "@/components/ui/button";
 
-const MODES: DailyMode[] = ["flashcard", "choice", "speaking", "typing", "context", "dictation"];
-const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
+const MODES: DailyMode[] = ["flashcard", "choice", "speaking", "typing", "context", "dictation", "listen"];
+const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing", listen: "translation" } as const;
 
 export const Route = createFileRoute("/_authenticated/eleve/seance")({
   validateSearch: (s: Record<string, unknown>): { mode?: DailyMode } =>
