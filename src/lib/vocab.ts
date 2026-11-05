@@ -371,7 +371,9 @@ export function homeworkStatus(
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
     if (pct == null) return [];
-    return [{ key: m.id, label: m.label, pct, needs: hwModeNeeds(m.id, requirements) }];
+    const dir = m.id === "choice" ? qcmDirectionOf(requirements) : "mixed";
+    const label = dir === "mixed" ? m.label : `QCM (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
+    return [{ key: m.id, label, pct, needs: hwModeNeeds(m.id, requirements) }];
   });
   const groups = custom.length ? custom : [
     { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, needs: [QCM_OR_ABOVE] },
