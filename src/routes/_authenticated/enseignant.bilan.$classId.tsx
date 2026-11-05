@@ -8,7 +8,7 @@ import { formatDuration } from "@/lib/study-time";
 import { studentReport, type ReportHw } from "@/lib/report";
 
 export const Route = createFileRoute("/_authenticated/enseignant/bilan/$classId")({
-  validateSearch: (s: Record<string, unknown>): { eleve?: string } => (typeof s.eleve === "string" ? { eleve: s.eleve } : {}),
+  validateSearch: (s: Record<string, unknown>): { eleve?: string } => (typeof s['eleve'] === "string" ? { eleve: s['eleve'] } : {}),
   head: () => ({ meta: [{ title: "Fiche bilan — Vocabulaire Allemand" }, { name: "description", content: "Fiche bilan imprimable pour les parents." }, { property: "og:title", content: "Fiche bilan — Vocabulaire Allemand" }, { property: "og:description", content: "Fiche bilan imprimable pour les parents." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: () => <TeacherOnly><Bilan /></TeacherOnly>,
 });
