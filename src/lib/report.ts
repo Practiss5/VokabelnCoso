@@ -1,7 +1,7 @@
 import { homeworkStatus, type HwRequirements } from "@/lib/vocab";
 
 export type ReportHw = { id: string; created_at: string; due_at: string; list_id: string; word_ids: string[] | null; requirements: HwRequirements | null };
-export type ReportReview = { word_id: string; created_at: string; mode: string; correct: boolean };
+export type ReportReview = { word_id: string; created_at: string; mode: string; correct: boolean; homework_id?: string | null };
 
 /** Parent report for one student: homework done (by the deadline), success rate over all answers, homework time. */
 export function studentReport(hws: ReportHw[], listWords: Map<string, string[]>, reviews: ReportReview[], timeByHw: Map<string, number>, now = Date.now()) {
