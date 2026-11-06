@@ -6,7 +6,7 @@ import { type Card, type MatchWord } from "@/lib/match";
 import { Button } from "@/components/ui/button";
 
 /** Fast pair-matching game. Does not touch spaced repetition or homework; feeds the daily flame only. */
-export function MatchGame({ listId, words, onQuit }: { listId: string; words: MatchWord[]; onQuit: () => void }) {
+export function MatchGame({ listId, onQuit }: { listId: string; words: MatchWord[]; onQuit: () => void }) {
   const qc = useQueryClient();
   type State = { id: string; cards: Card[]; wave: number; totalWaves: number; pairs: number; run: number; bestRun: number; finished: boolean; found?: string[]; correct?: boolean; newWave?: boolean };
   const [game, setGame] = useState<State | null>(null);

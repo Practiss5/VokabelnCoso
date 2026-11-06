@@ -26,7 +26,7 @@ describe("server answer validation", () => {
     }
   });
   it("checks context and speech independently of the claimed result", () => {
-    const clozeWord = { ...word, example_de: "Ich sehe {{die Stadt}}." };
+    const clozeWord = { ...word, example_de: "Ich sehe [die Stadt]." };
     expect(validateAnswer(clozeWord, answerSchema.parse({ _word: word.id, _mode: "context", _given: "dieStadt", _correct: false })).correct).toBe(true);
     expect(judge("speaking", "der Hund").correct).toBe(false);
     expect(judge("speaking", "die Stadt", false).correct).toBe(true);
