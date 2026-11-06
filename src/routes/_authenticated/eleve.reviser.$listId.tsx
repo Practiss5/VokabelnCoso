@@ -152,19 +152,20 @@ function Review() {
     <ReviewSession key={sessionNumber} title={title} pool={session.pool} onQuit={() => setMode(null)}
       items={session.items}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
-      endActions={hw && devoir && me ? <HomeworkEndActions studentId={me.id} homeworkId={devoir} hw={hw}
+      endActions={hw && devoir && me ? <HomeworkEndActions studentId={me.id} homeworkId={devoir} sessionNumber={sessionNumber} hw={hw}
         words={session.pool.filter((w) => !hw.word_ids?.length || hw.word_ids.includes(w.id))}
         onContinue={(m) => void start(m)} onChoose={() => setMode(null)} /> : <Button onClick={() => setMode(null)}>Choisir un autre mode</Button>} />
   );
 }
 
-function HomeworkEndActions({ studentId, homeworkId, hw, words, onContinue, onChoose }: {
-  studentId: string; homeworkId: string; hw: { created_at: string; due_at: string; req: HwRequirements | null };
+function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, onContinue, onChoose }: {
+  studentId: string; homeworkId: string; sessionNumber: number; hw: { created_at: string; due_at: string; req: HwRequirements | null };
   words: Word[]; onContinue: (m: Mode) => void; onChoose: () => void;
 }) {
   const [opening, setOpening] = useState(false);
-  const { data, isPending, error, refetch } = useQuery({
-    queryKey: ["homework-continuation", homeworkId, studentId], staleTime: 0, refetchOnMount: "always", refetchInterval: 15000,
+  const { data, isPending, isFetching, error, refetch } = useQuery({
+    queryKey: ["homework-continuation", homeworkId, studentId, sessionNumber, hw, words.map((w) => w.id)],
+    staleTime: 0, gcTime: 0, refetchOnMount: "always", refetchInterval: 15000,
     queryFn: async () => {
       await flushAnswers();
       if (pendingCount(studentId)) return { pending: true, next: null, done: false };
@@ -175,7 +176,7 @@ function HomeworkEndActions({ studentId, homeworkId, hw, words, onContinue, onCh
     },
   });
   return <>
-    {data?.done ? <Button asChild><Link to="/eleve">Devoir terminé ! 🎉</Link></Button> :
+    {data?.done && !isFetching && !error ? <Button asChild><Link to="/eleve">Devoir terminé ! 🎉</Link></Button> :
       <Button disabled={isPending || opening || data?.pending} onClick={async () => {
         setOpening(true);
         try {
