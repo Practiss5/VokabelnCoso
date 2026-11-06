@@ -162,6 +162,13 @@
       "when": 1793952470952,
       "tag": "0022_homework_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793952624033,
+      "tag": "0023_restore_legacy_rule_existing_homeworks",
+      "breakpoints": true
     }
   ]
 }
