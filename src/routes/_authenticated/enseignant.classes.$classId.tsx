@@ -98,6 +98,7 @@ function ClassPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={toggleDuels}>{data.cls.duels_enabled ? "⚔️ Désactiver les duels" : "⚔️ Activer les duels"}</Button>
+          <Button asChild><Link to="/enseignant/quiz/$classId" params={{ classId }}>📺 Quiz au tableau</Link></Button>
           <Button variant="outline" asChild><Link to="/enseignant/bilan/$classId" params={{ classId }}>📄 Fiches bilan</Link></Button>
           <Button variant="outline" onClick={purgeYear}>🧹 Clôturer l'année</Button>
           <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>
