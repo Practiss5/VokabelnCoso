@@ -28,7 +28,7 @@ function ClassPage() {
   const { data } = useQuery({
     queryKey: ["class", classId],
     queryFn: async () => {
-      const cls = await supabase.from("classes").select("id, name, join_code").eq("id", classId).single();
+      const cls = await supabase.from("classes").select("id, name, join_code, duels_enabled").eq("id", classId).single();
       if (cls.error) throw cls.error;
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
@@ -78,6 +78,15 @@ function ClassPage() {
     qc.invalidateQueries({ queryKey: ["student-codes", classId] });
   }
 
+  async function toggleDuels() {
+    if (!data) return;
+    const next = !data.cls.duels_enabled;
+    const { error } = await supabase.from("classes").update({ duels_enabled: next }).eq("id", classId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Duels activés pour cette classe." : "Duels désactivés pour cette classe.");
+    qc.invalidateQueries({ queryKey: ["class", classId] });
+  }
+
   if (!data) return <p>Chargement…</p>;
   return (
     <div className="space-y-6">
@@ -87,7 +96,8 @@ function ClassPage() {
           <h1 className="text-4xl font-bold">{data.cls.name}</h1>
           <p className="mt-2">Code à donner aux élèves : <span className="rounded bg-accent px-2 py-1 font-mono text-lg font-bold">{data.cls.join_code}</span></p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={toggleDuels}>{data.cls.duels_enabled ? "⚔️ Désactiver les duels" : "⚔️ Activer les duels"}</Button>
           <Button variant="outline" asChild><Link to="/enseignant/bilan/$classId" params={{ classId }}>📄 Fiches bilan</Link></Button>
           <Button variant="outline" onClick={purgeYear}>🧹 Clôturer l'année</Button>
           <Button variant="destructive" onClick={remove}>Supprimer la classe</Button>

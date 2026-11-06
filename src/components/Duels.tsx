@@ -57,21 +57,42 @@ export function StudentDuels({ listId }: { listId: string | undefined }) {
     queryKey: ["my-duels"],
     queryFn: async () => { const { data, error } = await supabase.rpc("my_duels"); if (error) throw error; return data ?? []; },
   });
-  async function start() {
+  const { data: enabled } = useQuery({
+    queryKey: ["duels-enabled"],
+    queryFn: async () => { const { data, error } = await supabase.rpc("duels_enabled"); if (error) throw error; return !!data; },
+  });
+  const [picking, setPicking] = useState(false);
+  const { data: mates } = useQuery({
+    queryKey: ["duel-classmates"],
+    enabled: picking,
+    queryFn: async () => { const { data, error } = await supabase.rpc("duel_classmates"); if (error) throw error; return data ?? []; },
+  });
+  async function start(opponent?: string) {
     if (!listId) return;
-    const { data: id, error } = await supabase.rpc("start_duel", { _list: listId });
+    const { data: id, error } = await supabase.rpc("start_duel", { _list: listId, ...(opponent ? { _opponent: opponent } : {}) });
     if (error) { toast.error(error.message); return; }
+    setPicking(false);
     setPlaying(id as string);
   }
   function end() { setPlaying(null); void qc.invalidateQueries({ queryKey: ["my-duels"] }); }
+  if (enabled === false) return null;
   if (playing) return <section className="word-card border-2 border-primary p-5"><Play duelId={playing} onEnd={end} /></section>;
   const now = Date.now();
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">⚔️ Duels amicaux</h2>
-        <Button onClick={start} disabled={!listId}>Défier un camarade au hasard</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => start()} disabled={!listId}>Défier au hasard</Button>
+          <Button variant="outline" onClick={() => setPicking((v) => !v)} disabled={!listId}>Choisir un camarade</Button>
+        </div>
       </div>
+      {picking && (
+        <div className="word-card flex flex-wrap gap-2 p-3">
+          {!mates ? <p className="text-sm">Chargement…</p> : mates.length === 0 ? <p className="text-sm text-muted-foreground">Aucun camarade dans ta classe.</p> :
+            mates.map((m) => <Button key={m.id} size="sm" variant="secondary" onClick={() => start(m.id)}>{m.name}</Button>)}
+        </div>
+      )}
       <p className="text-sm text-muted-foreground">10 QCM sur la liste choisie ci-dessus. Ton camarade a 48 h pour jouer. Seuls vous deux voyez le résultat.</p>
       {data?.map((d) => {
         const expired = new Date(d.expires_at).getTime() < now;

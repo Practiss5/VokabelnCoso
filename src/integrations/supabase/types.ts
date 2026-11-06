@@ -17,6 +17,7 @@ export type Database = {
       classes: {
         Row: {
           created_at: string
+          duels_enabled: boolean
           id: string
           join_code: string
           name: string
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          duels_enabled?: boolean
           id?: string
           join_code?: string
           name: string
@@ -31,6 +33,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          duels_enabled?: boolean
           id?: string
           join_code?: string
           name?: string
@@ -769,7 +772,15 @@ export type Database = {
         }[]
       }
       copy_folder: { Args: { _code: string }; Returns: string }
+      duel_classmates: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       duel_question: { Args: { _duel: string }; Returns: Json }
+      duels_enabled: { Args: never; Returns: boolean }
       generate_student_codes: {
         Args: { _class: string; _count: number }
         Returns: {
@@ -885,7 +896,10 @@ export type Database = {
         Args: { _archived: boolean; _hw: string }
         Returns: undefined
       }
-      start_duel: { Args: { _list: string }; Returns: string }
+      start_duel: {
+        Args: { _list: string; _opponent?: string }
+        Returns: string
+      }
       start_match_session: { Args: { _list: string }; Returns: Json }
       step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }
