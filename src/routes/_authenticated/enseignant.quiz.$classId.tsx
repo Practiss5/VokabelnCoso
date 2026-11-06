@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/enseignant/quiz/$classId")
 });
 
 const LETTERS = ["A", "B", "C", "D"];
-type Session = { id: string; status: string; format: string; q_idx: number; q_started_at: string | null; questions: QuizQuestion[] };
+type Session = { id: string; pin: string; status: string; format: string; q_idx: number; q_started_at: string | null; questions: QuizQuestion[] };
 
 function speak(text: string) {
   const synth = window.speechSynthesis;
@@ -158,6 +158,8 @@ function Board({ session, setSession, names }: { session: Session; setSession: (
     <section className="word-card space-y-4 text-center">
       <h1 className="text-4xl font-bold">📺 Quiz prêt !</h1>
       <p className="text-xl">Élèves : ouvrez l'application, le bouton « Rejoindre le quiz » apparaît sur votre page d'accueil.</p>
+      <p className="text-xl">En cas de problème : « Rejoindre avec un code PIN » puis taper</p>
+      <p className="font-mono text-6xl font-bold tracking-widest">{session.pin}</p>
       <p className="text-muted-foreground">{session.questions.length} questions · {session.format === "collective" ? "Défi collectif" : "Top 3 amical"}</p>
       <Button size="lg" onClick={next}>▶️ Lancer la première question</Button>
     </section>
@@ -172,7 +174,7 @@ function Board({ session, setSession, names }: { session: Session; setSession: (
   return (
     <section className="word-card space-y-6">
       <div className="flex items-center justify-between text-lg">
-        <span>Question {session.q_idx + 1}/{session.questions.length} · {QUIZ_MODE_LABELS[q!.mode]}</span>
+        <span>Question {session.q_idx + 1}/{session.questions.length} · {QUIZ_MODE_LABELS[q!.mode]} · PIN <b className="font-mono">{session.pin}</b></span>
         <span className="text-3xl font-bold tabular-nums">{session.status === "question" ? `⏱ ${left} s` : "⏹"}</span>
       </div>
       <div className="text-center">

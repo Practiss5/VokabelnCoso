@@ -431,6 +431,32 @@ export type Database = {
           },
         ]
       }
+      quiz_joins: {
+        Row: {
+          created_at: string
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_joins_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_sessions: {
         Row: {
           class_id: string
@@ -438,6 +464,7 @@ export type Database = {
           format: string
           id: string
           list_id: string
+          pin: string
           q_idx: number
           q_started_at: string | null
           questions: Json
@@ -450,6 +477,7 @@ export type Database = {
           format?: string
           id?: string
           list_id: string
+          pin?: string
           q_idx?: number
           q_started_at?: string | null
           questions: Json
@@ -462,6 +490,7 @@ export type Database = {
           format?: string
           id?: string
           list_id?: string
+          pin?: string
           q_idx?: number
           q_started_at?: string | null
           questions?: Json
@@ -929,6 +958,7 @@ export type Database = {
       }
       purge_class_data: { Args: { _class: string }; Returns: undefined }
       quiz_for_me: { Args: never; Returns: Json }
+      quiz_join_pin: { Args: { _pin: string }; Returns: boolean }
       record_answer: {
         Args: {
           _correct: boolean

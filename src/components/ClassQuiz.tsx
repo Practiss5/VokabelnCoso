@@ -19,13 +19,30 @@ export function StudentQuiz() {
   const [joined, setJoined] = useState(false);
   const [typed, setTyped] = useState("");
   const [sending, setSending] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinOpen, setPinOpen] = useState(false);
   const { data: s, refetch } = useQuery({
     queryKey: ["quiz-for-me"],
     queryFn: async () => { const { data } = await supabase.rpc("quiz_for_me"); return (data ?? null) as State; },
     refetchInterval: joined ? 1500 : 8000,
   });
   useEffect(() => setTyped(""), [s?.q_idx]);
-  if (!s) return null;
+  async function joinPin(e: React.FormEvent) {
+    e.preventDefault();
+    const { data } = await supabase.rpc("quiz_join_pin", { _pin: pin.trim() });
+    if (!data) { toast.error("Code PIN inconnu ou quiz terminé."); return; }
+    setJoined(true); setPinOpen(false); void refetch();
+  }
+  if (!s) return pinOpen ? (
+    <form onSubmit={joinPin} className="word-card flex flex-wrap items-center gap-2">
+      <span className="font-medium">📺 Code PIN du quiz :</span>
+      <Input className="w-32 font-mono" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} autoFocus />
+      <Button disabled={pin.length !== 6}>Rejoindre</Button>
+      <Button type="button" variant="ghost" onClick={() => setPinOpen(false)}>Annuler</Button>
+    </form>
+  ) : (
+    <button type="button" className="text-sm underline text-muted-foreground" onClick={() => setPinOpen(true)}>📺 Rejoindre un quiz avec un code PIN</button>
+  );
   if (!joined) return (
     <section className="word-card flex flex-col items-center gap-3 border-2 border-primary text-center">
       <p className="text-xl font-bold">📺 Ton professeur a lancé un quiz !</p>

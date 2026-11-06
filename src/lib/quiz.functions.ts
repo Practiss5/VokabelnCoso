@@ -12,7 +12,11 @@ export const answerQuiz = createServerFn({ method: "POST" })
       supabaseAdmin.from("quiz_sessions").select("class_id,status,q_idx,q_started_at,questions").eq("id", data.session).maybeSingle(),
       supabaseAdmin.from("profiles").select("class_id").eq("id", context.userId).maybeSingle(),
     ]);
-    if (!s || !me || s.class_id !== me.class_id) return { error: "Quiz indisponible." };
+    if (!s || !me) return { error: "Quiz indisponible." };
+    if (s.class_id !== me.class_id) {
+      const { data: joined } = await supabaseAdmin.from("quiz_joins").select("student_id").eq("session_id", data.session).eq("student_id", context.userId).maybeSingle();
+      if (!joined) return { error: "Quiz indisponible." };
+    }
     if (s.status !== "question" || s.q_idx !== data.q_idx || !s.q_started_at) return { error: "Trop tard !" };
     const q = (s.questions as QuizQuestion[])[s.q_idx];
     const ms = Date.now() - new Date(s.q_started_at).getTime();
