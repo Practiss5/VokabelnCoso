@@ -84,7 +84,8 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     const allPicked = listWords && picked.size === listWords.length;
     const { error } = await supabase.from("homeworks").insert({
       teacher_id: u.user!.id, class_id: classId, list_id: listId, due_at: new Date(due).toISOString(), instructions: text.trim(),
-      word_ids: allPicked ? null : [...picked], requirements: req,
+      // Always freeze the chosen words: words added to the list later never join this homework.
+      word_ids: [...picked], requirements: req,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Devoir donné à la classe");
