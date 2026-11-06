@@ -1,0 +1,1 @@
+UPDATE public.homeworks SET coverage_rule = true WHERE id IN ('1487159d-7a57-4692-9cea-7003fee461f9','e5e344e7-a225-4bee-851a-22d3af2349bf','91007b37-d22f-4bd0-a99d-55187f631009');
