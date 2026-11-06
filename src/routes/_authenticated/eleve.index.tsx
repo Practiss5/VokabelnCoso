@@ -10,6 +10,8 @@ import { AppShell } from "@/components/AppShell";
 import { hasPendingHomework, myHomeworksQuery, StudentHomework, StudentStreak } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { selectTrainingList, trainingListsQuery } from "@/lib/training-lists";
 
 export const Route = createFileRoute("/_authenticated/eleve/")({
   head: () => ({ meta: [{ title: "Mes révisions — Vocabulaire Allemand" }, { name: "description", content: "Séance du jour, entraînements et listes à réviser." }, { property: "og:title", content: "Mes révisions — Vocabulaire Allemand" }, { property: "og:description", content: "Séance du jour, entraînements et listes à réviser." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -155,41 +157,29 @@ const STEPS = [
 
 /** Lets the student pick one exercise type over all class words, besides the daily session. */
 function ChooseStep() {
-  const [game, setGame] = useState<null | "match" | "tetris">(null);
+  const { data: me } = useSuspenseQuery(meQuery);
+  const { data: lists } = useQuery(trainingListsQuery(me?.classId ?? ""));
+  const [chosenList, setChosenList] = useState<string>();
+  const listId = selectTrainingList(lists ?? [], chosenList);
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
+      <div className="max-w-lg space-y-2">
+        <label htmlFor="training-list" className="text-sm font-semibold">Liste de vocabulaire</label>
+        <Select value={listId ?? ""} onValueChange={setChosenList} disabled={!lists?.length}>
+          <SelectTrigger id="training-list"><SelectValue placeholder={lists ? "Aucune liste attribuée" : "Chargement…"} /></SelectTrigger>
+          <SelectContent>{lists?.map((list) => <SelectItem key={list.id} value={list.id}>{list.title}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      {listId && <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {STEPS.map((s) => (
-          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode }} className="word-card p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
+          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode, listId }} className="word-card p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
         ))}
-        <button onClick={() => setGame((g) => (g === "match" ? null : "match"))} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</button>
-        <button onClick={() => setGame((g) => (g === "tetris" ? null : "tetris"))} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</button>
+        <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ jeu: true }} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</Link>
+        <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ tetris: true }} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</Link>
       </div>
-      {game && <GameLists tetris={game === "tetris"} />}
+      </>}
     </section>
-  );
-}
-
-function GameLists({ tetris }: { tetris: boolean }) {
-  const { data: me } = useSuspenseQuery(meQuery);
-  const { data } = useQuery({
-    queryKey: ["game-lists", me!.classId],
-    queryFn: async () => {
-      const { data } = await supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", me!.classId!);
-      return (data ?? []).map((x) => x.vocab_lists).filter(Boolean) as { id: string; title: string }[];
-    },
-  });
-  if (!data) return <p>Chargement…</p>;
-  return (
-    <div className="rounded-lg bg-secondary p-4">
-      <p className="mb-2 text-sm">Sur quelle liste veux-tu jouer ?</p>
-      <div className="flex flex-wrap gap-2">
-        {data.map((l) => (
-          <Button key={l.id} asChild variant="outline"><Link to="/eleve/reviser/$listId" params={{ listId: l.id }} search={tetris ? { tetris: true } : { jeu: true }}>{l.title}</Link></Button>
-        ))}
-        {!data.length && <span className="text-sm text-muted-foreground">Aucune liste pour l'instant.</span>}
-      </div>
-    </div>
   );
 }
