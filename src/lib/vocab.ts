@@ -340,7 +340,35 @@ export function hwModeNeeds(m: HwMode, req?: unknown): Set<string>[] {
   }
   return [new Set([m])];
 }
-export type HwPart = { key: string; label: string; got: number; need: number; rate: number };
+export type HwPart = { key: string; label: string; got: number; need: number; rate: number; covered?: number; total?: number };
+export type HomeworkReview = { word_id: string; created_at: string; mode?: string; correct?: boolean };
+
+function homeworkWordState(id: string, kinds: Set<string>, reviews: HomeworkReview[]) {
+  const attempts = reviews.filter((r) => r.word_id === id && kinds.has(r.mode ?? ""));
+  return { correct: attempts.some((r) => r.correct === true), covered: attempts.length >= (attempts.some((r) => r.correct === false) ? 2 : 1) };
+}
+
+function homeworkReviews(reviews: HomeworkReview[], createdAt: string, dueAt: string) {
+  const start = new Date(createdAt).getTime(), end = new Date(dueAt).getTime();
+  return reviews.filter((r) => {
+    const t = new Date(r.created_at).getTime();
+    return t >= start && t <= end && typeof r.correct === "boolean";
+  });
+}
+
+/** Continue with unseen/once-missed words first, then incorrect words needed for the threshold. */
+export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], m: string, req: unknown, createdAt: string, dueAt: string) {
+  const valid = homeworkReviews(reviews, createdAt, dueAt);
+  const session = hwSession(m, req);
+  const needs = hwModeNeeds(m as HwMode, req);
+  const candidates = session.dirs.flatMap((dir, i) => {
+    const kinds = needs[i] ?? new Set([m]);
+    return words.map((word) => ({ word, mode: session.mode, dir, state: homeworkWordState(word.id, kinds, valid) }));
+  });
+  const incomplete = candidates.filter((x) => !x.state.covered);
+  return (incomplete.length ? incomplete : candidates.filter((x) => !x.state.correct)).slice(0, DAILY_GOAL)
+    .map(({ word, mode, dir }) => ({ word, mode, dir }));
+}
 
 /** Saved rate → whole percent among 60/70/80/90/100 (accepts 0.7, "0.7" or 70). */
 export function hwPercent(rate: unknown): number | null {
@@ -360,38 +388,32 @@ export const hwNeed = (total: number, pct: number) => Math.ceil((total * pct) / 
  */
 export function homeworkStatus(
   wordIds: string[],
-  reviews: { word_id: string; created_at: string; mode?: string; correct?: boolean }[],
+  reviews: HomeworkReview[],
   createdAt: string,
   dueAt: string,
   requirements?: HwRequirements | null,
 ) {
-  const start = new Date(createdAt).getTime();
-  const end = new Date(dueAt).getTime();
   const ids = new Set(wordIds);
+  const valid = homeworkReviews(reviews, createdAt, dueAt);
   // Each checked mode keeps its own threshold and counts only its own correct answers.
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
     if (pct == null) return [];
     const dir = m.id === "choice" ? qcmDirectionOf(requirements) : "mixed";
-    const label = dir === "mixed" ? m.label : `QCM (${QCM_DIRECTIONS.find((d) => d.id === dir)!.label})`;
+    const label = dir === "mixed" ? m.label : `QCM (${QCM_DIRECTIONS.find((d) => d.id === dir)?.label ?? dir})`;
     return [{ key: m.id, label, pct, needs: hwModeNeeds(m.id, requirements) }];
   });
   const groups = custom.length ? custom : [
     { key: "qcm", label: "QCM", pct: HW_QCM_RATE * 100, needs: [QCM_OR_ABOVE] },
     { key: "writing", label: "Écriture", pct: HW_WRITING_RATE * 100, needs: [WRITING] },
   ];
-  // For each group and each required answer kind, the words answered correctly.
-  const sets = groups.map((g) => g.needs.map(() => new Set<string>()));
-  for (const r of reviews) {
-    const t = new Date(r.created_at).getTime();
-    if (!ids.has(r.word_id) || t < start || t > end || !r.correct) continue;
-    groups.forEach((g, i) => g.needs.forEach((n, j) => { if (n.has(r.mode ?? "")) sets[i]![j]!.add(r.word_id); }));
-  }
   const total = ids.size;
-  // A word counts only when every required kind is done (mixed QCM = both directions).
-  const got = (i: number) => [...ids].filter((id) => sets[i]!.every((s) => s.has(id))).length;
-  const parts: HwPart[] = groups.map((g, i) => ({ key: g.key, label: g.label, rate: g.pct / 100, got: got(i), need: hwNeed(total, g.pct) }));
-  const done = total > 0 && parts.every((p) => p.got >= p.need);
+  const parts: HwPart[] = groups.map((g) => {
+    const states = [...ids].map((id) => g.needs.map((n) => homeworkWordState(id, n, valid)));
+    return { key: g.key, label: g.label, rate: g.pct / 100, got: states.filter((s) => s.every((x) => x.correct)).length,
+      need: hwNeed(total, g.pct), covered: states.filter((s) => s.every((x) => x.covered)).length, total };
+  });
+  const done = total > 0 && nextHomeworkMode(parts) === null;
   return { done, total, parts };
 }
 
@@ -452,8 +474,8 @@ export function dueCountdown(dueAt: string | number | Date, now: number = Date.n
 }
 
 /** Exercise to open when the student clicks "Continuer mon devoir": the first one not yet validated. */
-export function nextHomeworkMode(parts: { key: string; got: number; need: number }[]): string | null {
-  const p = parts.find((x) => x.got < x.need);
+export function nextHomeworkMode(parts: { key: string; got: number; need: number; covered?: number; total?: number }[]): string | null {
+  const p = parts.find((x) => x.got < x.need || (x.covered !== undefined && x.total !== undefined && x.covered < x.total));
   if (!p) return null;
   return p.key === "qcm" ? "choice" : p.key === "writing" ? "typing" : p.key;
 }
