@@ -53,7 +53,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   // Audio QCM French → German: the German options are only heard, never shown before answering.
   const audioChoices = mode === "listen" && reverse;
 
-  async function answer(correct: boolean, given?: string) {
+  async function answer(correct: boolean, given?: string, alternatives?: string[]) {
     if (answered !== null || !item || !word || !mode) return;
     const err = correct ? null : mode === "typing" || mode === "speaking" || mode === "dictation" ? diagnoseAnswer(given ?? "", word.german) : mode === "context" ? "context" : "translation";
     setErrorType(err);
@@ -65,7 +65,8 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       retried.current.add(retryKey);
       setQueue((q) => [...q, item]);
     }
-    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
+    const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[] } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
+    if (alternatives) args._alternatives = alternatives;
     if (given) args._given = given;
     if (err) args._error = err;
     setSaving((n) => n + 1);
@@ -78,9 +79,9 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     if (!word) return;
     const said = cleanSpoken(alts[0] ?? "");
     setHeard(said);
-    if (isSpokenCorrect(alts, word.german)) return void answer(true, said);
+    if (isSpokenCorrect(alts, word.german)) return void answer(true, said, alts);
     if (!secondTry) { setSecondTry(true); setErrorType(said ? diagnoseAnswer(said, word.german) : null); return; }
-    answer(false, said);
+    answer(false, said, alts);
   }
   async function speak() {
     if (listening) { stopRef.current?.(); return; }

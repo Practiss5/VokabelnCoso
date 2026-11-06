@@ -1,13 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
+import { submitAnswer } from "@/lib/answers.functions";
 
 /** Answers that could not reach the server (Wi-Fi cut) wait here, one queue per student, and are re-sent later. */
 export const QUEUE_KEY = "vokabeln:pending-answers";
-export type AnswerArgs = { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string };
+export type AnswerArgs = { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[] };
 type Rpc = (args: AnswerArgs) => Promise<{ error: { message: string } | null }>;
 
 const defaultRpc: Rpc = async (args) => {
-  const { error } = await supabase.rpc("record_answer", args);
-  return { error };
+  return submitAnswer({ data: args });
 };
 
 /** Signed-in user id from the local session (no network needed). */
