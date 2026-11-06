@@ -737,6 +737,34 @@ export type Database = {
         Args: { _best_run: number; _list: string; _pairs: number }
         Returns: undefined
       }
+      record_verified_answer: {
+        Args: {
+          _correct: boolean
+          _error?: string
+          _given?: string
+          _mode: string
+          _student: string
+          _word: string
+        }
+        Returns: {
+          correct_count: number
+          due_at: string
+          last_error: string | null
+          last_reviewed_at: string | null
+          skill: string
+          step: number
+          streak: number
+          student_id: string
+          word_id: string
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "skill_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       start_match_session: { Args: { _list: string }; Returns: Json }
       step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }
