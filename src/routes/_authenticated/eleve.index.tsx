@@ -72,7 +72,10 @@ function JoinClass() {
 
 function DailyCard() {
   const { data: me } = useSuspenseQuery(meQuery);
-  const { data } = useQuery(dailyQuery(me!.id, me!.classId!));
+  const { data: lists } = useQuery(trainingListsQuery(me?.classId ?? ""));
+  const [chosenList, setChosenList] = useState<string>();
+  const listId = selectTrainingList(lists ?? [], chosenList);
+  const { data } = useQuery({ ...dailyQuery(me?.id ?? "", me?.classId ?? "", listId), enabled: Boolean(me?.classId && lists) });
   if (!data) return <div className="word-card p-6">Chargement…</div>;
   // Goal adapts to small lists: DAILY_GOAL answers minimum, no daily cap.
   const goal = DAILY_GOAL;
@@ -89,9 +92,10 @@ function DailyCard() {
           </p>
         </div>
         {data.items.length > 0 && (
-          <Button asChild size="lg" className="mt-3 sm:mt-0"><Link to="/eleve/seance">{pct >= 100 ? "Encore une séance" : "Commencer"}</Link></Button>
+          <Button asChild size="lg" className="mt-3 sm:mt-0"><Link to="/eleve/seance" search={{ listId }}>{pct >= 100 ? "Encore une séance" : "Commencer"}</Link></Button>
         )}
       </div>
+      <TrainingListChoice id="daily-list" lists={lists} listId={listId} onChange={setChosenList} />
       {data.items.length > 0 && (
         <div className="flex flex-wrap gap-2 text-sm">
           {(["overdue", "fragile", "recent", "new"] as const).filter((r) => counts[r]).map((r) => (
@@ -155,6 +159,18 @@ const STEPS = [
   { mode: "listen", title: "🔊 QCM audio" },
 ] as const;
 
+function TrainingListChoice({ id, lists, listId, onChange }: {
+  id: string; lists: { id: string; title: string }[] | undefined; listId: string | undefined; onChange: (id: string) => void;
+}) {
+  return <div className="max-w-lg space-y-2">
+    <label htmlFor={id} className="text-sm font-semibold">Liste de vocabulaire</label>
+    <Select value={listId ?? ""} onValueChange={onChange} disabled={!lists?.length}>
+      <SelectTrigger id={id}><SelectValue placeholder={lists ? "Aucune liste attribuée" : "Chargement…"} /></SelectTrigger>
+      <SelectContent>{lists?.map((list) => <SelectItem key={list.id} value={list.id}>{list.title}</SelectItem>)}</SelectContent>
+    </Select>
+  </div>;
+}
+
 /** Lets the student pick one exercise type over all class words, besides the daily session. */
 function ChooseStep() {
   const { data: me } = useSuspenseQuery(meQuery);
@@ -164,13 +180,7 @@ function ChooseStep() {
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
-      <div className="max-w-lg space-y-2">
-        <label htmlFor="training-list" className="text-sm font-semibold">Liste de vocabulaire</label>
-        <Select value={listId ?? ""} onValueChange={setChosenList} disabled={!lists?.length}>
-          <SelectTrigger id="training-list"><SelectValue placeholder={lists ? "Aucune liste attribuée" : "Chargement…"} /></SelectTrigger>
-          <SelectContent>{lists?.map((list) => <SelectItem key={list.id} value={list.id}>{list.title}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
+      <TrainingListChoice id="training-list" lists={lists} listId={listId} onChange={setChosenList} />
       {listId && <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {STEPS.map((s) => (
