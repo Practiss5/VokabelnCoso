@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+vi.mock("@/lib/answers.functions", () => ({ submitAnswer: vi.fn() }));
 import { sendAnswer, flushAnswers, pendingCount } from "@/lib/answer-queue";
 
 const a = { _word: "w1", _mode: "choice", _correct: true };

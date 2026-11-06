@@ -205,6 +205,73 @@ export type Database = {
         }
         Relationships: []
       }
+      match_sessions: {
+        Row: {
+          best_run: number
+          class_id: string
+          created_at: string
+          current_run: number
+          finished: boolean
+          found: string[]
+          id: string
+          list_id: string
+          pairs: number
+          student_id: string
+          wave_index: number
+          waves: Json
+        }
+        Insert: {
+          best_run?: number
+          class_id: string
+          created_at?: string
+          current_run?: number
+          finished?: boolean
+          found?: string[]
+          id?: string
+          list_id: string
+          pairs?: number
+          student_id: string
+          wave_index?: number
+          waves: Json
+        }
+        Update: {
+          best_run?: number
+          class_id?: string
+          created_at?: string
+          current_run?: number
+          finished?: boolean
+          found?: string[]
+          id?: string
+          list_id?: string
+          pairs?: number
+          student_id?: string
+          wave_index?: number
+          waves?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_sessions_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           class_id: string | null
@@ -634,6 +701,10 @@ export type Database = {
       join_class: { Args: { _code: string }; Returns: string }
       my_class_id: { Args: never; Returns: string }
       owns_list: { Args: { _list: string }; Returns: boolean }
+      play_match_turn: {
+        Args: { _first: string; _second: string; _session: string }
+        Returns: Json
+      }
       purge_class_data: { Args: { _class: string }; Returns: undefined }
       record_answer: {
         Args: {
@@ -666,6 +737,35 @@ export type Database = {
         Args: { _best_run: number; _list: string; _pairs: number }
         Returns: undefined
       }
+      record_verified_answer: {
+        Args: {
+          _correct: boolean
+          _error?: string
+          _given?: string
+          _mode: string
+          _student: string
+          _word: string
+        }
+        Returns: {
+          correct_count: number
+          due_at: string
+          last_error: string | null
+          last_reviewed_at: string | null
+          skill: string
+          step: number
+          streak: number
+          student_id: string
+          word_id: string
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "skill_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_match_session: { Args: { _list: string }; Returns: Json }
       step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }
       update_my_name: { Args: { _name: string }; Returns: undefined }
