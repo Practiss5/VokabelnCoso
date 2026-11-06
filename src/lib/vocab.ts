@@ -341,24 +341,30 @@ export function hwModeNeeds(m: HwMode, req?: unknown): Set<string>[] {
   return [new Set([m])];
 }
 export type HwPart = { key: string; label: string; got: number; need: number; rate: number; covered?: number; total?: number };
-export type HomeworkReview = { word_id: string; created_at: string; mode?: string; correct?: boolean };
+export type HomeworkReview = { word_id: string; created_at: string; mode?: string; correct?: boolean; homework_id?: string | null };
 
 function homeworkWordState(id: string, kinds: Set<string>, reviews: HomeworkReview[]) {
   const attempts = reviews.filter((r) => r.word_id === id && kinds.has(r.mode ?? ""));
   return { correct: attempts.some((r) => r.correct === true), covered: attempts.length >= (attempts.some((r) => r.correct === false) ? 2 : 1) };
 }
 
-function homeworkReviews(reviews: HomeworkReview[], createdAt: string, dueAt: string) {
+/**
+ * Answers that count for one homework: those tagged with it (even after the deadline), plus untagged
+ * answers given between assignment and deadline. Answers tagged with another homework never count.
+ */
+function homeworkReviews(reviews: HomeworkReview[], createdAt: string, dueAt: string, hwId?: string) {
   const start = new Date(createdAt).getTime(), end = new Date(dueAt).getTime();
   return reviews.filter((r) => {
+    if (typeof r.correct !== "boolean") return false;
+    if (r.homework_id) return r.homework_id === hwId;
     const t = new Date(r.created_at).getTime();
-    return t >= start && t <= end && typeof r.correct === "boolean";
+    return t >= start && t <= end;
   });
 }
 
 /** Continue with unseen/once-missed words first, then incorrect words needed for the threshold. */
-export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], m: string, req: unknown, createdAt: string, dueAt: string) {
-  const valid = homeworkReviews(reviews, createdAt, dueAt);
+export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], m: string, req: unknown, createdAt: string, dueAt: string, hwId?: string) {
+  const valid = homeworkReviews(reviews, createdAt, dueAt, hwId);
   const session = hwSession(m, req);
   const needs = hwModeNeeds(m as HwMode, req);
   const candidates = session.dirs.flatMap((dir, i) => {
@@ -392,9 +398,10 @@ export function homeworkStatus(
   createdAt: string,
   dueAt: string,
   requirements?: HwRequirements | null,
+  hwId?: string,
 ) {
   const ids = new Set(wordIds);
-  const valid = homeworkReviews(reviews, createdAt, dueAt);
+  const valid = homeworkReviews(reviews, createdAt, dueAt, hwId);
   // Each checked mode keeps its own threshold and counts only its own correct answers.
   const custom = HW_MODES.flatMap((m) => {
     const pct = requirements ? hwPercent(requirements[m.id]) : null;
@@ -414,7 +421,10 @@ export function homeworkStatus(
       need: hwNeed(total, g.pct), covered: states.filter((s) => s.every((x) => x.covered)).length, total };
   });
   const done = total > 0 && nextHomeworkMode(parts) === null;
-  return { done, total, parts };
+  // Done late: finished with answers given after the deadline.
+  const end = new Date(dueAt).getTime();
+  const late = done && valid.some((r) => ids.has(r.word_id) && new Date(r.created_at).getTime() > end);
+  return { done, late, total, parts };
 }
 
 /** Streak: consecutive days (ending today or yesterday) with at least `goal` answers. */

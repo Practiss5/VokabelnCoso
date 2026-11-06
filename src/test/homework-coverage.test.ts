@@ -51,3 +51,18 @@ describe("homework coverage and continuation", () => {
     expect(studentReport([hw], new Map(), [...answers, review("c", false), review("c", false)], new Map()).done).toBe(1);
   });
 });
+describe("independent homeworks", () => {
+  const tagged = (word_id: string, hw: string, created_at = "2026-11-12T00:00:00Z") => ({ word_id, correct: true, mode: "typing", created_at, homework_id: hw });
+  it("late answers tagged with the clicked homework complete it, marked late", () => {
+    const s = homeworkStatus(["a"], [tagged("a", "old")], created, due, { typing: 1 }, "old");
+    expect(s.done).toBe(true);
+    expect(s.late).toBe(true);
+  });
+  it("answers tagged with another homework never count", () => {
+    expect(homeworkStatus(["a"], [tagged("a", "new", "2026-11-05T00:00:00Z")], created, due, { typing: 1 }, "old").done).toBe(false);
+  });
+  it("on-time completion is not late", () => {
+    const s = homeworkStatus(["a"], [tagged("a", "old", "2026-11-05T00:00:00Z")], created, due, { typing: 1 }, "old");
+    expect(s.late).toBe(false);
+  });
+});

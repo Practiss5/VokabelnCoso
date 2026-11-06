@@ -8,6 +8,7 @@ export const answerSchema = z.object({
   _given: z.string().max(2000).optional(),
   _alternatives: z.array(z.string().max(500)).max(10).optional(),
   _error: z.string().max(30).optional(),
+  _homework: z.uuid().optional(),
 });
 
 export function validateAnswer(word: Word, input: z.infer<typeof answerSchema>) {
