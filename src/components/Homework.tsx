@@ -17,10 +17,10 @@ const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.g
 
 type Hw = {
   id: string; list_id: string; due_at: string; instructions: string; created_at: string;
-  word_ids: string[] | null; requirements: HwRequirements | null; coverage_rule?: boolean;
+  word_ids: string[] | null; requirements: HwRequirements | null; coverage_rule?: boolean; archived_at?: string | null;
   vocab_lists: { title: string; words: { id: string }[] } | null;
 };
-const HW_SELECT = "id, list_id, due_at, instructions, created_at, word_ids, requirements, coverage_rule, vocab_lists(title, words(id))";
+const HW_SELECT = "id, list_id, due_at, instructions, created_at, word_ids, requirements, coverage_rule, archived_at, vocab_lists(title, words(id))";
 /** Words of the homework: the selected ones (still in the list), or the whole list. */
 const hwWords = (h: Hw) => {
   const all = h.vocab_lists?.words.map((w) => w.id) ?? [];
@@ -38,6 +38,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<HwRequirements>({ choice: 0.7, typing: 0.7 });
   const [dup, setDup] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const { data } = useQuery({
     queryKey: ["homeworks", classId],
     queryFn: async () => {
@@ -104,8 +105,15 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     qc.invalidateQueries({ queryKey: ["homeworks", cls] });
   }
   async function remove(id: string) {
-    if (!confirm("Supprimer ce devoir ?")) return;
+    if (!confirm("Supprimer définitivement ce devoir ? Le temps passé et son suivi seront perdus. Pour les garder, utilisez plutôt « Archiver ».")) return;
     await supabase.from("homeworks").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["homeworks", classId] });
+  }
+
+  async function archive(id: string, on: boolean) {
+    const { error } = await supabase.rpc("set_homework_archived", { _hw: id, _archived: on });
+    if (error) { toast.error(error.message); return; }
+    toast.success(on ? "Devoir archivé : résultats et temps conservés." : "Devoir restauré.");
     qc.invalidateQueries({ queryKey: ["homeworks", classId] });
   }
 
@@ -183,7 +191,12 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
         </fieldset>
         <Button type="submit">Donner en devoir</Button>
       </form>
-      {data?.hw.map((h) => {
+      {data && data.hw.some((h) => h.archived_at) && (
+        <Button size="sm" variant="outline" onClick={() => setShowArchived((v) => !v)}>
+          {showArchived ? "Voir les devoirs en cours" : `🗄️ Voir les devoirs archivés (${data.hw.filter((h) => h.archived_at).length})`}
+        </Button>
+      )}
+      {data?.hw.filter((h) => !!h.archived_at === showArchived).map((h) => {
         const words = hwWords(h);
         const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true) }));
         const doneN = st.filter((x) => x.r.done).length;
@@ -204,6 +217,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               <div className="flex flex-wrap gap-1">
                 <Button size="sm" variant="outline" onClick={() => exportCsv(h.vocab_lists?.title ?? "devoir", h.due_at, st.map((x) => ({ ...x, seconds: secs(x.s.id) })))}>⬇️ Excel / CSV</Button>
                 <Button size="sm" variant="outline" onClick={() => { setDup(dup === h.id ? null : h.id); }}>📋 Dupliquer</Button>
+                <Button size="sm" variant="outline" onClick={() => archive(h.id, !h.archived_at)}>{h.archived_at ? "Restaurer" : "🗄️ Archiver"}</Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(h.id)}>Supprimer</Button>
               </div>
               {dup === h.id && (
@@ -245,7 +259,7 @@ export function myHomeworksQuery(studentId: string, classId: string) {
     queryKey: ["my-homeworks", classId, studentId],
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
-      const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
+      const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).is("archived_at", null).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
       const oldest = hw.reduce<string | null>((m, h) => (!m || h.created_at < m ? h.created_at : m), null);
       const rev = oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id").eq("student_id", studentId).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       return hw.map((h) => {
