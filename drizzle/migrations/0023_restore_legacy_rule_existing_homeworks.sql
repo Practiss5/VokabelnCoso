@@ -1,0 +1,2 @@
+COMMENT ON COLUMN public.homeworks.coverage_rule IS 'true = 1x/2x coverage + threshold; false = legacy threshold-only (all homework created before 2026-11-06)';
+UPDATE public.homeworks SET coverage_rule = false WHERE created_at < '2026-11-06T00:00:00Z' AND coverage_rule = true;
