@@ -18,9 +18,9 @@ describe("mixed homework session retries", () => {
       items={[{ word, mode: "choice", dir: "de_fr" }, { word, mode: "choice", dir: "fr_de" }]}
       onQuit={() => {}} /></QueryClientProvider>);
     for (const wrong of ["le chien", "der Hund", "le chien", "der Hund"]) {
-      fireEvent.click(screen.getByRole("button", { name: wrong, exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: wrong }));
       await waitFor(() => expect(mocks.send).toHaveBeenCalled());
-      fireEvent.click(screen.getByRole("button", { name: "Suivant", exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Suivant" }));
     }
     expect(mocks.send.mock.calls.map((call) => (call as unknown as [{ _mode: string }])[0]._mode))
       .toEqual(["choice_de_fr", "choice_fr_de", "choice_de_fr", "choice_fr_de"]);
