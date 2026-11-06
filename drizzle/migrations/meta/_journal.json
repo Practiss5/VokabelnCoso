@@ -169,6 +169,13 @@
       "when": 1793952624033,
       "tag": "0023_restore_legacy_rule_existing_homeworks",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793952790332,
+      "tag": "0024_coverage_rule_open_homeworks_10h_10i_9i",
+      "breakpoints": true
     }
   ]
 }
