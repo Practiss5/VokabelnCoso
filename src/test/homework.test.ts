@@ -8,7 +8,7 @@ const r = (word_id: string, mode: string, correct = true, created_at = T) => ({ 
 describe("homeworkStatus", () => {
   it("is done with 80% at QCM level and 60% in writing", () => {
     // 4/5 QCM-or-above (choice + typing), 3/5 writing
-    const s = homeworkStatus(ids, [r("a", "choice"), r("b", "typing"), r("c", "typing"), r("d", "context")], C, D);
+    const s = homeworkStatus(ids, [r("a", "choice"), r("b", "typing"), r("c", "typing"), r("d", "context"), r("a", "typing", false), r("a", "typing", false), r("e", "typing", false), r("e", "typing", false)], C, D);
     expect(s.parts.map((p) => p.got)).toEqual([4, 3]);
     expect(s.done).toBe(true);
   });
@@ -21,7 +21,7 @@ describe("homeworkStatus", () => {
     expect(s.parts[0]?.got).toBe(0);
   });
   const ten = Array.from({ length: 10 }, (_, i) => `w${i}`);
-  const ok = (n: number, mode: string) => ten.slice(0, n).map((w) => r(w, mode));
+  const ok = (n: number, mode: string) => [...ten.slice(0, n).map((w) => r(w, mode)), ...ten.slice(n).flatMap((w) => [r(w, mode, false), r(w, mode, false)])];
   it("custom: 70 % in QCM means 7 words out of 10", () => {
     expect(homeworkStatus(ten, ok(7, "choice"), C, D, { choice: 0.7 }).done).toBe(true);
     expect(homeworkStatus(ten, ok(6, "choice"), C, D, { choice: 0.7 }).done).toBe(false);

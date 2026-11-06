@@ -27,7 +27,7 @@ const hwWords = (h: Hw) => {
   return h.word_ids?.length ? all.filter((id) => h.word_ids!.includes(id)) : all;
 };
 const partsText = (parts: ReturnType<typeof homeworkStatus>["parts"]) =>
-  parts.map((p) => `${p.label} ${p.got}/${p.need} ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ");
+   parts.map((p) => `${p.label} ${p.got}/${p.need} · ${p.covered}/${p.total} mots travaillés ${nextHomeworkMode([p]) === null ? "✅" : "⏳"}`).join(" · ");
 
 /** Teacher: give homework to a class and see who did it. */
 export function TeacherHomework({ classId, students }: { classId: string; students: { id: string; full_name: string }[] }) {
@@ -242,7 +242,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
 /** Student's recent homework with completion status (shared by home widgets). */
 export function myHomeworksQuery(studentId: string, classId: string) {
   return {
-    queryKey: ["my-homeworks", classId],
+    queryKey: ["my-homeworks", classId, studentId],
     queryFn: async () => {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
@@ -283,7 +283,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
               <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
-              {!r.done && <p className="text-sm text-muted-foreground">{r.parts.map((p) => `${p.label} : ${p.got}/${p.need} mots (${Math.round(p.rate * 100)} %) ${p.got >= p.need ? "✅" : "⏳"}`).join(" · ")}</p>}
+              {!r.done && <p className="text-sm text-muted-foreground">{partsText(r.parts)}</p>}
             </div>
             {!r.done && <Button asChild size="lg"><Link to="/eleve/reviser/$listId" params={{ listId: h.list_id }} search={{ devoir: h.id, ...(nextHomeworkMode(r.parts) ? { exo: nextHomeworkMode(r.parts) as "choice" } : {}) }}>{started || r.parts.some((p) => p.got > 0) ? "Continuer mon devoir" : "Commencer le devoir"}</Link></Button>}
           </div>
