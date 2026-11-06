@@ -16,7 +16,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: saveError } = await supabaseAdmin.rpc("record_verified_answer", {
       _student: context.userId, _word: word.id, _mode: data._mode,
-      _correct: result.correct, _given: result.given, _error: result.error ?? undefined,
+      _correct: result.correct, _given: result.given,
+      ...(result.error ? { _error: result.error } : {}),
     });
     return { error: saveError ? { message: "Réponse non enregistrée. Réessaie." } : null };
   });
