@@ -25,6 +25,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const [index, setIndex] = useState(0);
   const [answered, setAnswered] = useState<null | boolean>(null);
   const [score, setScore] = useState({ ok: 0, ko: 0 });
+  const [saving, setSaving] = useState(0);
   const [typed, setTyped] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<ErrorType | null>(null);
@@ -59,14 +60,16 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
     // Missed words come back once more at the end of the session.
-    if (!correct && !retried.current.has(word.id)) {
-      retried.current.add(word.id);
+    const retryKey = `${word.id}:${mode}:${item.dir ?? "mixed"}`;
+    if (!correct && !retried.current.has(retryKey)) {
+      retried.current.add(retryKey);
       setQueue((q) => [...q, item]);
     }
     const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
     if (given) args._given = given;
     if (err) args._error = err;
-    const res = await sendAnswer(args);
+    setSaving((n) => n + 1);
+    const res = await sendAnswer(args).finally(() => setSaving((n) => n - 1));
     if (res === "ok") notifyAnswer();
     else if (res === "queued") toast("Connexion perdue : ta réponse est gardée et sera envoyée automatiquement.", { id: "offline" });
     else toast.error("Réponse non enregistrée : " + res.error);
@@ -114,6 +117,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     qc.invalidateQueries({ queryKey: ["my-lists"] });
     qc.invalidateQueries({ queryKey: ["history"] });
     qc.invalidateQueries({ queryKey: ["daily"] });
+    qc.invalidateQueries({ queryKey: ["my-homeworks"] });
   }, [finished, qc]);
 
   if (!item || !word || !mode) {
@@ -123,7 +127,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         <p className="mt-4 text-lg">{score.ok} bonnes réponses · {score.ko} erreurs</p>
         <p className="mt-2 text-sm text-muted-foreground">Vos progrès sont enregistrés. Les mots ratés reviendront bientôt.</p>
         <div className="mt-6 flex flex-col gap-2">
-          {endActions}
+          {saving ? <p className="text-sm text-muted-foreground">Enregistrement des réponses…</p> : endActions}
           <Button asChild variant="outline"><Link to="/eleve">Accueil</Link></Button>
         </div>
       </div>
