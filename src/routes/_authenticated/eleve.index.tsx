@@ -92,7 +92,7 @@ function DailyCard() {
           </p>
         </div>
         {data.items.length > 0 && (
-          <Button asChild size="lg" className="mt-3 sm:mt-0"><Link to="/eleve/seance" search={{ listId }}>{pct >= 100 ? "Encore une séance" : "Commencer"}</Link></Button>
+          <Button asChild size="lg" className="mt-3 sm:mt-0"><Link to="/eleve/seance" search={listId ? { listId } : {}}>{pct >= 100 ? "Encore une séance" : "Commencer"}</Link></Button>
         )}
       </div>
       <TrainingListChoice id="daily-list" lists={lists} listId={listId} onChange={setChosenList} />
