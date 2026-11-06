@@ -81,7 +81,6 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
     const { data: u } = await supabase.auth.getUser();
     // Make sure the class can open the list.
     await supabase.from("list_assignments").upsert({ list_id: listId, class_id: classId }, { onConflict: "list_id,class_id", ignoreDuplicates: true });
-    const allPicked = listWords && picked.size === listWords.length;
     const { error } = await supabase.from("homeworks").insert({
       teacher_id: u.user!.id, class_id: classId, list_id: listId, due_at: new Date(due).toISOString(), instructions: text.trim(),
       // Always freeze the chosen words: words added to the list later never join this homework.
