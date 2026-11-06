@@ -4,6 +4,7 @@
 - Devoirs (règle 80 % QCM / 60 % écrit), série 🔥, classeurs partageables, audio, prononciation 🎙️, fiches de contrôle (Word/CSV), cartes à relier, mode sombre, QCM inversé, historique masqué, choix du mode par l'élève.
 
 ## En cours
+- [ ] Choix de liste pour les entraînements élèves, dernière attribution par défaut ; vérifier le parcours.
 - [x] Tolérance des espaces en écriture/texte à trou + trémas via touches mortes (¨ et " valent ä/ö/ü) — 57 tests passent.
 
 - [x] Dictée audio 🎧 (écouter sans voir, écrire ; compte comme Écriture).
