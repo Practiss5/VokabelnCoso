@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
+import { computeBadges } from "@/lib/badges";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,6 +332,52 @@ export function StudentStreak({ studentId }: { studentId: string }) {
       <div>
         <p className="text-xl font-bold">Série : {data.days} jour{data.days > 1 ? "s" : ""}</p>
         <p className="text-sm text-muted-foreground">{msg}</p>
+      </div>
+    </section>
+  );
+}
+
+/** Student: trophy shelf; unlocked badges in colour, others greyed out with their rule. */
+export function StudentBadges({ studentId, classId }: { studentId: string; classId: string }) {
+  const { data } = useQuery({
+    queryKey: ["badges", studentId, classId],
+    queryFn: async () => {
+      const [rv, la, hwRes, tg, ms] = await Promise.all([
+        fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, error_type, homework_id").eq("student_id", studentId).order("created_at").order("id").range(from, to)),
+        supabase.from("list_assignments").select("vocab_lists(words(id, german))").eq("class_id", classId),
+        supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId),
+        supabase.from("tetris_games").select("score").eq("student_id", studentId).order("score", { ascending: false }).limit(1),
+        supabase.from("match_sessions").select("best_run").eq("student_id", studentId).order("best_run", { ascending: false }).limit(1),
+      ]);
+      const germanById = new Map<string, string>();
+      for (const a of la.data ?? []) for (const w of (a.vocab_lists as { words: { id: string; german: string }[] } | null)?.words ?? []) germanById.set(w.id, w.german);
+      const hws = (hwRes.data ?? []) as unknown as Hw[];
+      // Ponctuel: the homework was already complete using only answers given 24 h before the deadline.
+      const earlyHomeworks = hws.filter((h) => {
+        const limit = new Date(new Date(h.due_at).getTime() - 86400000).toISOString();
+        return homeworkStatus(hwWords(h), rv.filter((x) => x.created_at <= limit), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done;
+      }).length;
+      return computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: tg.data?.[0]?.score ?? 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
+    },
+  });
+  if (!data) return null;
+  const won = data.filter((b) => b.level > 0).length;
+  return (
+    <section className="space-y-3">
+      <h2 className="text-2xl font-bold">Mes trophées <span className="text-base font-normal text-muted-foreground">{won}/{data.length}</span></h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {data.map((b) => {
+          const next = b.levels.find((l) => b.value < l);
+          return (
+            <div key={b.id} className={`word-card p-3 text-center ${b.level ? "border-2 border-accent" : "opacity-60"}`}>
+              <div aria-hidden className={`text-4xl ${b.level ? "" : "grayscale"}`}>{b.icon}</div>
+              <p className="mt-1 font-bold">{b.name}{b.levels.length > 1 && b.level > 0 ? ` · niv. ${b.level}` : ""}</p>
+              <p className="text-xs text-muted-foreground">{b.rule}</p>
+              {next !== undefined && b.levels.length > 0 && next > 1 && <p className="mt-1 text-xs font-semibold">{Math.min(b.value, next)}/{next}</p>}
+              {b.level > 0 && next === undefined && <p className="mt-1 text-xs font-semibold text-success">Débloqué ✓</p>}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
