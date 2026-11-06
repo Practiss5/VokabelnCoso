@@ -176,6 +176,20 @@
       "when": 1793952790332,
       "tag": "0024_coverage_rule_open_homeworks_10h_10i_9i",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793954263854,
+      "tag": "0025_friendly_duels",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793954280263,
+      "tag": "0026_duel_question_cleanup",
+      "breakpoints": true
     }
   ]
 }

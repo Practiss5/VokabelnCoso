@@ -11,6 +11,7 @@ import { hasPendingHomework, myHomeworksQuery, StudentBadges, StudentHomework, S
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StudentDuels } from "@/components/Duels";
 import { selectTrainingList, trainingListsQuery } from "@/lib/training-lists";
 
 export const Route = createFileRoute("/_authenticated/eleve/")({
@@ -220,6 +221,7 @@ function ChooseStep() {
         <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ tetris: true }} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</Link>
       </div>
       </>}
+      <StudentDuels listId={listId} />
     </section>
   );
 }

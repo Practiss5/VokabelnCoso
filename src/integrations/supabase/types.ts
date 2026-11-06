@@ -38,6 +38,86 @@ export type Database = {
         }
         Relationships: []
       }
+      duel_players: {
+        Row: {
+          duel_id: string
+          finished: boolean
+          idx: number
+          q_started_at: string | null
+          score: number
+          student_id: string
+          total_ms: number
+        }
+        Insert: {
+          duel_id: string
+          finished?: boolean
+          idx?: number
+          q_started_at?: string | null
+          score?: number
+          student_id: string
+          total_ms?: number
+        }
+        Update: {
+          duel_id?: string
+          finished?: boolean
+          idx?: number
+          q_started_at?: string | null
+          score?: number
+          student_id?: string
+          total_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_players_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      duels: {
+        Row: {
+          class_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          list_id: string
+          word_ids: string[]
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          list_id: string
+          word_ids: string[]
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          list_id?: string
+          word_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duels_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duels_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       homework_time: {
         Row: {
           homework_id: string
@@ -672,6 +752,7 @@ export type Database = {
         Args: { _hw: string; _seconds: number }
         Returns: undefined
       }
+      answer_duel: { Args: { _choice: string; _duel: string }; Returns: Json }
       check_student_code: {
         Args: { _code: string }
         Returns: {
@@ -688,6 +769,7 @@ export type Database = {
         }[]
       }
       copy_folder: { Args: { _code: string }; Returns: string }
+      duel_question: { Args: { _duel: string }; Returns: Json }
       generate_student_codes: {
         Args: { _class: string; _count: number }
         Returns: {
@@ -716,6 +798,24 @@ export type Database = {
       is_teacher_of_student: { Args: { _student: string }; Returns: boolean }
       join_class: { Args: { _code: string }; Returns: string }
       my_class_id: { Args: never; Returns: string }
+      my_duels: {
+        Args: never
+        Returns: {
+          created_at: string
+          duel_id: string
+          expires_at: string
+          list_title: string
+          my_finished: boolean
+          my_idx: number
+          my_ms: number
+          my_score: number
+          opp_finished: boolean
+          opp_ms: number
+          opp_score: number
+          opponent: string
+          total: number
+        }[]
+      }
       owns_list: { Args: { _list: string }; Returns: boolean }
       play_match_turn: {
         Args: { _first: string; _second: string; _session: string }
@@ -785,6 +885,7 @@ export type Database = {
         Args: { _archived: boolean; _hw: string }
         Returns: undefined
       }
+      start_duel: { Args: { _list: string }; Returns: string }
       start_match_session: { Args: { _list: string }; Returns: Json }
       step_interval: { Args: { _step: number }; Returns: string }
       student_can_access_list: { Args: { _list: string }; Returns: boolean }
