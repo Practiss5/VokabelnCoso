@@ -17,10 +17,10 @@ const toLocalInput = (d: string) => { const x = new Date(d); return new Date(x.g
 
 type Hw = {
   id: string; list_id: string; due_at: string; instructions: string; created_at: string;
-  word_ids: string[] | null; requirements: HwRequirements | null;
+  word_ids: string[] | null; requirements: HwRequirements | null; coverage_rule?: boolean;
   vocab_lists: { title: string; words: { id: string }[] } | null;
 };
-const HW_SELECT = "id, list_id, due_at, instructions, created_at, word_ids, requirements, vocab_lists(title, words(id))";
+const HW_SELECT = "id, list_id, due_at, instructions, created_at, word_ids, requirements, coverage_rule, vocab_lists(title, words(id))";
 /** Words of the homework: the selected ones (still in the list), or the whole list. */
 const hwWords = (h: Hw) => {
   const all = h.vocab_lists?.words.map((w) => w.id) ?? [];
@@ -185,7 +185,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
       </form>
       {data?.hw.map((h) => {
         const words = hwWords(h);
-        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements, h.id) }));
+        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true) }));
         const doneN = st.filter((x) => x.r.done).length;
         const late = new Date(h.due_at).getTime() < Date.now();
         const rule = st[0]?.r.parts ?? homeworkStatus(words, [], h.created_at, h.due_at, h.requirements).parts;
@@ -252,7 +252,7 @@ export function myHomeworksQuery(studentId: string, classId: string) {
         const ws = new Set(hwWords(h));
         // Any answer (even wrong) on a homework word since assignment means the homework is started.
         const started = rev.some((x) => ws.has(x.word_id) && x.created_at >= h.created_at);
-        return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements, h.id) };
+        return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true) };
       });
     },
   };

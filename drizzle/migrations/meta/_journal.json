@@ -148,6 +148,13 @@
       "when": 1793951882144,
       "tag": "0020_freeze_homework_words",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793952140893,
+      "tag": "0021_homework_coverage_rule_flag",
+      "breakpoints": true
     }
   ]
 }

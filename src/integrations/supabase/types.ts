@@ -70,6 +70,7 @@ export type Database = {
       homeworks: {
         Row: {
           class_id: string
+          coverage_rule: boolean
           created_at: string
           due_at: string
           id: string
@@ -81,6 +82,7 @@ export type Database = {
         }
         Insert: {
           class_id: string
+          coverage_rule?: boolean
           created_at?: string
           due_at: string
           id?: string
@@ -92,6 +94,7 @@ export type Database = {
         }
         Update: {
           class_id?: string
+          coverage_rule?: boolean
           created_at?: string
           due_at?: string
           id?: string

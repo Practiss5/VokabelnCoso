@@ -363,7 +363,7 @@ function homeworkReviews(reviews: HomeworkReview[], createdAt: string, dueAt: st
 }
 
 /** Continue with unseen/once-missed words first, then incorrect words needed for the threshold. */
-export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], m: string, req: unknown, createdAt: string, dueAt: string, hwId?: string) {
+export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], m: string, req: unknown, createdAt: string, dueAt: string, hwId?: string, coverage = true) {
   const valid = homeworkReviews(reviews, createdAt, dueAt, hwId);
   const session = hwSession(m, req);
   const needs = hwModeNeeds(m as HwMode, req);
@@ -371,7 +371,7 @@ export function buildHomeworkPractice(words: Word[], reviews: HomeworkReview[], 
     const kinds = needs[i] ?? new Set([m]);
     return words.map((word) => ({ word, mode: session.mode, dir, state: homeworkWordState(word.id, kinds, valid) }));
   });
-  const incomplete = candidates.filter((x) => !x.state.covered);
+  const incomplete = coverage ? candidates.filter((x) => !x.state.covered) : [];
   return (incomplete.length ? incomplete : candidates.filter((x) => !x.state.correct)).slice(0, DAILY_GOAL)
     .map(({ word, mode, dir }) => ({ word, mode, dir }));
 }
@@ -399,6 +399,7 @@ export function homeworkStatus(
   dueAt: string,
   requirements?: HwRequirements | null,
   hwId?: string,
+  coverage = true, // false = older homework: success thresholds only (rule before 1x/2x coverage)
 ) {
   const ids = new Set(wordIds);
   const valid = homeworkReviews(reviews, createdAt, dueAt, hwId);
@@ -418,7 +419,7 @@ export function homeworkStatus(
   const parts: HwPart[] = groups.map((g) => {
     const states = [...ids].map((id) => g.needs.map((n) => homeworkWordState(id, n, valid)));
     return { key: g.key, label: g.label, rate: g.pct / 100, got: states.filter((s) => s.every((x) => x.correct)).length,
-      need: hwNeed(total, g.pct), covered: states.filter((s) => s.every((x) => x.covered)).length, total };
+      need: hwNeed(total, g.pct), ...(coverage ? { covered: states.filter((s) => s.every((x) => x.covered)).length, total } : {}) };
   });
   const done = total > 0 && nextHomeworkMode(parts) === null;
   // Done late: finished with answers given after the deadline.
