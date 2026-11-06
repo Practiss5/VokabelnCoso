@@ -69,6 +69,7 @@ export type Database = {
       }
       homeworks: {
         Row: {
+          archived_at: string | null
           class_id: string
           coverage_rule: boolean
           created_at: string
@@ -81,6 +82,7 @@ export type Database = {
           word_ids: string[] | null
         }
         Insert: {
+          archived_at?: string | null
           class_id: string
           coverage_rule?: boolean
           created_at?: string
@@ -93,6 +95,7 @@ export type Database = {
           word_ids?: string[] | null
         }
         Update: {
+          archived_at?: string | null
           class_id?: string
           coverage_rule?: boolean
           created_at?: string
@@ -777,6 +780,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_homework_archived: {
+        Args: { _archived: boolean; _hw: string }
+        Returns: undefined
       }
       start_match_session: { Args: { _list: string }; Returns: Json }
       step_interval: { Args: { _step: number }; Returns: string }
