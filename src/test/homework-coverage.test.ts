@@ -8,8 +8,9 @@ const words: Word[] = Array.from({ length: 25 }, (_, i) => ({ id: `${i}`, german
 
 describe("homework coverage and continuation", () => {
   it("does not finish at 70% while words remain unseen", () => {
-    const s = homeworkStatus(["a", "b", "c"], [review("a", true), review("b", true)], created, due, { typing: 0.6 });
-    expect(s.parts[0]).toMatchObject({ got: 2, need: 2, covered: 2, total: 3 });
+    const ids = words.slice(0, 10).map((w) => w.id);
+    const s = homeworkStatus(ids, ids.slice(0, 7).map((id) => review(id, true)), created, due, { typing: 0.7 });
+    expect(s.parts[0]).toMatchObject({ got: 7, need: 7, covered: 7, total: 10 });
     expect(s.done).toBe(false);
     expect(nextHomeworkMode(s.parts)).toBe("typing");
   });

@@ -4,7 +4,8 @@
 - Devoirs (règle 80 % QCM / 60 % écrit), série 🔥, classeurs partageables, audio, prononciation 🎙️, fiches de contrôle (Word/CSV), cartes à relier, mode sombre, QCM inversé, historique masqué, choix du mode par l'élève.
 
 ## En cours
-- [ ] Devoirs : couverture 1x/2x par exercice, enchaînement direct et validation cohérente élève/enseignant/bilan.
+- [x] Devoirs : couverture 1x/2x par exercice, enchaînement direct et validation cohérente élève/enseignant/bilan ; tests automatiques.
+- [ ] Vérification de l'enchaînement sur un devoir élève non terminé : les deux devoirs disponibles de Maxime Test sont déjà validés ; aucun résultat modifié.
 - [x] Choix de liste dans « Ma séance du jour » et « Choisir mon entraînement », dernière attribution par défaut ; tests automatiques.
 - [ ] Vérification avec un compte élève : le compte disponible est enseignant, sans classe élève.
 - [x] Tolérance des espaces en écriture/texte à trou + trémas via touches mortes (¨ et " valent ä/ö/ü) — 57 tests passent.
