@@ -66,3 +66,10 @@ describe("independent homeworks", () => {
     expect(s.late).toBe(false);
   });
 });
+
+describe("older homeworks keep the threshold-only rule", () => {
+  it("is done at 70% without full coverage when coverage rule is off", () => {
+    const ids = words.slice(0, 10).map((w) => w.id);
+    expect(homeworkStatus(ids, ids.slice(0, 7).map((id) => review(id, true)), created, due, { typing: 0.7 }, undefined, false).done).toBe(true);
+  });
+});

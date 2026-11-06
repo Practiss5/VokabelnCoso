@@ -61,13 +61,13 @@ function Review() {
   const { devoir, exo } = Route.useSearch();
   useHomeworkTimer(useActiveHomeworkId(listId, devoir));
   // Homework: only its words and its required exercises.
-  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: HwRequirements | null; created_at: string; due_at: string } | null>(null);
+  const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: HwRequirements | null; created_at: string; due_at: string; coverage: boolean } | null>(null);
   useEffect(() => {
     if (!devoir) { setHw(null); return; }
-    void supabase.from("homeworks").select("word_ids, requirements, created_at, due_at").eq("id", devoir).eq("list_id", listId).maybeSingle().then(({ data }) => {
+    void supabase.from("homeworks").select("word_ids, requirements, created_at, due_at, coverage_rule").eq("id", devoir).eq("list_id", listId).maybeSingle().then(({ data }) => {
       if (!data) return;
       const req = (data.requirements ?? null) as HwRequirements | null;
-      setHw({ word_ids: data.word_ids, req, created_at: data.created_at, due_at: data.due_at, modes: req ? ALL_MODES.map((m) => m.id).filter((id) => (req as Record<string, unknown>)[id] != null) : ["choice", "typing"] });
+      setHw({ coverage: data.coverage_rule, word_ids: data.word_ids, req, created_at: data.created_at, due_at: data.due_at, modes: req ? ALL_MODES.map((m) => m.id).filter((id) => (req as Record<string, unknown>)[id] != null) : ["choice", "typing"] });
     });
   }, [devoir]);
   // "Continuer mon devoir": open the first unfinished exercise directly, once the homework is loaded.
@@ -98,7 +98,7 @@ function Review() {
       try {
         const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id")
           .eq("student_id", me.id).gte("created_at", hw.created_at).order("created_at").order("id").range(from, to));
-        items = buildHomeworkPractice(usable, reviews, m, hw.req, hw.created_at, hw.due_at, devoir);
+        items = buildHomeworkPractice(usable, reviews, m, hw.req, hw.created_at, hw.due_at, devoir, hw.coverage);
       } catch { toast.error("Impossible de charger la progression du devoir. Réessaie."); return; }
     }
     setTitle(list.data.title);
@@ -159,7 +159,7 @@ function Review() {
 }
 
 function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, onContinue, onChoose }: {
-  studentId: string; homeworkId: string; sessionNumber: number; hw: { created_at: string; due_at: string; req: HwRequirements | null };
+  studentId: string; homeworkId: string; sessionNumber: number; hw: { created_at: string; due_at: string; req: HwRequirements | null; coverage: boolean };
   words: Word[]; onContinue: (m: Mode) => void; onChoose: () => void;
 }) {
   const [opening, setOpening] = useState(false);
@@ -171,7 +171,7 @@ function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, o
       if (pendingCount(studentId)) return { pending: true, next: null, done: false };
       const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id")
         .eq("student_id", studentId).gte("created_at", hw.created_at).order("created_at").order("id").range(from, to));
-      const status = homeworkStatus(words.map((w) => w.id), reviews, hw.created_at, hw.due_at, hw.req, homeworkId);
+      const status = homeworkStatus(words.map((w) => w.id), reviews, hw.created_at, hw.due_at, hw.req, homeworkId, hw.coverage);
       return { pending: false, next: nextHomeworkMode(status.parts), done: status.done };
     },
   });

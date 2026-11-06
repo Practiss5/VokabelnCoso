@@ -24,7 +24,7 @@ function Bilan() {
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
       const [hw, codes] = await Promise.all([
-        supabase.from("homeworks").select("id, list_id, due_at, created_at, word_ids, requirements, vocab_lists(title, words(id))").eq("class_id", classId).order("due_at"),
+        supabase.from("homeworks").select("id, list_id, due_at, created_at, word_ids, requirements, coverage_rule, vocab_lists(title, words(id))").eq("class_id", classId).order("due_at"),
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
       const hws = (hw.data ?? []) as unknown as (ReportHw & { vocab_lists: { title: string; words: { id: string }[] } | null })[];
