@@ -127,8 +127,16 @@ function MyLists() {
       return (a ?? []).map((x) => x.vocab_lists).filter(Boolean).map((l) => {
         const words = l!.words as { id: string }[];
         const due = words.filter((w) => { const p = pm.get(w.id); return !p || new Date(p.due_at).getTime() <= now; }).length;
-        const mastered = words.filter((w) => isMastered((skills ?? []).filter((s) => s.word_id === w.id))).length;
-        return { id: l!.id, title: l!.title, total: words.length, due, mastered };
+        let mastered = 0, almost = 0, learning = 0;
+        for (const w of words) {
+          const ws = (skills ?? []).filter((s) => s.word_id === w.id);
+          const p = pm.get(w.id);
+          if (isMastered(ws)) mastered++;
+          else if ((p?.repetitions ?? 0) >= 2) almost++;
+          else if (p || ws.length) learning++;
+        }
+        const fresh = words.length - mastered - almost - learning;
+        return { id: l!.id, title: l!.title, total: words.length, due, mastered, almost, learning, fresh };
       });
     },
   });
@@ -140,11 +148,32 @@ function MyLists() {
         <Link key={l.id} to="/eleve/reviser/$listId" params={{ listId: l.id }} className="word-card block p-5 transition-transform hover:-translate-y-0.5">
           <h2 className="text-2xl font-bold">{l.title}</h2>
           <p className="mt-2 text-sm text-muted-foreground">{l.total} mots · {l.mastered} maîtrisés</p>
+          <MasteryGauge l={l} />
           <p className="mt-3 inline-block rounded-full bg-accent px-3 py-1 text-sm font-semibold">
             {l.due > 0 ? `${l.due} à réviser` : "À jour ✓"}
           </p>
         </Link>
       ))}
+    </div>
+  );
+}
+
+function MasteryGauge({ l }: { l: { total: number; fresh: number; learning: number; almost: number; mastered: number } }) {
+  const segs = [
+    { n: l.fresh, label: "À découvrir", cls: "bg-muted-foreground/25" },
+    { n: l.learning, label: "En apprentissage", cls: "bg-accent" },
+    { n: l.almost, label: "Presque acquis", cls: "bg-primary/50" },
+    { n: l.mastered, label: "Maîtrisé", cls: "bg-primary" },
+  ];
+  const summary = segs.map((s) => `${s.n} ${s.label.toLowerCase()}`).join(" · ");
+  return (
+    <div className="mt-3" title={summary}>
+      <div className="flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={summary}>
+        {l.total > 0 && segs.map((s) => s.n > 0 && <div key={s.label} className={s.cls} style={{ width: `${(s.n / l.total) * 100}%` }} />)}
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {segs.map((s) => <li key={s.label} className="flex items-center gap-1"><span className={`inline-block h-2.5 w-2.5 rounded-full ${s.cls}`} />{s.label} {s.n}</li>)}
+      </ul>
     </div>
   );
 }
