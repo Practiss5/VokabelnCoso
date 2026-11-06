@@ -3,7 +3,7 @@ import { submitAnswer } from "@/lib/answers.functions";
 
 /** Answers that could not reach the server (Wi-Fi cut) wait here, one queue per student, and are re-sent later. */
 export const QUEUE_KEY = "vokabeln:pending-answers";
-export type AnswerArgs = { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[] };
+export type AnswerArgs = { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[]; _homework?: string };
 type Rpc = (args: AnswerArgs) => Promise<{ error: { message: string } | null }>;
 
 const defaultRpc: Rpc = async (args) => {

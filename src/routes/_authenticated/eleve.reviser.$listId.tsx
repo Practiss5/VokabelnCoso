@@ -96,9 +96,9 @@ function Review() {
     let items: SessionItem[] = sm.dirs.flatMap((dir) => queue.map((word) => ({ word, mode: sm.mode, dir })));
     if (hw) {
       try {
-        const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct")
+        const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id")
           .eq("student_id", me.id).gte("created_at", hw.created_at).order("created_at").order("id").range(from, to));
-        items = buildHomeworkPractice(usable, reviews, m, hw.req, hw.created_at, hw.due_at);
+        items = buildHomeworkPractice(usable, reviews, m, hw.req, hw.created_at, hw.due_at, devoir);
       } catch { toast.error("Impossible de charger la progression du devoir. Réessaie."); return; }
     }
     setTitle(list.data.title);
@@ -149,7 +149,7 @@ function Review() {
     );
 
   return (
-    <ReviewSession key={sessionNumber} title={title} pool={session.pool} onQuit={() => setMode(null)}
+    <ReviewSession key={sessionNumber} title={title} {...(hw && devoir ? { homeworkId: devoir } : {})} pool={session.pool} onQuit={() => setMode(null)}
       items={session.items}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
       endActions={hw && devoir && me ? <HomeworkEndActions studentId={me.id} homeworkId={devoir} sessionNumber={sessionNumber} hw={hw}
@@ -169,9 +169,9 @@ function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, o
     queryFn: async () => {
       await flushAnswers();
       if (pendingCount(studentId)) return { pending: true, next: null, done: false };
-      const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct")
+      const reviews = await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id")
         .eq("student_id", studentId).gte("created_at", hw.created_at).order("created_at").order("id").range(from, to));
-      const status = homeworkStatus(words.map((w) => w.id), reviews, hw.created_at, hw.due_at, hw.req);
+      const status = homeworkStatus(words.map((w) => w.id), reviews, hw.created_at, hw.due_at, hw.req, homeworkId);
       return { pending: false, next: nextHomeworkMode(status.parts), done: status.done };
     },
   });

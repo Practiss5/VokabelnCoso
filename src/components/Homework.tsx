@@ -49,7 +49,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
       ]);
       const ids = students.map((s) => s.id);
       const oldest = (hw.data ?? []).reduce<string | null>((m, h) => { const c = (h as { created_at: string }).created_at; return !m || c < m ? c : m; }, null);
-      const rev = ids.length && oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
+      const rev = ids.length && oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct, homework_id").in("student_id", ids).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       const hwIds = (hw.data ?? []).map((h) => (h as { id: string }).id);
       const times = hwIds.length ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", hwIds)).data ?? [] : [];
       const time = new Map(times.map((t) => [`${t.homework_id}:${t.student_id}`, t.seconds]));
@@ -185,7 +185,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
       </form>
       {data?.hw.map((h) => {
         const words = hwWords(h);
-        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements) }));
+        const st = students.map((s) => ({ s, r: homeworkStatus(words, data.rev.filter((x) => x.student_id === s.id), h.created_at, h.due_at, h.requirements, h.id) }));
         const doneN = st.filter((x) => x.r.done).length;
         const late = new Date(h.due_at).getTime() < Date.now();
         const rule = st[0]?.r.parts ?? homeworkStatus(words, [], h.created_at, h.due_at, h.requirements).parts;
@@ -227,7 +227,7 @@ export function TeacherHomework({ classId, students }: { classId: string; studen
               {st.map(({ s, r }) => (
                 <li key={s.id} className="flex justify-between gap-2 rounded bg-secondary px-2 py-1">
                   <span>{s.full_name || "—"}</span>
-                  <span className={r.done ? "font-semibold text-success" : "text-right text-muted-foreground"}>{r.done ? "Fait ✅" : `${late ? "Non fait" : "À faire"} · ${partsText(r.parts)}`} · ⏱️ {formatDuration(secs(s.id))}</span>
+                  <span className={r.done ? "font-semibold text-success" : "text-right text-muted-foreground"}>{r.done ? (r.late ? "Fait en retard ✅" : "Fait ✅") : `${late ? "Non fait" : "À faire"} · ${partsText(r.parts)}`} · ⏱️ {formatDuration(secs(s.id))}</span>
                 </li>
               ))}
             </ul>
@@ -247,12 +247,12 @@ export function myHomeworksQuery(studentId: string, classId: string) {
       const since = new Date(Date.now() - 2 * 86400000).toISOString();
       const hw = ((await supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId).gte("due_at", since).order("due_at")).data ?? []) as unknown as Hw[];
       const oldest = hw.reduce<string | null>((m, h) => (!m || h.created_at < m ? h.created_at : m), null);
-      const rev = oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct").eq("student_id", studentId).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
+      const rev = oldest ? await fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id").eq("student_id", studentId).gte("created_at", oldest).order("created_at").order("id").range(from, to)) : [];
       return hw.map((h) => {
         const ws = new Set(hwWords(h));
         // Any answer (even wrong) on a homework word since assignment means the homework is started.
         const started = rev.some((x) => ws.has(x.word_id) && x.created_at >= h.created_at);
-        return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements) };
+        return { h, started, r: homeworkStatus(hwWords(h), rev, h.created_at, h.due_at, h.requirements, h.id) };
       });
     },
   };
@@ -280,7 +280,7 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
           <div key={h.id} className={`word-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${r.done ? "border-success" : cd.level === "urgent" || cd.level === "late" ? "border-destructive" : "border-accent"} border-2`}>
             <div>
               <span className={`mb-2 inline-block rounded-full px-3 py-1 text-sm font-bold ${r.done ? "bg-success text-success-foreground" : badge}`}>{r.done && cd.level !== "late" ? `✅ Fait · ${cd.label.replace(/^\S+\s/, "")}` : cd.label}</span>
-              <p className="text-sm font-semibold">{r.done ? "✅ Devoir validé, bravo !" : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
+              <p className="text-sm font-semibold">{r.done ? (r.late ? "✅ Devoir validé en retard, bravo !" : "✅ Devoir validé, bravo !") : late ? "⌛ Devoir en retard" : `📌 Devoir à faire pour ${fmt(h.due_at)}`}</p>
               <p className="text-xl font-bold">{h.vocab_lists?.title} <span className="text-sm font-normal">· {r.total} mot{r.total > 1 ? "s" : ""}</span></p>
               {h.instructions && <p className="text-sm">{h.instructions}</p>}
               {!r.done && <p className="text-sm text-muted-foreground">{partsText(r.parts)}</p>}

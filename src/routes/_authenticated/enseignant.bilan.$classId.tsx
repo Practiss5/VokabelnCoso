@@ -28,7 +28,7 @@ function Bilan() {
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
       const hws = (hw.data ?? []) as unknown as (ReportHw & { vocab_lists: { title: string; words: { id: string }[] } | null })[];
-      const reviews = ids.length ? await fetchAllReviews((f, t) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct").in("student_id", ids).order("created_at").order("id").range(f, t)) : [];
+      const reviews = ids.length ? await fetchAllReviews((f, t) => supabase.from("reviews").select("student_id, word_id, created_at, mode, correct, homework_id").in("student_id", ids).order("created_at").order("id").range(f, t)) : [];
       const times = hws.length ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", hws.map((h) => h.id))).data ?? [] : [];
       const listWords = new Map(hws.map((h) => [h.list_id, (h.vocab_lists?.words ?? []).map((w) => w.id)]));
       const label = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
@@ -82,7 +82,7 @@ function Bilan() {
                   <td className="border p-2">{data.titles.get(h.id)}</td>
                   <td className="border p-2">{new Date(h.due_at).toLocaleDateString("fr-FR")}</td>
                   <td className="border p-2">{formatDuration(h.seconds)}</td>
-                  <td className="border p-2 font-semibold">{h.done ? "✓ Fait" : h.overdue ? "✗ Non fait" : "En cours"}</td>
+                  <td className="border p-2 font-semibold">{h.done ? (h.late ? "✓ Fait en retard" : "✓ Fait") : h.overdue ? "✗ Non fait" : "En cours"}</td>
                 </tr>
               ))}
               {s.r.rows.length === 0 && <tr><td colSpan={4} className="border p-2 text-muted-foreground">Aucun devoir pour le moment.</td></tr>}
