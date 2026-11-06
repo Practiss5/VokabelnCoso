@@ -8,7 +8,7 @@ describe("class quiz", () => {
     expect(qs.map((q) => q.seconds)).toEqual([20, 20, 45]);
   });
   it("audio asks for the French of the spoken German word", () => {
-    const [q] = buildQuiz(words, ["audio"], 1);
+    const q = buildQuiz(words, ["audio"], 1)[0]!;
     expect(q.options).toContain(q.answer);
     expect(q.answer.startsWith("le ")).toBe(true);
   });

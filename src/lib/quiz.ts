@@ -9,7 +9,7 @@ export const QUIZ_MODE_LABELS: Record<QuizMode, string> = { choice: "QCM", audio
 export function buildQuiz(words: Word[], modes: QuizMode[], count: number, rng: () => number = Math.random): QuizQuestion[] {
   const picked = shuffle(words, rng).slice(0, count);
   return picked.map((w, i) => {
-    const mode = modes[i % modes.length];
+    const mode = modes[i % modes.length] as QuizMode;
     if (mode === "typing") return { word_id: w.id, mode, prompt: w.french, options: [], answer: w.german, seconds: QUIZ_SECONDS.typing };
     // Audio: hear the German word, pick the French. QCM: random direction.
     const reverse = mode === "choice" && rng() < 0.5;

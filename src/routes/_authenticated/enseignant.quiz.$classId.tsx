@@ -127,7 +127,7 @@ function Board({ session, setSession, names }: { session: Session; setSession: (
     setReplays(0);
     await update({ q_idx: idx, status: "question", q_started_at: new Date().toISOString() });
     const nq = session.questions[idx];
-    if (nq.mode === "audio") speak(nq.prompt);
+    if (nq?.mode === "audio") speak(nq.prompt);
   }
   const revealed = useRef(-1);
   useEffect(() => {
