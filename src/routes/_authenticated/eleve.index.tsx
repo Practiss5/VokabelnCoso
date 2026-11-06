@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudentDuels } from "@/components/Duels";
+import { StudentQuiz } from "@/components/ClassQuiz";
 import { selectTrainingList, trainingListsQuery } from "@/lib/training-lists";
 
 export const Route = createFileRoute("/_authenticated/eleve/")({
@@ -32,6 +33,7 @@ function StudentHome() {
         <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
         <h1 className="text-4xl font-bold">Aujourd'hui</h1>
       </div>
+      <StudentQuiz />
       <StudentStreak studentId={me.id} />
       <StudentHomework studentId={me.id} classId={me.classId} />
       <DailyIfNoHomework studentId={me.id} classId={me.classId} />

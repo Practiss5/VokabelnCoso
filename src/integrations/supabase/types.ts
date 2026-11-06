@@ -390,6 +390,101 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          correct: boolean
+          created_at: string
+          given: string
+          ms: number
+          points: number
+          q_idx: number
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          correct: boolean
+          created_at?: string
+          given?: string
+          ms: number
+          points?: number
+          q_idx: number
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          correct?: boolean
+          created_at?: string
+          given?: string
+          ms?: number
+          points?: number
+          q_idx?: number
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_sessions: {
+        Row: {
+          class_id: string
+          created_at: string
+          format: string
+          id: string
+          list_id: string
+          q_idx: number
+          q_started_at: string | null
+          questions: Json
+          status: string
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          format?: string
+          id?: string
+          list_id: string
+          q_idx?: number
+          q_started_at?: string | null
+          questions: Json
+          status?: string
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          format?: string
+          id?: string
+          list_id?: string
+          q_idx?: number
+          q_started_at?: string | null
+          questions?: Json
+          status?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_sessions_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           correct: boolean
@@ -833,6 +928,7 @@ export type Database = {
         Returns: Json
       }
       purge_class_data: { Args: { _class: string }; Returns: undefined }
+      quiz_for_me: { Args: never; Returns: Json }
       record_answer: {
         Args: {
           _correct: boolean
