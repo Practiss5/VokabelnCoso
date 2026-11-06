@@ -1,0 +1,2 @@
+ALTER TABLE public.reviews ADD COLUMN homework_id uuid REFERENCES public.homeworks(id) ON DELETE SET NULL;
+CREATE INDEX reviews_homework_idx ON public.reviews(homework_id) WHERE homework_id IS NOT NULL;

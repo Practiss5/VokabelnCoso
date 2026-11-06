@@ -307,6 +307,7 @@ export type Database = {
           created_at: string
           error_type: string | null
           given_answer: string | null
+          homework_id: string | null
           id: string
           mode: string
           skill: string | null
@@ -318,6 +319,7 @@ export type Database = {
           created_at?: string
           error_type?: string | null
           given_answer?: string | null
+          homework_id?: string | null
           id?: string
           mode: string
           skill?: string | null
@@ -329,6 +331,7 @@ export type Database = {
           created_at?: string
           error_type?: string | null
           given_answer?: string | null
+          homework_id?: string | null
           id?: string
           mode?: string
           skill?: string | null
@@ -336,6 +339,13 @@ export type Database = {
           word_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reviews_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homeworks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reviews_word_id_fkey"
             columns: ["word_id"]
