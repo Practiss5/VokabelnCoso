@@ -7,7 +7,7 @@ import { meQuery } from "@/lib/session";
 import { DAILY_GOAL, isMastered, REASON_LABELS } from "@/lib/vocab";
 import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
-import { hasPendingHomework, myHomeworksQuery, StudentHomework, StudentStreak } from "@/components/Homework";
+import { hasPendingHomework, myHomeworksQuery, StudentBadges, StudentHomework, StudentStreak } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,6 +35,7 @@ function StudentHome() {
       <StudentHomework studentId={me.id} classId={me.classId} />
       <DailyIfNoHomework studentId={me.id} classId={me.classId} />
       <ChooseStep />
+      <StudentBadges studentId={me.id} classId={me.classId} />
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">Mes listes</h2>
         <MyLists />
