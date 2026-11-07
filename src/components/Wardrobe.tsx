@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ITEMS, MASCOTS, SLOT_LABELS, type Slot, type WardrobeStats } from "@/lib/wardrobe";
 import { Button } from "@/components/ui/button";
+import { MascotArt } from "@/components/MascotArt";
 
 export type Outfit = { mascot: string } & Partial<Record<Slot, string>>;
 const SLOTS: Slot[] = ["hat", "eyes", "neck", "hand", "bg"];
@@ -16,16 +17,9 @@ export function asOutfit(raw: unknown): Outfit {
 export function Avatar({ outfit: raw, size = 96 }: { outfit: unknown; size?: number }) {
   const outfit = asOutfit(raw);
   const m = MASCOTS.find((x) => x.id === outfit.mascot) ?? MASCOTS[0];
-  const icon = (slot: Slot) => ITEMS.find((i) => i.id === outfit[slot])?.icon;
-  const f = size / 96;
   return (
-    <div aria-label={`Ma mascotte : ${m.name}`} className="relative shrink-0 overflow-hidden rounded-2xl border-2 border-accent bg-muted" style={{ width: size * 1.4, height: size * 1.4 }}>
-      {icon("bg") && <span aria-hidden className="absolute inset-0 flex items-end justify-center opacity-40" style={{ fontSize: 110 * f }}>{icon("bg")}</span>}
-      <span aria-hidden className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 70 * f }}>{m.icon}</span>
-      {icon("hat") && <span aria-hidden className="absolute left-1/2 -translate-x-1/2" style={{ top: 2 * f, fontSize: 34 * f }}>{icon("hat")}</span>}
-      {icon("eyes") && <span aria-hidden className="absolute left-1/2 -translate-x-1/2" style={{ top: 44 * f, fontSize: 26 * f }}>{icon("eyes")}</span>}
-      {icon("neck") && <span aria-hidden className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 4 * f, fontSize: 28 * f }}>{icon("neck")}</span>}
-      {icon("hand") && <span aria-hidden className="absolute" style={{ right: 4 * f, bottom: 18 * f, fontSize: 28 * f }}>{icon("hand")}</span>}
+    <div role="img" aria-label={`Ma mascotte : ${m.name}`} className="shrink-0 overflow-hidden rounded-lg bg-muted" style={{ width: size * 1.4, height: size * 1.4 }}>
+      <MascotArt mascot={m.id} outfit={outfit} />
     </div>
   );
 }
@@ -67,10 +61,10 @@ export function Wardrobe({ studentId, stats }: { studentId: string; stats: Wardr
             <h3 className="mb-2 font-bold">Mascotte</h3>
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
               {MASCOTS.map((m) => (
-                <button key={m.id} type="button" title={m.name} aria-pressed={outfit.mascot === m.id} onClick={() => save({ ...outfit, mascot: m.id })}
-                  className={`rounded-xl border-2 p-2 text-3xl ${outfit.mascot === m.id ? "border-accent bg-accent/20" : "border-border"}`}>
-                  <span aria-hidden>{m.icon}</span><span className="sr-only">{m.name}</span>
-                </button>
+                <Button key={m.id} variant="outline" type="button" title={m.name} aria-pressed={outfit.mascot === m.id} onClick={() => save({ ...outfit, mascot: m.id })}
+                  className={`h-auto min-w-0 aspect-square p-0 [&_svg.mascot-art]:size-full ${outfit.mascot === m.id ? "border-2 border-accent bg-accent/20" : "border-border"}`}>
+                  <MascotArt mascot={m.id} /><span className="sr-only">{m.name}</span>
+                </Button>
               ))}
             </div>
           </div>
@@ -82,13 +76,13 @@ export function Wardrobe({ studentId, stats }: { studentId: string; stats: Wardr
                   const ok = i.unlocked(stats);
                   const on = outfit[slot] === i.id;
                   return (
-                    <button key={i.id} type="button" disabled={!ok} aria-pressed={on}
+                    <Button key={i.id} variant="outline" type="button" disabled={!ok} aria-pressed={on}
                       onClick={() => save({ ...outfit, [slot]: on ? undefined : i.id })}
-                      className={`rounded-xl border-2 p-2 text-center ${on ? "border-accent bg-accent/20" : "border-border"} ${ok ? "" : "cursor-not-allowed opacity-60"}`}>
-                      <div aria-hidden className={`text-3xl ${ok ? "" : "grayscale"}`}>{i.icon}</div>
-                      <p className="text-sm font-semibold">{i.name}</p>
-                      <p className="text-xs text-muted-foreground">{ok ? (on ? "Porté ✓" : "Débloqué") : `🔒 ${i.rule}`}</p>
-                    </button>
+                      className={`h-auto min-w-0 flex-col whitespace-normal border-2 p-2 text-center [&_svg.mascot-art]:size-full ${on ? "border-accent bg-accent/20" : "border-border"} ${ok ? "" : "cursor-not-allowed opacity-60"}`}>
+                      <div aria-hidden className={`w-20 max-w-full aspect-square ${ok ? "" : "grayscale"}`}><MascotArt mascot={mascot.id} outfit={{ [slot]: i.id }} /></div>
+                      <span className="text-sm font-semibold">{i.name}</span>
+                      <span className="text-xs text-muted-foreground">{ok ? (on ? "Porté ✓" : "Débloqué") : `🔒 ${i.rule}`}</span>
+                    </Button>
                   );
                 })}
               </div>

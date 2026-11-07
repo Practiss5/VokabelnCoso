@@ -57,6 +57,33 @@
 
 /* Paper notebook: cream page, ink, school-gold accent, red-pen errors */
 :root {
+  --avatar-ink: #242a30;
+  --avatar-white: #fff9ee;
+  --avatar-gold: #efc54b;
+  --avatar-blue: #288bba;
+  --avatar-red: #df5260;
+  --avatar-green: #438b70;
+  --mascot-fur: #c68b55;
+  --mascot-shade: #74452f;
+  --mascot-light: #f8deb5;
+  --mascot-bear-fur: #ac754e;
+  --mascot-bear-shade: #684730;
+  --mascot-fox-fur: #e88b40;
+  --mascot-fox-shade: #904b32;
+  --mascot-marmot-fur: #bb976f;
+  --mascot-marmot-shade: #78634e;
+  --mascot-owl-fur: #9e7870;
+  --mascot-owl-shade: #655456;
+  --mascot-wolf-fur: #9daeb9;
+  --mascot-wolf-shade: #586977;
+  --mascot-squirrel-fur: #d97842;
+  --mascot-squirrel-shade: #87482f;
+  --mascot-bernard-fur: #f0dfc8;
+  --mascot-bernard-shade: #975b3d;
+  --mascot-ibex-fur: #b4a38d;
+  --mascot-ibex-shade: #736c61;
+  --mascot-hedgehog-fur: #d8b896;
+  --mascot-hedgehog-shade: #79604e;
   --radius: 0.75rem;
   --background: oklch(0.975 0.014 85);
   --foreground: oklch(0.22 0.02 260);
@@ -203,3 +230,15 @@ html.dark.dys body {
   .report-sheet { break-after: page; break-inside: avoid; }
   .report-sheet:last-child { break-after: auto; }
 }
+
+.mascot-art { display: block; width: 100%; height: 100%; }
+.mascot-art[data-mascot="baer"] { --mascot-fur: var(--mascot-bear-fur); --mascot-shade: var(--mascot-bear-shade); }
+.mascot-art[data-mascot="fuchs"] { --mascot-fur: var(--mascot-fox-fur); --mascot-shade: var(--mascot-fox-shade); --mascot-light: var(--avatar-white); }
+.mascot-art[data-mascot="murmeltier"] { --mascot-fur: var(--mascot-marmot-fur); --mascot-shade: var(--mascot-marmot-shade); }
+.mascot-art[data-mascot="eule"] { --mascot-fur: var(--mascot-owl-fur); --mascot-shade: var(--mascot-owl-shade); }
+.mascot-art[data-mascot="wolf"] { --mascot-fur: var(--mascot-wolf-fur); --mascot-shade: var(--mascot-wolf-shade); --mascot-light: var(--avatar-white); }
+.mascot-art[data-mascot="eichhoernchen"] { --mascot-fur: var(--mascot-squirrel-fur); --mascot-shade: var(--mascot-squirrel-shade); }
+.mascot-art[data-mascot="bernhardiner"] { --mascot-fur: var(--mascot-bernard-fur); --mascot-shade: var(--mascot-bernard-shade); }
+.mascot-art[data-mascot="steinbock"] { --mascot-fur: var(--mascot-ibex-fur); --mascot-shade: var(--mascot-ibex-shade); }
+.mascot-art[data-mascot="igel"] { --mascot-fur: var(--mascot-hedgehog-fur); --mascot-shade: var(--mascot-hedgehog-shade); }
+.mascot-scenery { opacity: .65; }
