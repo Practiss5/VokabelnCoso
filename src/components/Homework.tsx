@@ -359,7 +359,7 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
         const limit = new Date(new Date(h.due_at).getTime() - 86400000).toISOString();
         return homeworkStatus(hwWords(h), rv.filter((x) => x.created_at <= limit), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done;
       }).length;
-      const badges = computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: tg.data?.[0]?.score ?? 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
+      const badges = computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
       const seen = new Set(rv.map((x) => x.word_id));
       const lists = (la.data ?? []).map((a) => ((a.vocab_lists as { words: { id: string }[] } | null)?.words ?? []).map((w) => w.id));
       const sorted = [...hws].sort((a, b) => a.due_at.localeCompare(b.due_at));

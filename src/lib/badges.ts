@@ -78,7 +78,8 @@ export function computeBadges(input: BadgeInput): Badge[] {
   const ss = sessions(rv);
   const perfect = ss.filter((s) => s.length >= 20 && s.every((r) => r.correct)).length;
   const writing = ss.map((s) => s.filter((r) => WRITTEN.has(r.mode))).filter((s) => s.length >= 10 && s.length === ss.find((x) => x.includes(s[0]!))!.length && s.every((r) => r.correct)).length;
-  const game = input.bestTetris >= TETRIS_GOAL || input.bestMatchRun >= MATCH_GOAL ? 1 : 0;
+  // Tetris scores are client-asserted, so only the server-derived match run can grant this badge.
+  const game = input.bestMatchRun >= MATCH_GOAL ? 1 : 0;
 
   const mk = (id: string, icon: string, name: string, rule: string, levels: number[], value: number): Badge =>
     ({ id, icon, name, rule, levels, value, level: levels.filter((l) => value >= l).length });
@@ -95,6 +96,6 @@ export function computeBadges(input: BadgeInput): Badge[] {
     mk("sprint", "⚡", "Sprint éclair", "10 QCM justes d'affilée en moins de 25 s", [1], sprint),
     mk("perfect", "💎", "Zéro faute", "Une séance d'au moins 20 mots sans faute", [1], perfect),
     mk("pen", "✍️", "Plume d'or", "Une séance d'écriture (10 mots min.) sans faute", [1], writing),
-    mk("game", "🧩", "As du Tetris", `${TETRIS_GOAL} points au Wort-Tetris ou ${MATCH_GOAL} paires d'affilée au jeu d'association`, [1], game),
+    mk("game", "🧩", "As du Tetris", `${MATCH_GOAL} paires d'affilée au jeu d'association`, [1], game),
   ];
 }
