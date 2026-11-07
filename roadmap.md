@@ -19,6 +19,7 @@
 - [x] Révisions libres pendant un devoir actif rattachées à ce devoir (réponses + temps) ; rien avant l'attribution ne compte.
 - [x] Colonne « Temps » par chapitre dans le tableau de la classe.
 - [x] Élèves classés de 1 à 30 (devoirs et tableau).
+- [ ] Codes élèves : bouton « 🔑 Codes élèves » ouvrant une fenêtre modale au lieu de la section toujours affichée (choisi par Maxime, à faire demain).
 
 ## Propositions en attente de choix
 - [ ] PWA (bouton d'installation smartphone)
