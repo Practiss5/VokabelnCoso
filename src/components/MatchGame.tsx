@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { type Card, type MatchWord } from "@/lib/match";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/Wardrobe";
 
 /** Fast pair-matching game. Does not touch spaced repetition or homework; feeds the daily flame only. */
 export function MatchGame({ listId, onQuit }: { listId: string; words: MatchWord[]; onQuit: () => void }) {
@@ -67,7 +68,7 @@ export function MatchGame({ listId, onQuit }: { listId: string; words: MatchWord
         <ol className="space-y-1 text-sm">
           {top.data.map((t, i) => (
             <li key={i} className={`flex justify-between rounded px-2 py-1 ${t.is_me ? "bg-accent/20 font-semibold" : "bg-secondary"}`}>
-              <span>{i + 1}. {t.full_name}{t.is_me ? " (toi)" : ""}</span><span>{t.best_run} 🔥</span>
+              <span className="flex items-center gap-2"><Avatar outfit={t.outfit} size={22} />{i + 1}. {t.full_name}{t.is_me ? " (toi)" : ""}</span><span>{t.best_run} 🔥</span>
             </li>
           ))}
         </ol>

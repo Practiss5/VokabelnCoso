@@ -12,6 +12,9 @@
 
 - [x] Dictée audio 🎧 (écouter sans voir, écrire ; compte comme Écriture).
 
+## En cours (suite)
+- [x] Tenue de mascotte sauvegardée sur le compte (profiles.outfit + save_my_outfit) et affichée comme avatar dans le quiz en classe, les duels et le record de classe ; non testée avec un vrai compte élève.
+
 ## Propositions en attente de choix
 - [ ] PWA (bouton d'installation smartphone)
 - [ ] Import rapide de listes (« die Hose = le pantalon »)

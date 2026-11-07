@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/Wardrobe";
 
 type Q = { done: boolean; index?: number; total?: number; german?: string; choices?: string[] };
 
@@ -90,7 +91,11 @@ export function StudentDuels({ listId }: { listId: string | undefined }) {
       {picking && (
         <div className="word-card flex flex-wrap gap-2 p-3">
           {!mates ? <p className="text-sm">Chargement…</p> : mates.length === 0 ? <p className="text-sm text-muted-foreground">Aucun camarade dans ta classe.</p> :
-            mates.map((m) => <Button key={m.id} size="sm" variant="secondary" onClick={() => start(m.id)}>{m.name}</Button>)}
+            mates.map((m) => (
+              <Button key={m.id} size="sm" variant="secondary" className="h-auto gap-2 py-1" onClick={() => start(m.id)}>
+                <Avatar outfit={m.outfit} size={28} />{m.name}
+              </Button>
+            ))}
         </div>
       )}
       <p className="text-sm text-muted-foreground">10 QCM sur la liste choisie ci-dessus. Ton camarade a 48 h pour jouer. Seuls vous deux voyez le résultat.</p>
@@ -105,7 +110,12 @@ export function StudentDuels({ listId }: { listId: string | undefined }) {
         const canPlay = !d.my_finished && !expired;
         return (
           <div key={d.duel_id} className="word-card flex flex-wrap items-center justify-between gap-2 p-3">
-            <div><p className="font-semibold">vs {d.opponent} · {d.list_title}</p><p className="text-sm text-muted-foreground">{status}</p></div>
+            <div className="flex items-center gap-3">
+              <Avatar outfit={d.my_outfit} size={30} />
+              <span aria-hidden className="font-bold text-muted-foreground">vs</span>
+              <Avatar outfit={d.opp_outfit} size={30} />
+              <div><p className="font-semibold">{d.opponent} · {d.list_title}</p><p className="text-sm text-muted-foreground">{status}</p></div>
+            </div>
             {canPlay && <Button size="sm" onClick={() => setPlaying(d.duel_id)}>{d.my_idx > 0 ? "Continuer" : "Jouer"}</Button>}
           </div>
         );

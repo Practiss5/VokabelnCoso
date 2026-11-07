@@ -367,18 +367,21 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          outfit: Json
         }
         Insert: {
           class_id?: string | null
           created_at?: string
           full_name?: string
           id: string
+          outfit?: Json
         }
         Update: {
           class_id?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          outfit?: Json
         }
         Relationships: [
           {
@@ -893,6 +896,7 @@ export type Database = {
           best_run: number
           full_name: string
           is_me: boolean
+          outfit: Json
         }[]
       }
       copy_folder: { Args: { _code: string }; Returns: string }
@@ -901,6 +905,7 @@ export type Database = {
         Returns: {
           id: string
           name: string
+          outfit: Json
         }[]
       }
       duel_question: { Args: { _duel: string }; Returns: Json }
@@ -943,9 +948,11 @@ export type Database = {
           my_finished: boolean
           my_idx: number
           my_ms: number
+          my_outfit: Json
           my_score: number
           opp_finished: boolean
           opp_ms: number
+          opp_outfit: Json
           opp_score: number
           opponent: string
           total: number
@@ -1018,6 +1025,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_my_outfit: { Args: { _outfit: Json }; Returns: undefined }
       set_homework_archived: {
         Args: { _archived: boolean; _hw: string }
         Returns: undefined

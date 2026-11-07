@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { ITEMS, MASCOTS, SLOT_LABELS, type Slot, type WardrobeStats } from "@/lib/wardrobe";
 import { Button } from "@/components/ui/button";
 
-type Outfit = { mascot: string } & Partial<Record<Slot, string>>;
+export type Outfit = { mascot: string } & Partial<Record<Slot, string>>;
 const SLOTS: Slot[] = ["hat", "eyes", "neck", "hand", "bg"];
 
-export function Avatar({ outfit, size = 96 }: { outfit: Outfit; size?: number }) {
+/** Coerce stored jsonb into a safe outfit. */
+export function asOutfit(raw: unknown): Outfit {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Partial<Outfit>;
+  return { ...o, mascot: typeof o.mascot === "string" ? o.mascot : "dackel" };
+}
+
+/** Avatar from a stored outfit (jsonb from profiles / RPCs). */
+export function Avatar({ outfit: raw, size = 96 }: { outfit: unknown; size?: number }) {
+  const outfit = asOutfit(raw);
   const m = MASCOTS.find((x) => x.id === outfit.mascot) ?? MASCOTS[0];
   const icon = (slot: Slot) => ITEMS.find((i) => i.id === outfit[slot])?.icon;
   const f = size / 96;
@@ -21,15 +30,24 @@ export function Avatar({ outfit, size = 96 }: { outfit: Outfit; size?: number })
   );
 }
 
-/** Student: pick a mascot and equip unlocked accessories. Choice is kept on this device. */
+/** Student: pick a mascot and equip unlocked accessories. The outfit is saved on the account and shown in duels and class quizzes. */
 export function Wardrobe({ studentId, stats }: { studentId: string; stats: WardrobeStats }) {
   const key = `vokabeln:outfit:${studentId}`;
   const [outfit, setOutfit] = useState<Outfit>({ mascot: "dackel" });
   const [open, setOpen] = useState(false);
   useEffect(() => {
     try { const v = localStorage.getItem(key); if (v) setOutfit(JSON.parse(v)); } catch { /* ignore */ }
-  }, [key]);
-  const save = (o: Outfit) => { setOutfit(o); localStorage.setItem(key, JSON.stringify(o)); };
+    // The account copy wins over the device cache.
+    void supabase.from("profiles").select("outfit").eq("id", studentId).single().then(({ data }) => {
+      const o = data?.outfit as Outfit | null;
+      if (o?.mascot) { setOutfit(o); localStorage.setItem(key, JSON.stringify(o)); }
+    });
+  }, [key, studentId]);
+  const save = (o: Outfit) => {
+    setOutfit(o);
+    localStorage.setItem(key, JSON.stringify(o));
+    void supabase.rpc("save_my_outfit", { _outfit: o });
+  };
   const unlocked = ITEMS.filter((i) => i.unlocked(stats)).length;
   const mascot = MASCOTS.find((m) => m.id === outfit.mascot) ?? MASCOTS[0];
 

@@ -8,6 +8,7 @@ import { TeacherOnly } from "@/components/TeacherOnly";
 import { Button } from "@/components/ui/button";
 import { buildQuiz, QUIZ_MODE_LABELS, type QuizMode, type QuizQuestion } from "@/lib/quiz";
 import { germanVoice, spokenGerman } from "@/lib/speech";
+import { Avatar, type Outfit } from "@/components/Wardrobe";
 
 export const Route = createFileRoute("/_authenticated/enseignant/quiz/$classId")({
   head: () => ({ meta: [{ title: "Quiz au tableau — Vocabulaire Allemand" }, { name: "description", content: "Quiz projeté en classe, les élèves répondent sur leur appareil." }, { property: "og:title", content: "Quiz au tableau — Vocabulaire Allemand" }, { property: "og:description", content: "Quiz projeté en classe, les élèves répondent sur leur appareil." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -36,13 +37,14 @@ function QuizBoard() {
     queryFn: async () => {
       const [lists, students, codes] = await Promise.all([
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
-        supabase.from("profiles").select("id, full_name").eq("class_id", classId),
+        supabase.from("profiles").select("id, full_name, outfit").eq("class_id", classId),
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
       ]);
       const labels = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
       return {
         lists: (lists.data ?? []).map((l) => l.vocab_lists).filter(Boolean) as { id: string; title: string }[],
         names: new Map((students.data ?? []).map((s) => [s.id, labels.get(s.id) || s.full_name || "Élève"])),
+        outfits: new Map((students.data ?? []).map((s) => [s.id, s.outfit as Outfit | null])),
       };
     },
   });
@@ -50,7 +52,7 @@ function QuizBoard() {
   return (
     <div className="space-y-6">
       <Link to="/enseignant/classes/$classId" params={{ classId }} className="text-sm underline">← Retour à la classe</Link>
-      {session ? <Board session={session} setSession={setSession} names={setup.names} /> : <Setup classId={classId} lists={setup.lists} onStart={setSession} />}
+      {session ? <Board session={session} setSession={setSession} names={setup.names} outfits={setup.outfits} /> : <Setup classId={classId} lists={setup.lists} onStart={setSession} />}
     </div>
   );
 }
@@ -103,7 +105,7 @@ function Setup({ classId, lists, onStart }: { classId: string; lists: { id: stri
   );
 }
 
-function Board({ session, setSession, names }: { session: Session; setSession: (s: Session | null) => void; names: Map<string, string> }) {
+function Board({ session, setSession, names, outfits }: { session: Session; setSession: (s: Session | null) => void; names: Map<string, string>; outfits: Map<string, Outfit | null> }) {
   const [now, setNow] = useState(Date.now());
   const [replays, setReplays] = useState(0);
   const { data: answers = [] } = useQuery({
@@ -149,7 +151,11 @@ function Board({ session, setSession, names }: { session: Session; setSession: (
     </div>
   ) : (
     <ol className="space-y-2 text-2xl font-bold">
-      {top3.map(([id, pts], i) => <li key={id}>{["🥇", "🥈", "🥉"][i]} {names.get(id) ?? "Élève"} — {pts} pts</li>)}
+      {top3.map(([id, pts], i) => (
+        <li key={id} className="flex items-center justify-center gap-3">
+          {["🥇", "🥈", "🥉"][i]} <Avatar outfit={outfits.get(id)} size={44} /> {names.get(id) ?? "Élève"} — {pts} pts
+        </li>
+      ))}
       {!top3.length && <li className="text-base text-muted-foreground">Pas encore de points.</li>}
     </ol>
   );
