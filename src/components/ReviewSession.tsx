@@ -17,8 +17,8 @@ import { canRecognize, listenGerman } from "@/lib/recognition";
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" | undefined };
 const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
-export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed", homeworkId }: {
-  homeworkId?: string;
+export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed", homeworkId, homeworkWords }: {
+  homeworkId?: string; homeworkWords?: string[] | null;
   items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
 }) {
   const qc = useQueryClient();
@@ -68,7 +68,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     }
     const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[]; _homework?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
     if (alternatives) args._alternatives = alternatives;
-    if (homeworkId) args._homework = homeworkId;
+    if (homeworkId && (!homeworkWords || homeworkWords.includes(word.id))) args._homework = homeworkId;
     if (given) args._given = given;
     if (err) args._error = err;
     setSaving((n) => n + 1);

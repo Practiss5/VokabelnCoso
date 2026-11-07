@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { ReviewSession, type SessionItem } from "@/components/ReviewSession";
 import { Button } from "@/components/ui/button";
 import { selectTrainingList, trainingListsQuery } from "@/lib/training-lists";
-import { useActiveHomeworkId, useHomeworkTimer } from "@/lib/study-time";
+import { useActiveHomework, useHomeworkTimer } from "@/lib/study-time";
 
 const MODES: DailyMode[] = ["flashcard", "choice", "speaking", "typing", "context", "dictation", "listen"];
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing", listen: "translation" } as const;
@@ -34,7 +34,8 @@ function Daily() {
   const listId = selectTrainingList(lists ?? [], requestedList);
   const selectedList = lists?.find((list) => list.id === listId);
   const { data } = useQuery({ ...dailyQuery(me?.id ?? "", me?.classId ?? "", listId), enabled: Boolean(me?.classId && lists), staleTime: Infinity });
-  useHomeworkTimer(useActiveHomeworkId(listId ?? "", undefined));
+  const active = useActiveHomework(listId ?? "", undefined);
+  useHomeworkTimer(active.id);
   // Freeze the selection once loaded so it does not change mid-session.
   const frozen = useMemo<SessionItem[] | null>(() => {
     if (!data) return null;
@@ -54,5 +55,5 @@ function Daily() {
         <Button asChild className="mt-6"><Link to="/eleve">Accueil</Link></Button>
       </div>
     );
-  return <ReviewSession key={`${listId ?? "none"}:${mode ?? "daily"}`} title={`${selectedList?.title ?? "Séance du jour"}${mode ? ` · ${MODE_LABELS[mode] ?? "Entraînement"}` : ""}`} items={frozen} pool={data.words} onQuit={() => navigate({ to: "/eleve" })} />;
+  return <ReviewSession key={`${listId ?? "none"}:${mode ?? "daily"}`} title={`${selectedList?.title ?? "Séance du jour"}${mode ? ` · ${MODE_LABELS[mode] ?? "Entraînement"}` : ""}`} items={frozen} pool={data.words} {...(active.id ? { homeworkId: active.id, homeworkWords: active.wordIds } : {})} onQuit={() => navigate({ to: "/eleve" })} />;
 }

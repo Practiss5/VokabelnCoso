@@ -42,16 +42,21 @@ function sendTime(hw: string, seconds: number) {
 
 /** Active (not overdue) homework of the student's class for this list, earliest due first. */
 export function useActiveHomeworkId(listId: string, explicit: string | undefined) {
-  const [id, setId] = useState<string | undefined>(explicit);
+  return useActiveHomework(listId, explicit).id;
+}
+
+/** Same, with the homework's frozen words (null = whole list) so free practice can tag its answers. */
+export function useActiveHomework(listId: string, explicit: string | undefined) {
+  const [hw, setHw] = useState<{ id: string | undefined; wordIds: string[] | null }>({ id: explicit, wordIds: null });
   useEffect(() => {
-    if (explicit) { setId(explicit); return; }
+    if (explicit) { setHw({ id: explicit, wordIds: null }); return; }
     let off = false;
-    void supabase.from("homeworks").select("id").eq("list_id", listId)
+    void supabase.from("homeworks").select("id, word_ids").eq("list_id", listId).is("archived_at", null)
       .gt("due_at", new Date().toISOString()).order("due_at", { ascending: true }).limit(1)
-      .then(({ data }) => { if (!off) setId(data?.[0]?.id ?? undefined); });
+      .then(({ data }) => { if (!off) setHw({ id: data?.[0]?.id ?? undefined, wordIds: data?.[0]?.word_ids ?? null }); });
     return () => { off = true; };
   }, [listId, explicit]);
-  return id;
+  return hw;
 }
 
 /** Silently records active time on a homework (never shown to the student). */

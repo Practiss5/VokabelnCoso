@@ -9,6 +9,9 @@ import { ERROR_LABELS, isMastered } from "@/lib/vocab";
 import { TeacherHomework } from "@/components/Homework";
 import { StudentCodes } from "@/components/StudentCodes";
 import { fetchAllReviews } from "@/lib/fetch-all";
+import { formatDuration } from "@/lib/study-time";
+import { compareStudentLabels } from "@/lib/utils";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/enseignant/classes/$classId")({
   head: () => ({ meta: [{ title: "Classe — Vocabulaire Allemand" }, { name: "description", content: "Progrès des élèves de la classe." }, { property: "og:title", content: "Classe — Vocabulaire Allemand" }, { property: "og:description", content: "Progrès des élèves de la classe." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -32,20 +35,24 @@ function ClassPage() {
       if (cls.error) throw cls.error;
       const students = (await supabase.from("profiles").select("id, full_name").eq("class_id", classId).order("full_name")).data ?? [];
       const ids = students.map((s) => s.id);
-      const [reviews, progress, lists, codes] = await Promise.all([
+      const [reviews, progress, lists, codes, hws] = await Promise.all([
         ids.length ? fetchAllReviews((from, to) => supabase.from("reviews").select("student_id, word_id, correct, created_at, error_type, words(german, french)").in("student_id", ids).order("created_at").order("id").range(from, to)).then((data) => ({ data })) : Promise.resolve({ data: [] }),
         ids.length ? fetchAllReviews((from, to) => supabase.from("skill_progress").select("student_id, word_id, skill, step").in("student_id", ids).order("student_id").order("word_id").order("skill").range(from, to)).then((data) => ({ data })) : Promise.resolve({ data: [] }),
         supabase.from("list_assignments").select("vocab_lists(id, title)").eq("class_id", classId),
         supabase.from("student_codes").select("student_id, label").eq("class_id", classId),
+        supabase.from("homeworks").select("id, list_id").eq("class_id", classId),
       ]);
+      const hwList = new Map((hws.data ?? []).map((h) => [h.id, h.list_id]));
+      const times = hwList.size ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", [...hwList.keys()])).data ?? [] : [];
       const labelByStudent = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
       const rows = students.map((s) => {
         const r = (reviews.data ?? []).filter((x) => x.student_id === s.id);
         const p = (progress.data ?? []).filter((x) => x.student_id === s.id);
         const correct = r.filter((x) => x.correct).length;
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
-        return { ...s, label: labelByStudent.get(s.id) ?? "", total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last };
-      });
+        return { ...s, label: labelByStudent.get(s.id) ?? "", total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last,
+          time: times.filter((t) => t.student_id === s.id).map((t) => ({ list: hwList.get(t.homework_id) ?? "", seconds: t.seconds })) };
+      }).sort((a, b) => compareStudentLabels(a.label || a.full_name || "", b.label || b.full_name || ""));
       // Hardest words for the class: most errors, then lowest success rate.
       const byWord = new Map<string, { german: string; french: string; ok: number; ko: number; students: Set<string>; errs: Record<string, number> }>();
       for (const r of reviews.data ?? []) {
@@ -87,6 +94,7 @@ function ClassPage() {
     qc.invalidateQueries({ queryKey: ["class", classId] });
   }
 
+  const [timeList, setTimeList] = useState("");
   if (!data) return <p>Chargement…</p>;
   return (
     <div className="space-y-6">
@@ -110,9 +118,15 @@ function ClassPage() {
       <StudentCodes classId={classId} />
       <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.label || r.full_name }))} />
       <section className="word-card overflow-x-auto p-0">
+        <label className="flex flex-wrap items-center gap-2 p-3 text-sm">Temps passé sur
+          <select value={timeList} onChange={(e) => setTimeList(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2">
+            <option value="">Tous les chapitres</option>
+            {data.lists.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
+          </select>
+        </label>
         <table className="w-full text-sm">
           <thead className="bg-muted text-left">
-            <tr><th className="p-3">Élève</th><th className="p-3">Réponses</th><th className="p-3">Réussite</th><th className="p-3">Mots vus</th><th className="p-3">Maîtrisés</th><th className="p-3">Dernière révision</th></tr>
+            <tr><th className="p-3">Élève</th><th className="p-3">Réponses</th><th className="p-3">Réussite</th><th className="p-3">Mots vus</th><th className="p-3">Maîtrisés</th><th className="p-3">Temps</th><th className="p-3">Dernière révision</th></tr>
           </thead>
           <tbody className="divide-y">
             {data.rows.map((r) => (
@@ -122,10 +136,11 @@ function ClassPage() {
                 <td className="p-3">{r.rate === null ? "—" : `${r.rate} %`}</td>
                 <td className="p-3">{r.seen}</td>
                 <td className="p-3">{r.mastered}</td>
+                <td className="p-3">{formatDuration(r.time.filter((t) => !timeList || t.list === timeList).reduce((a, t) => a + t.seconds, 0))}</td>
                 <td className="p-3">{r.last ? new Date(r.last).toLocaleString("fr-FR") : "—"}</td>
               </tr>
             ))}
-            {data.rows.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">Aucun élève. Donnez-leur le code de classe pour s'inscrire.</td></tr>}
+            {data.rows.length === 0 && <tr><td colSpan={7} className="p-4 text-muted-foreground">Aucun élève. Donnez-leur le code de classe pour s'inscrire.</td></tr>}
           </tbody>
         </table>
       </section>

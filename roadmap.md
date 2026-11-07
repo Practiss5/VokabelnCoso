@@ -16,6 +16,10 @@
 - [x] Dix mascottes de face avec accessoires dessinés sur la tête, le corps ou dans la patte ; rendu partagé duels/quiz/vestiaire. Affichage et sélection vérifiés sur ordinateur/mobile avec sauvegarde interceptée, sans modification de compte ; 7 tests et build OK.
 - [x] Tenue de mascotte sauvegardée sur le compte (profiles.outfit + save_my_outfit) et affichée comme avatar dans le quiz en classe, les duels et le record de classe ; non testée avec un vrai compte élève.
 
+- [x] Révisions libres pendant un devoir actif rattachées à ce devoir (réponses + temps) ; rien avant l'attribution ne compte.
+- [x] Colonne « Temps » par chapitre dans le tableau de la classe.
+- [x] Élèves classés de 1 à 30 (devoirs et tableau).
+
 ## Propositions en attente de choix
 - [ ] PWA (bouton d'installation smartphone)
 - [ ] Import rapide de listes (« die Hose = le pantalon »)

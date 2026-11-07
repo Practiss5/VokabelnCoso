@@ -12,7 +12,7 @@ import { MatchGame } from "@/components/MatchGame";
 import { WortTetris } from "@/components/WortTetris";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { useHomeworkTimer, useActiveHomeworkId } from "@/lib/study-time";
+import { useHomeworkTimer, useActiveHomework } from "@/lib/study-time";
 
 type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation" | "listen" | "choice_de_fr" | "choice_fr_de" | "listen_de_fr" | "listen_fr_de";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", listen: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
@@ -59,7 +59,8 @@ function Review() {
   const [title, setTitle] = useState("");
   const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
   const { devoir, exo } = Route.useSearch();
-  useHomeworkTimer(useActiveHomeworkId(listId, devoir));
+  const active = useActiveHomework(listId, devoir);
+  useHomeworkTimer(active.id);
   // Homework: only its words and its required exercises.
   const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: HwRequirements | null; created_at: string; due_at: string; coverage: boolean } | null>(null);
   useEffect(() => {
@@ -149,7 +150,7 @@ function Review() {
     );
 
   return (
-    <ReviewSession key={sessionNumber} title={title} {...(hw && devoir ? { homeworkId: devoir } : {})} pool={session.pool} onQuit={() => setMode(null)}
+    <ReviewSession key={sessionNumber} title={title} {...(hw && devoir ? { homeworkId: devoir } : active.id ? { homeworkId: active.id, homeworkWords: active.wordIds } : {})} pool={session.pool} onQuit={() => setMode(null)}
       items={session.items}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
       endActions={hw && devoir && me ? <HomeworkEndActions studentId={me.id} homeworkId={devoir} sessionNumber={sessionNumber} hw={hw}
