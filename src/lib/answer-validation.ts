@@ -28,7 +28,9 @@ export function validateAnswer(word: Word, input: z.infer<typeof answerSchema>) 
     correct = isSpokenCorrect(input._alternatives ?? [given], word.german);
   } else {
     const forms = verbForms(word.german);
-    correct = forms ? checkVerbForms(given.split(","), forms).verdict === "correct" : isWrittenCorrect(given, word.german);
+    // Dictation shares the typing skill, but submits the full spoken text in one box.
+    // Accept that text without audible separators, while preserving guided verb answers.
+    correct = isWrittenCorrect(given, word.german) || (forms !== null && checkVerbForms(given.split(","), forms).verdict === "correct");
   }
   const error = correct ? null : input._mode === "context" ? "context" : /^(choice|listen)/.test(input._mode) ? "translation" : diagnoseAnswer(input._mode === "speaking" ? cleanSpoken(given) : given, word.german) ?? "unknown";
   return { correct, error, given };

@@ -25,6 +25,17 @@ describe("server answer validation", () => {
       expect(validateAnswer(verb, answerSchema.parse({ _word: word.id, _mode: "typing", _given: given, _correct: !expected })).correct).toBe(expected);
     }
   });
+  it("accepts complete dictated verb forms without commas, independently of claimed correctness", () => {
+    const verb = { ...word, german: "fahren, er fährt, ist gefahren" };
+    const result = validateAnswer(verb, answerSchema.parse({ _word: word.id, _mode: "typing", _given: "fahren er fährt ist gefahren", _correct: false }));
+    expect(result).toEqual({ correct: true, error: null, given: "fahren er fährt ist gefahren" });
+  });
+  it("still rejects missing, incorrect or reordered dictated verb forms", () => {
+    const verb = { ...word, german: "fahren, er fährt, ist gefahren" };
+    for (const given of ["fahren er fährt", "fahren er fährt hat gefahren", "fahren ist gefahren er fährt"]) {
+      expect(validateAnswer(verb, answerSchema.parse({ _word: word.id, _mode: "typing", _given: given, _correct: true })).correct).toBe(false);
+    }
+  });
   it("checks context and speech independently of the claimed result", () => {
     const clozeWord = { ...word, example_de: "Ich sehe [die Stadt]." };
     expect(validateAnswer(clozeWord, answerSchema.parse({ _word: word.id, _mode: "context", _given: "dieStadt", _correct: false })).correct).toBe(true);
