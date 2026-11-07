@@ -59,8 +59,30 @@ export function useActiveHomework(listId: string, explicit: string | undefined) 
   return hw;
 }
 
+/** Sends general learning time (any exercise) attributed to a list via list / duel / quiz id. */
+function sendStudy(kind: StudyKind, ref: string, seconds: number) {
+  const url = `${import.meta.env['VITE_SUPABASE_URL']}/rest/v1/rpc/add_study_time`;
+  const key = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as string;
+  const args = { _kind: kind, _ref: ref, _seconds: seconds };
+  if (!cachedToken) { void (supabase.rpc as unknown as (n: string, a: object) => Promise<unknown>)("add_study_time", args); return; }
+  void fetch(url, {
+    method: "POST", keepalive: true, body: JSON.stringify(args),
+    headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${cachedToken}` },
+  }).catch(() => {});
+}
+export type StudyKind = "list" | "duel" | "quiz";
+
+/** Silently records active time on any exercise (free practice, games, duels, class quiz). */
+export function useStudyTimer(kind: StudyKind, ref: string | undefined | null) {
+  useActiveTimer(ref ? `${kind}:${ref}` : undefined, (s) => ref && sendStudy(kind, ref, s));
+}
+
 /** Silently records active time on a homework (never shown to the student). */
 export function useHomeworkTimer(homeworkId: string | undefined) {
+  useActiveTimer(homeworkId, (s) => homeworkId && sendTime(homeworkId, s));
+}
+
+function useActiveTimer(homeworkId: string | undefined, send: (s: number) => unknown) {
   useEffect(() => {
     if (!homeworkId) return;
     let last = Date.now();
@@ -71,7 +93,7 @@ export function useHomeworkTimer(homeworkId: string | undefined) {
     const flush = () => {
       if (pending <= 0) return;
       const s = Math.min(pending, 120); pending = 0;
-      sendTime(homeworkId, s);
+      send(s);
     };
     const tick = setInterval(() => {
       if (isActiveSecond(document.visibilityState === "visible", last, Date.now())) pending++;

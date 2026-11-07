@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useStudyTimer } from "@/lib/study-time";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/Wardrobe";
@@ -15,6 +16,7 @@ export function duelOutcome(me: { score: number; ms: number }, opp: { score: num
 }
 
 function Play({ duelId, onEnd }: { duelId: string; onEnd: () => void }) {
+  useStudyTimer("duel", duelId);
   const { data: q, refetch } = useQuery({
     queryKey: ["duel-q", duelId],
     queryFn: async () => { const { data, error } = await supabase.rpc("duel_question", { _duel: duelId }); if (error) throw error; return data as Q; },

@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { ReviewSession, type SessionItem } from "@/components/ReviewSession";
 import { Button } from "@/components/ui/button";
 import { selectTrainingList, trainingListsQuery } from "@/lib/training-lists";
-import { useActiveHomework, useHomeworkTimer } from "@/lib/study-time";
+import { useActiveHomework, useHomeworkTimer, useStudyTimer } from "@/lib/study-time";
 
 const MODES: DailyMode[] = ["flashcard", "choice", "speaking", "typing", "context", "dictation", "listen"];
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing", listen: "translation" } as const;
@@ -36,6 +36,7 @@ function Daily() {
   const { data } = useQuery({ ...dailyQuery(me?.id ?? "", me?.classId ?? "", listId), enabled: Boolean(me?.classId && lists), staleTime: Infinity });
   const active = useActiveHomework(listId ?? "", undefined);
   useHomeworkTimer(active.id);
+  useStudyTimer("list", listId);
   // Freeze the selection once loaded so it does not change mid-session.
   const frozen = useMemo<SessionItem[] | null>(() => {
     if (!data) return null;

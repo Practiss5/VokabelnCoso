@@ -43,7 +43,8 @@ function ClassPage() {
         supabase.from("homeworks").select("id, list_id").eq("class_id", classId),
       ]);
       const hwList = new Map((hws.data ?? []).map((h) => [h.id, h.list_id]));
-      const times = hwList.size ? (await supabase.from("homework_time").select("homework_id, student_id, seconds").in("homework_id", [...hwList.keys()])).data ?? [] : [];
+      // All learning time (free practice, games, duels, class quiz, homework), per list.
+      const study = ids.length ? ((await (supabase.from as unknown as (t: string) => { select: (c: string) => { in: (k: string, v: string[]) => Promise<{ data: { student_id: string; list_id: string; seconds: number }[] | null }> } })("study_time").select("student_id, list_id, seconds").in("student_id", ids)).data ?? []) : [];
       const labelByStudent = new Map((codes.data ?? []).filter((c) => c.student_id).map((c) => [c.student_id as string, c.label]));
       const rows = students.map((s) => {
         const r = (reviews.data ?? []).filter((x) => x.student_id === s.id);
@@ -51,7 +52,7 @@ function ClassPage() {
         const correct = r.filter((x) => x.correct).length;
         const last = r.reduce<string | null>((m, x) => (!m || x.created_at > m ? x.created_at : m), null);
         return { ...s, label: labelByStudent.get(s.id) ?? "", total: r.length, rate: r.length ? Math.round((correct / r.length) * 100) : null, mastered: [...new Set(p.map((x) => x.word_id))].filter((id) => isMastered(p.filter((x) => x.word_id === id))).length, seen: new Set(p.map((x) => x.word_id)).size, last,
-          time: times.filter((t) => t.student_id === s.id).map((t) => ({ list: hwList.get(t.homework_id) ?? "", seconds: t.seconds })) };
+          time: study.filter((t) => t.student_id === s.id).map((t) => ({ list: t.list_id, seconds: t.seconds })) };
       }).sort((a, b) => compareStudentLabels(a.label || a.full_name || "", b.label || b.full_name || ""));
       // Hardest words for the class: most errors, then lowest success rate.
       const byWord = new Map<string, { german: string; french: string; ok: number; ko: number; students: Set<string>; errs: Record<string, number> }>();

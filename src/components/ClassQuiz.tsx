@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { answerQuiz } from "@/lib/quiz.functions";
+import { useStudyTimer } from "@/lib/study-time";
 
 type State = {
   id: string; status: string; format: string; q_idx: number; total: number; points: number; started_at: string | null;
@@ -27,6 +28,7 @@ export function StudentQuiz() {
     refetchInterval: joined ? 1500 : 8000,
   });
   useEffect(() => setTyped(""), [s?.q_idx]);
+  useStudyTimer("quiz", joined ? (s as { id?: string } | null)?.id : undefined);
   async function joinPin(e: React.FormEvent) {
     e.preventDefault();
     const { data } = await supabase.rpc("quiz_join_pin", { _pin: pin.trim() });

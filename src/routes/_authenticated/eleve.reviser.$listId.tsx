@@ -12,7 +12,7 @@ import { MatchGame } from "@/components/MatchGame";
 import { WortTetris } from "@/components/WortTetris";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { useHomeworkTimer, useActiveHomework } from "@/lib/study-time";
+import { useHomeworkTimer, useActiveHomework, useStudyTimer } from "@/lib/study-time";
 
 type Mode = "flashcard" | "choice" | "speaking" | "typing" | "context" | "dictation" | "listen" | "choice_de_fr" | "choice_fr_de" | "listen_de_fr" | "listen_fr_de";
 const SKILL_OF_MODE = { flashcard: "recognition", choice: "translation", listen: "translation", speaking: "speaking", typing: "writing", context: "context", dictation: "writing" } as const;
@@ -61,6 +61,7 @@ function Review() {
   const { devoir, exo } = Route.useSearch();
   const active = useActiveHomework(listId, devoir);
   useHomeworkTimer(active.id);
+  useStudyTimer("list", listId);
   // Homework: only its words and its required exercises.
   const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: HwRequirements | null; created_at: string; due_at: string; coverage: boolean } | null>(null);
   useEffect(() => {
