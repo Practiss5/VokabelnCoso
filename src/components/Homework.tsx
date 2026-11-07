@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
 import { computeBadges } from "@/lib/badges";
-import { longestRun, type WardrobeStats } from "@/lib/wardrobe";
+import { isMasteredList, longestRun, type WardrobeStats } from "@/lib/wardrobe";
 import { Wardrobe } from "@/components/Wardrobe";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
@@ -360,7 +360,6 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
         return homeworkStatus(hwWords(h), rv.filter((x) => x.created_at <= limit), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done;
       }).length;
       const badges = computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: tg.data?.[0]?.score ?? 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
-      const okWords = new Set(rv.filter((x) => x.correct).map((x) => x.word_id));
       const seen = new Set(rv.map((x) => x.word_id));
       const lists = (la.data ?? []).map((a) => ((a.vocab_lists as { words: { id: string }[] } | null)?.words ?? []).map((w) => w.id));
       const sorted = [...hws].sort((a, b) => a.due_at.localeCompare(b.due_at));
@@ -372,7 +371,7 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
         homeworksDone: status.filter((x) => x.done).length,
         onTimeRun: longestRun(status.filter((_, i) => sorted[i]!.due_at < new Date().toISOString() || status[i]!.onTime).map((x) => x.onTime)),
         duelWins: duels.filter((d) => d.my_finished && d.opp_finished && (d.my_score > d.opp_score || (d.my_score === d.opp_score && d.my_ms < d.opp_ms))).length,
-        masteredLists: lists.filter((ws) => ws.length > 0 && ws.every((id) => okWords.has(id))).length,
+        masteredLists: lists.filter((ws) => isMasteredList(ws, rv)).length,
         distinctLists: lists.filter((ws) => ws.some((id) => seen.has(id))).length,
       };
       return { badges, stats };
