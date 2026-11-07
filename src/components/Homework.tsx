@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv, homeworkStatus, HW_MODES, HW_RATES, type HwMode, type HwRequirements } from "@/lib/vocab";
 import { formatDuration } from "@/lib/study-time";
 import { computeBadges } from "@/lib/badges";
+import { longestRun, type WardrobeStats } from "@/lib/wardrobe";
+import { Wardrobe } from "@/components/Wardrobe";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -344,7 +346,7 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
     queryFn: async () => {
       const [rv, la, hwRes, tg, ms] = await Promise.all([
         fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, error_type, homework_id").eq("student_id", studentId).order("created_at").order("id").range(from, to)),
-        supabase.from("list_assignments").select("vocab_lists(words(id, german))").eq("class_id", classId),
+        supabase.from("list_assignments").select("list_id, vocab_lists(words(id, german))").eq("class_id", classId),
         supabase.from("homeworks").select(HW_SELECT).eq("class_id", classId),
         supabase.from("tetris_games").select("score").eq("student_id", studentId).order("score", { ascending: false }).limit(1),
         supabase.from("match_sessions").select("best_run").eq("student_id", studentId).order("best_run", { ascending: false }).limit(1),
@@ -357,16 +359,35 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
         const limit = new Date(new Date(h.due_at).getTime() - 86400000).toISOString();
         return homeworkStatus(hwWords(h), rv.filter((x) => x.created_at <= limit), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done;
       }).length;
-      return computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: tg.data?.[0]?.score ?? 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
+      const badges = computeBadges({ reviews: rv, germanById, earlyHomeworks, bestTetris: tg.data?.[0]?.score ?? 0, bestMatchRun: ms.data?.[0]?.best_run ?? 0 });
+      const okWords = new Set(rv.filter((x) => x.correct).map((x) => x.word_id));
+      const seen = new Set(rv.map((x) => x.word_id));
+      const lists = (la.data ?? []).map((a) => ((a.vocab_lists as { words: { id: string }[] } | null)?.words ?? []).map((w) => w.id));
+      const sorted = [...hws].sort((a, b) => a.due_at.localeCompare(b.due_at));
+      const status = sorted.map((h) => ({ done: homeworkStatus(hwWords(h), rv, h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done, onTime: homeworkStatus(hwWords(h), rv.filter((x) => x.created_at <= h.due_at), h.created_at, h.due_at, h.requirements, h.id, h.coverage_rule ?? true).done }));
+      const duels = (await supabase.rpc("my_duels")).data ?? [];
+      const stats: WardrobeStats = {
+        badges,
+        reviews: rv.length,
+        homeworksDone: status.filter((x) => x.done).length,
+        onTimeRun: longestRun(status.filter((_, i) => sorted[i]!.due_at < new Date().toISOString() || status[i]!.onTime).map((x) => x.onTime)),
+        duelWins: duels.filter((d) => d.my_finished && d.opp_finished && (d.my_score > d.opp_score || (d.my_score === d.opp_score && d.my_ms < d.opp_ms))).length,
+        masteredLists: lists.filter((ws) => ws.length > 0 && ws.every((id) => okWords.has(id))).length,
+        distinctLists: lists.filter((ws) => ws.some((id) => seen.has(id))).length,
+      };
+      return { badges, stats };
     },
   });
   if (!data) return null;
-  const won = data.filter((b) => b.level > 0).length;
+  const { badges, stats } = data;
+  const won = badges.filter((b) => b.level > 0).length;
   return (
+    <>
+    <Wardrobe studentId={studentId} stats={stats} />
     <section className="space-y-3">
-      <h2 className="text-2xl font-bold">Mes trophées <span className="text-base font-normal text-muted-foreground">{won}/{data.length}</span></h2>
+      <h2 className="text-2xl font-bold">Mes trophées <span className="text-base font-normal text-muted-foreground">{won}/{badges.length}</span></h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {data.map((b) => {
+        {badges.map((b) => {
           const next = b.levels.find((l) => b.value < l);
           return (
             <div key={b.id} className={`word-card p-3 text-center ${b.level ? "border-2 border-accent" : "opacity-60"}`}>
@@ -380,5 +401,6 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
         })}
       </div>
     </section>
+    </>
   );
 }
