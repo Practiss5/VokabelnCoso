@@ -687,6 +687,35 @@ export type Database = {
         }
         Relationships: []
       }
+      study_time: {
+        Row: {
+          list_id: string
+          seconds: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          list_id: string
+          seconds?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          list_id?: string
+          seconds?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_time_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "vocab_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tetris_games: {
         Row: {
           created_at: string
@@ -880,6 +909,10 @@ export type Database = {
     Functions: {
       add_homework_time: {
         Args: { _hw: string; _seconds: number }
+        Returns: undefined
+      }
+      add_study_time: {
+        Args: { _kind: string; _ref: string; _seconds: number }
         Returns: undefined
       }
       answer_duel: { Args: { _choice: string; _duel: string }; Returns: Json }
