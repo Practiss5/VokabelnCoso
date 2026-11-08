@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 /**
  * Gestion des codes élèves d'une classe : génération, étiquettes,
@@ -76,15 +77,19 @@ export function StudentCodes({ classId }: { classId: string }) {
   const active = list.filter((c) => !c.revoked);
 
   return (
-    <section className="word-card p-4 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold">🔑 Codes élèves</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">🔑 Codes élèves</Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pr-8">
+          <DialogTitle>🔑 Codes élèves</DialogTitle>
+          <DialogDescription>
             Chaque élève se connecte avec son code de 8 caractères, puis choisit un code secret à 6 chiffres. Aucune adresse e-mail n'est demandée.
-          </p>
-        </div>
-        <div className="flex items-end gap-2">
+          </DialogDescription>
+        </DialogHeader>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end gap-2">
           <label className="text-sm">
             Nombre
             <Input
@@ -149,6 +154,7 @@ export function StudentCodes({ classId }: { classId: string }) {
           Aucun code pour l'instant. Génère un code par élève, imprime ou copie la liste, puis distribue un code à chacun.
         </p>
       )}
-    </section>
+      </DialogContent>
+    </Dialog>
   );
 }

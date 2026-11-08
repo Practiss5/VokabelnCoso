@@ -106,6 +106,7 @@ function ClassPage() {
           <p className="mt-2">Code à donner aux élèves : <span className="rounded bg-accent px-2 py-1 font-mono text-lg font-bold">{data.cls.join_code}</span></p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <StudentCodes classId={classId} />
           <Button variant="outline" onClick={toggleDuels}>{data.cls.duels_enabled ? "⚔️ Désactiver les duels" : "⚔️ Activer les duels"}</Button>
           <Button asChild><Link to="/enseignant/quiz/$classId" params={{ classId }}>📺 Quiz au tableau</Link></Button>
           <Button variant="outline" asChild><Link to="/enseignant/bilan/$classId" params={{ classId }}>📄 Fiches bilan</Link></Button>
@@ -116,7 +117,6 @@ function ClassPage() {
       <p className="text-sm text-muted-foreground">
         Listes attribuées : {data.lists.length ? data.lists.map((l) => l.title).join(", ") : "aucune"}
       </p>
-      <StudentCodes classId={classId} />
       <TeacherHomework classId={classId} students={data.rows.map((r) => ({ id: r.id, full_name: r.label || r.full_name }))} />
       <section className="word-card overflow-x-auto p-0">
         <label className="flex flex-wrap items-center gap-2 p-3 text-sm">Temps passé sur
