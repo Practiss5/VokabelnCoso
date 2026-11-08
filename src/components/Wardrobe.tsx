@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ITEMS, MASCOTS, SLOT_LABELS, type Slot, type WardrobeStats } from "@/lib/wardrobe";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function Wardrobe({ studentId, stats }: { studentId: string; stats: Wardr
   const key = `vokabeln:outfit:${studentId}`;
   const [outfit, setOutfit] = useState<Outfit>({ mascot: "dackel" });
   const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
   useEffect(() => {
     try { const v = localStorage.getItem(key); if (v) setOutfit(JSON.parse(v)); } catch { /* ignore */ }
     // The account copy wins over the device cache.
@@ -40,13 +42,13 @@ export function Wardrobe({ studentId, stats }: { studentId: string; stats: Wardr
   const save = (o: Outfit) => {
     setOutfit(o);
     localStorage.setItem(key, JSON.stringify(o));
-    void supabase.rpc("save_my_outfit", { _outfit: o });
+    void supabase.rpc("save_my_outfit", { _outfit: o }).then(() => qc.invalidateQueries({ queryKey: ["outfit", studentId] }));
   };
   const unlocked = ITEMS.filter((i) => i.unlocked(stats)).length;
   const mascot = MASCOTS.find((m) => m.id === outfit.mascot) ?? MASCOTS[0];
 
   return (
-    <section className="space-y-3">
+    <section id="vestiaire" className="scroll-mt-24 space-y-3">
       <div className="word-card flex flex-wrap items-center gap-4 p-4">
         <Avatar outfit={outfit} />
         <div className="flex-1">

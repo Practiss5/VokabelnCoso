@@ -7,7 +7,7 @@ import { DAILY_GOAL, nextHomeworkMode, computeStreak, dueCountdown, homeworkCsv,
 import { formatDuration } from "@/lib/study-time";
 import { computeBadges } from "@/lib/badges";
 import { isMasteredList, longestRun, type WardrobeStats } from "@/lib/wardrobe";
-import { Wardrobe } from "@/components/Wardrobe";
+import { Avatar, Wardrobe } from "@/components/Wardrobe";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,7 +312,71 @@ export function StudentHomework({ studentId, classId }: { studentId: string; cla
 
 /** Student: daily streak ("série") with a flame. */
 export function StudentStreak({ studentId }: { studentId: string }) {
-  const { data } = useQuery({
+  const { data } = useQuery(streakQuery(studentId));
+  if (!data) return null;
+  const msg = data.days === 0 ? `Fais tes ${DAILY_GOAL} mots aujourd'hui pour allumer ta flamme !` : data.today ? "Objectif du jour atteint. Reviens demain pour entretenir ta flamme !" : `Fais tes ${DAILY_GOAL} mots aujourd'hui pour garder ta série !`;
+  return (
+    <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
+      <span aria-hidden className={`text-4xl ${data.days ? "" : "opacity-30 grayscale"}`}>🔥</span>
+      <div>
+        <p className="text-xl font-bold">Série : {data.days} jour{data.days > 1 ? "s" : ""}</p>
+        <p className="text-sm text-muted-foreground">{msg}</p>
+      </div>
+    </section>
+  );
+}
+
+/** Coach message: what matters most right now (urgent homework first, then the daily flame). */
+export function coachMessage(
+  items: { h: { due_at: string; vocab_lists: { title: string } | null }; r: { done: boolean; parts: { key: string; got: number; need: number; covered?: number; total?: number }[] } }[],
+  streak: { days: number; today: boolean } | undefined,
+  now: number = Date.now(),
+): string {
+  const todo = items.filter((x) => !x.r.done).sort((a, b) => a.h.due_at.localeCompare(b.h.due_at));
+  const first = todo[0];
+  if (first) {
+    const title = first.h.vocab_lists?.title ?? "ton devoir";
+    const left = first.r.parts.filter((p) => nextHomeworkMode([p]) !== null).length;
+    const ex = `${left} exercice${left > 1 ? "s" : ""} à terminer`;
+    const ms = new Date(first.h.due_at).getTime() - now;
+    if (ms <= 0) return `Ton devoir « ${title} » est en retard : il te reste ${ex}. Tu peux encore le rattraper !`;
+    if (ms < 86400000) return `Vite ! Ton devoir « ${title} » est pour bientôt : il te reste ${ex}.`;
+    const started = first.r.parts.some((p) => p.got > 0);
+    return started ? `Continue ton devoir « ${title} » : plus que ${ex}, tu y es presque !` : `Un nouveau devoir t'attend : « ${title} ». Commence-le dès maintenant !`;
+  }
+  if (streak?.today) return `Devoirs à jour et flamme allumée, bravo ! Tu peux jouer ou t'entraîner librement.`;
+  if (streak && streak.days > 0) return `Devoirs à jour ! Fais tes ${DAILY_GOAL} mots du jour pour garder ta série de ${streak.days} jour${streak.days > 1 ? "s" : ""} 🔥`;
+  return `Devoirs à jour ! Fais tes ${DAILY_GOAL} mots du jour pour allumer ta flamme 🔥`;
+}
+
+/** Student: mascot with a speech bubble and a compact flame, at the top of the home page. */
+export function StudentCoach({ studentId, classId }: { studentId: string; classId: string }) {
+  const { data: hw } = useQuery(myHomeworksQuery(studentId, classId));
+  const { data: streak } = useQuery(streakQuery(studentId));
+  const { data: outfit } = useQuery({
+    queryKey: ["outfit", studentId],
+    queryFn: async () => (await supabase.from("profiles").select("outfit").eq("id", studentId).single()).data?.outfit ?? {},
+  });
+  const msg = hw ? coachMessage(hw, streak) : "Chargement…";
+  return (
+    <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
+      <a href="#vestiaire" aria-label="Habiller ma mascotte" className="shrink-0 transition-transform hover:scale-105"><Avatar outfit={outfit} size={64} /></a>
+      <div className="relative flex-1 rounded-2xl bg-secondary p-3 text-secondary-foreground">
+        <span aria-hidden className="absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 bg-secondary" />
+        <p className="relative font-semibold">{msg}</p>
+      </div>
+      {streak && (
+        <div className="shrink-0 text-center" title={`Série de ${streak.days} jour${streak.days > 1 ? "s" : ""}`}>
+          <span aria-hidden className={`block text-3xl ${streak.days ? "" : "opacity-30 grayscale"}`}>🔥</span>
+          <span className="text-sm font-bold">{streak.days} j</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function streakQuery(studentId: string) {
+  return {
     queryKey: ["streak", studentId],
     queryFn: async () => {
       const since = new Date(Date.now() - 400 * 86400000).toISOString();
@@ -325,18 +389,7 @@ export function StudentStreak({ studentId }: { studentId: string }) {
       for (const g of mg.data ?? []) for (let i = 0; i < g.pairs; i++) dates.push(g.created_at);
       return computeStreak(dates, new Date());
     },
-  });
-  if (!data) return null;
-  const msg = data.days === 0 ? `Fais tes ${DAILY_GOAL} mots aujourd'hui pour allumer ta flamme !` : data.today ? "Objectif du jour atteint. Reviens demain pour entretenir ta flamme !" : `Fais tes ${DAILY_GOAL} mots aujourd'hui pour garder ta série !`;
-  return (
-    <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
-      <span aria-hidden className={`text-4xl ${data.days ? "" : "opacity-30 grayscale"}`}>🔥</span>
-      <div>
-        <p className="text-xl font-bold">Série : {data.days} jour{data.days > 1 ? "s" : ""}</p>
-        <p className="text-sm text-muted-foreground">{msg}</p>
-      </div>
-    </section>
-  );
+  };
 }
 
 /** Student: trophy shelf; unlocked badges in colour, others greyed out with their rule. */
@@ -385,16 +438,15 @@ export function StudentBadges({ studentId, classId }: { studentId: string; class
     <Wardrobe studentId={studentId} stats={stats} />
     <section className="space-y-3">
       <h2 className="text-2xl font-bold">Mes trophées <span className="text-base font-normal text-muted-foreground">{won}/{badges.length}</span></h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7">
         {badges.map((b) => {
           const next = b.levels.find((l) => b.value < l);
           return (
-            <div key={b.id} className={`word-card p-3 text-center ${b.level ? "border-2 border-accent" : "opacity-60"}`}>
-              <div aria-hidden className={`text-4xl ${b.level ? "" : "grayscale"}`}>{b.icon}</div>
-              <p className="mt-1 font-bold">{b.name}{b.levels.length > 1 && b.level > 0 ? ` · niv. ${b.level}` : ""}</p>
-              <p className="text-xs text-muted-foreground">{b.rule}</p>
-              {next !== undefined && b.levels.length > 0 && next > 1 && <p className="mt-1 text-xs font-semibold">{Math.min(b.value, next)}/{next}</p>}
-              {b.level > 0 && next === undefined && <p className="mt-1 text-xs font-semibold text-success">Débloqué ✓</p>}
+            <div key={b.id} title={b.rule} className={`word-card p-2 text-center ${b.level ? "border-2 border-accent" : "opacity-60"}`}>
+              <div aria-hidden className={`text-2xl ${b.level ? "" : "grayscale"}`}>{b.icon}</div>
+              <p className="text-xs font-bold leading-tight">{b.name}{b.levels.length > 1 && b.level > 0 ? ` · ${b.level}` : ""}</p>
+              {next !== undefined && b.levels.length > 0 && next > 1 && <p className="text-[11px] text-muted-foreground">{Math.min(b.value, next)}/{next}</p>}
+              {b.level > 0 && next === undefined && <p className="text-[11px] font-semibold text-success">✓</p>}
             </div>
           );
         })}

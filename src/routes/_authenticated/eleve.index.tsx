@@ -7,7 +7,7 @@ import { meQuery } from "@/lib/session";
 import { DAILY_GOAL, isMastered, REASON_LABELS } from "@/lib/vocab";
 import { dailyQuery } from "@/lib/daily";
 import { AppShell } from "@/components/AppShell";
-import { hasPendingHomework, myHomeworksQuery, StudentBadges, StudentHomework, StudentStreak } from "@/components/Homework";
+import { hasPendingHomework, myHomeworksQuery, StudentBadges, StudentCoach, StudentHomework } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,20 +29,22 @@ function StudentHome() {
   if (!me?.classId) return <JoinClass />;
   return (
     <div className="space-y-10">
-      <div>
-        <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
-        <h1 className="text-4xl font-bold">Aujourd'hui</h1>
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
+          <h1 className="text-4xl font-bold">Aujourd'hui</h1>
+        </div>
+        <StudentCoach studentId={me.id} classId={me.classId} />
+        <StudentQuiz />
+        <StudentHomework studentId={me.id} classId={me.classId} />
+        <DailyIfNoHomework studentId={me.id} classId={me.classId} />
       </div>
-      <StudentQuiz />
-      <StudentStreak studentId={me.id} />
-      <StudentHomework studentId={me.id} classId={me.classId} />
-      <DailyIfNoHomework studentId={me.id} classId={me.classId} />
-      <ChooseStep />
-      <StudentBadges studentId={me.id} classId={me.classId} />
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">Mes listes</h2>
         <MyLists />
       </section>
+      <ChooseStep />
+      <StudentBadges studentId={me.id} classId={me.classId} />
     </div>
   );
 }
@@ -215,10 +217,14 @@ function ChooseStep() {
       <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
       <TrainingListChoice id="training-list" lists={lists} listId={listId} onChange={setChosenList} />
       {listId && <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <h3 className="text-lg font-semibold text-muted-foreground">📚 Apprendre</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {STEPS.map((s) => (
-          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode, listId }} className="word-card p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
+          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode, listId }} className="word-card p-3 text-center font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
         ))}
+      </div>
+      <h3 className="text-lg font-semibold text-muted-foreground">🎮 Jouer & défier</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ jeu: true }} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</Link>
         <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ tetris: true }} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</Link>
       </div>
