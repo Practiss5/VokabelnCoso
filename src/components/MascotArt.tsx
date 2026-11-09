@@ -2,68 +2,174 @@ import type { Slot } from "@/lib/wardrobe";
 
 type Props = { mascot: string; outfit?: Partial<Record<Slot, string>> };
 
-/** All animals share eye, neck and paw anchors in one scalable coordinate system. */
+/** Muzzle size and height per animal, in the shared coordinate system. */
+const FACE: Record<string, { rx: number; ry: number; cy: number }> = {
+  dackel: { rx: 21, ry: 12, cy: 77 },
+  bernhardiner: { rx: 19, ry: 13, cy: 76 },
+  baer: { rx: 18, ry: 13, cy: 75 },
+  wolf: { rx: 16, ry: 11, cy: 77 },
+  fuchs: { rx: 15, ry: 10, cy: 77 },
+  murmeltier: { rx: 14, ry: 10, cy: 76 },
+  eichhoernchen: { rx: 12, ry: 9, cy: 75 },
+  steinbock: { rx: 13, ry: 10, cy: 77 },
+  igel: { rx: 14, ry: 9, cy: 79 },
+  eule: { rx: 0, ry: 0, cy: 0 },
+};
+
+/** Spiky halo behind the hedgehog's head. */
+function spikesPath(cx: number, cy: number, outer: number, inner: number, n = 14) {
+  let d = "";
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? inner : outer;
+    const a = (Math.PI * i) / n - Math.PI / 2;
+    d += `${i ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)}`;
+  }
+  return d + "Z";
+}
+
+const POINTED = ["fuchs", "wolf", "eichhoernchen"];
+const FLOPPY = ["dackel", "bernhardiner"];
+
+/**
+ * Full-body standing mascots in one shared coordinate system (viewBox 0 0 200 250).
+ * Ears, eye line (y=56), neck, torso, right paw (140,152) and feet anchors are identical
+ * for every animal, so hats, glasses, outfits and held items always land in the same place.
+ */
 export function MascotArt({ mascot, outfit = {} }: Props) {
-  const pointed = ["fuchs", "wolf", "eichhoernchen", "eule"].includes(mascot);
-  const dog = mascot === "dackel" || mascot === "bernhardiner";
   const fur = "var(--mascot-fur)", shade = "var(--mascot-shade)", light = "var(--mascot-light)";
   const ink = "var(--avatar-ink)", white = "var(--avatar-white)", gold = "var(--avatar-gold)";
   const blue = "var(--avatar-blue)", red = "var(--avatar-red)", green = "var(--avatar-green)";
+  const cloth = "var(--mascot-cloth)", clothShade = "var(--mascot-cloth-shade)";
+  const pants = "var(--mascot-pants)", shoe = "var(--mascot-shoe)", bread = "var(--mascot-bread)";
+
+  const owl = mascot === "eule";
+  const spikes = mascot === "igel";
+  const shortLegs = mascot === "dackel";
+  const legH = shortLegs ? 26 : 44;
+  const shoeY = 148 + legH;
+  const groundY = shoeY + 20;
+  const face = FACE[mascot] ?? { rx: 15, ry: 11, cy: 76 };
+
   return (
-    <svg viewBox="0 0 200 200" aria-hidden="true" className="mascot-art" data-mascot={mascot} fill="none" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 200 250" aria-hidden="true" className="mascot-art" data-mascot={mascot}
+      fill="none" strokeLinecap="round" strokeLinejoin="round">
+      {/* ---------- backdrops ---------- */}
       <g className="mascot-scenery">
-        {outfit.bg === "forest" && <g fill={green}><path d="M6 154 29 102 52 154ZM146 150 170 94 194 150Z" /><path d="M27 143v39m144-44v44" stroke={shade} strokeWidth="7" /></g>}
-        {outfit.bg === "matterhorn" && <><path d="m0 171 54-104 44 104 37-119 65 119" fill={blue}/><path d="m35 104 19-37 17 41-17-9Zm82-17 18-35 20 37-19-8Z" fill={white}/></>}
-        {outfit.bg === "board" && <><rect x="7" y="32" width="186" height="124" rx="5" fill={green} stroke={shade} strokeWidth="6"/><path d="M18 53h34m-34 13h20m112 55h26m-20 14h20" stroke={white} strokeWidth="3"/></>}
-        {outfit.bg === "castle" && <g fill={light} stroke={blue} strokeWidth="2"><path d="M6 165V91h30v74m130 0V91h28v74M22 165v-41h158v41"/><path d="m4 91 17-31 17 31m125 0 17-31 17 31" fill={blue}/></g>}
-        {outfit.bg === "aurora" && <><path d="M0 23Q50 78 102 21T200 24v50Q143 16 100 78T0 70Z" fill={green} opacity=".4"/><path d="m18 28 0 8m-4-4h8m148 19v8m-4-4h8" stroke={gold} strokeWidth="2"/></>}
+        {outfit.bg === "forest" && <g fill={green}><path d="M4 202 30 132 56 202ZM144 198 172 122 200 198Z" /><path d="M28 186v16m142-8v16" stroke={shade} strokeWidth="7" /></g>}
+        {outfit.bg === "matterhorn" && <><path d="m0 236 52-126 46 126 38-140 64 140" fill={blue} /><path d="m34 150 18-40 16 42-17-8Zm84-20 18-38 20 40-19-8Z" fill={white} /></>}
+        {outfit.bg === "board" && <><rect x="6" y="24" width="188" height="182" rx="5" fill={green} stroke={shade} strokeWidth="6" /><path d="M18 48h36m-36 15h22m108 118h28m-22 16h22" stroke={white} strokeWidth="3" /></>}
+        {outfit.bg === "castle" && <g fill={light} stroke={blue} strokeWidth="2"><path d="M4 208v-84h30v84m132 0v-84h30v84M20 208v-46h160v46" /><path d="m2 124 17-32 17 32m128 0 17-32 17 32" fill={blue} /></g>}
+        {outfit.bg === "aurora" && <><path d="M0 26Q52 92 104 24T200 28v56Q146 22 102 90T0 78Z" fill={green} opacity=".4" /><path d="m18 34v9m-4-4h9m146 22v9m-4-4h9" stroke={gold} strokeWidth="2" /></>}
       </g>
-      <ellipse cx="100" cy="185" rx="58" ry="6" fill={ink} opacity=".1"/>
-      {mascot === "eichhoernchen" && <path d="M143 165c60-18 34-86 15-69-23 21 11 31-15 43" fill={fur} stroke={shade} strokeWidth="3"/>}
-      {mascot === "igel" && <path d="m41 147-17-12 12-15-13-14 16-13-7-20 19-3 0-22 22 7 9-22 18 14 18-14 9 22 22-7 0 22 19 3-7 20 16 13-13 14 12 15-17 12Z" fill={shade}/>}
-      <ellipse cx="100" cy="143" rx="43" ry="39" fill={fur}/>
-      <ellipse cx="100" cy="146" rx="26" ry="30" fill={light}/>
-      <ellipse cx="76" cy="177" rx="19" ry="9" fill={shade}/><ellipse cx="124" cy="177" rx="19" ry="9" fill={shade}/>
-      {mascot === "steinbock" && <g stroke={shade} strokeWidth="12"><path d="M63 55C34 29 51 8 62 15c-9 10-6 20 9 27M137 55c29-26 12-47 1-40 9 10 6 20-9 27"/><path d="m48 29 11-5m82 0 11 5" stroke={fur} strokeWidth="3"/></g>}
-      {pointed ? <><path d="M53 66 48 25 81 45M119 45l33-20-5 41" fill={fur} stroke={shade} strokeWidth="3"/><path d="m57 49-2-13 15 12m60 0 15-12-2 13" fill={light}/></> : dog ? <><path d="M61 49C32 36 30 98 48 108c14 8 24-27 24-45M139 49c29-13 31 49 13 59-14 8-24-27-24-45" fill={shade}/></> : <><circle cx="60" cy="48" r="18" fill={fur}/><circle cx="140" cy="48" r="18" fill={fur}/><circle cx="60" cy="48" r="10" fill={shade}/><circle cx="140" cy="48" r="10" fill={shade}/></>}
-      <path d="M100 38c-38 0-54 20-52 48 1 24 25 39 52 39s51-15 52-39c2-28-14-48-52-48" fill={fur}/>
-      {(mascot === "fuchs" || mascot === "wolf") && <path d="m51 77 21 11 28-16 28 16 21-11c-2 28-26 48-49 48S53 105 51 77" fill={light}/>}
-      {mascot === "bernhardiner" && <><path d="M100 39 89 74l11 18 11-18Z" fill={white}/><ellipse cx="75" cy="74" rx="16" ry="20" fill={shade}/><ellipse cx="125" cy="74" rx="16" ry="20" fill={shade}/></>}
-      {mascot === "eule" && <><ellipse cx="77" cy="77" rx="23" ry="25" fill={light}/><ellipse cx="123" cy="77" rx="23" ry="25" fill={light}/></>}
-      <ellipse cx="100" cy="99" rx={mascot === "eule" ? 15 : 27} ry="17" fill={light}/>
-      <g fill={ink}><ellipse cx="77" cy="76" rx="5" ry="7"/><ellipse cx="123" cy="76" rx="5" ry="7"/></g>
-      <g fill={white}><circle cx="79" cy="73" r="2"/><circle cx="125" cy="73" r="2"/></g>
-      {mascot === "eule" ? <path d="m93 93 7 12 7-12Z" fill={gold}/> : <><path d="M92 94q8-6 16 0l-8 9Z" fill={ink}/><path d="M100 102v4m-10 0q10 10 20 0" stroke={ink} strokeWidth="2"/></>}
-      {mascot === "murmeltier" && <path d="M95 112v8h10v-8m-5 0v8" fill={white} stroke={shade} strokeWidth="1"/>}
+
+      <ellipse cx="100" cy={groundY} rx="54" ry="7" fill={ink} opacity=".12" />
+
+      {/* ---------- tails (behind the body) ---------- */}
+      {mascot === "eichhoernchen" && <path d="M132 158c56-4 44-92 10-74 22 22-4 44-26 48Z" fill={fur} stroke={ink} strokeWidth="4" />}
+      {mascot === "fuchs" && <><path d="M130 156c42 8 52-30 32-52-6 24-24 30-40 24Z" fill={fur} stroke={ink} strokeWidth="4" /><path d="M156 112c8 6 12 16 10 26 8-14 6-30-10-26Z" fill={white} /></>}
+      {mascot === "wolf" && <path d="M128 158c36 10 44-16 28-38-2 20-14 24-32 18Z" fill={fur} stroke={ink} strokeWidth="4" />}
+      {mascot === "baer" && <circle cx="140" cy="150" r="9" fill={shade} stroke={ink} strokeWidth="4" />}
+
+      {/* ---------- legs, jeans, shoes ---------- */}
+      <g stroke={ink} strokeWidth="4">
+        <rect x="76" y="146" width="20" height={legH + 4} rx="9" fill={fur} />
+        <rect x="104" y="146" width="20" height={legH + 4} rx="9" fill={fur} />
+        <rect x="70" y="142" width="27" height={legH} rx="12" fill={pants} />
+        <rect x="103" y="142" width="27" height={legH} rx="12" fill={pants} />
+        <rect x="66" y="138" width="68" height="22" rx="10" fill={pants} />
+        <path d="M66 152h68" stroke={pants} strokeWidth="2" opacity=".5" />
+        <rect x="58" y={shoeY - 4} width="38" height="20" rx="10" fill={shoe} />
+        <rect x="104" y={shoeY - 4} width="38" height="20" rx="10" fill={shoe} />
+        <path d={`M60 ${shoeY + 8}h34m12 0h34`} stroke={ink} strokeWidth="3" />
+      </g>
+
+      {/* ---------- torso + base t-shirt ---------- */}
+      <path d="M70 96c20-9 40-9 60 0l6 50c-24 8-48 8-72 0Z" fill={fur} stroke={ink} strokeWidth="4" />
+      <g stroke={ink} strokeWidth="4">
+        <path d="M68 100c21-10 43-10 64 0l6 44c-25 9-51 9-76 0Z" fill={cloth} />
+        <path d="M70 100 54 108l6 18 14-7Z" fill={cloth} />
+        <path d="M130 100l16 8-6 18-14-7Z" fill={cloth} />
+        <path d="M88 98q12 9 24 0" stroke={clothShade} strokeWidth="4" />
+        <path d="M124 104l4 38c-8 3-16 4-24 4 12-12 18-26 20-42Z" fill={clothShade} stroke="none" opacity=".45" />
+      </g>
+
+      {/* ---------- arms + paws ---------- */}
+      <g stroke={ink} strokeWidth="4">
+        <rect x="48" y="106" width="20" height="44" rx="10" fill={fur} />
+        <rect x="132" y="106" width="20" height="44" rx="10" fill={fur} />
+        <circle cx="58" cy="152" r="11" fill={fur} />
+        <circle cx="142" cy="152" r="11" fill={fur} />
+      </g>
+
+      {/* ---------- outfits over the torso ---------- */}
+      <g stroke={ink} strokeWidth="4">
+        {outfit.neck === "tshirt" && <><path d="M68 100c21-10 43-10 64 0l6 44c-25 9-51 9-76 0Z" fill={blue} /><path d="M100 116l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1Z" fill={gold} stroke={ink} strokeWidth="2" /><path d="M88 98q12 9 24 0" stroke={white} strokeWidth="4" /></>}
+        {outfit.neck === "vest" && <><path d="M68 100c11-5 22-7 32-6l-2 50c-14 0-26-2-38-6Z" fill={gold} /><path d="M132 100c-11-5-22-7-32-6l2 50c14 0 26-2 38-6Z" fill={gold} /><path d="M64 132h34m4 0h34" stroke={white} strokeWidth="7" /></>}
+        {outfit.neck === "apron" && <><path d="M80 104h40l6 46c-16 5-36 5-52 0Z" fill={white} /><path d="M80 104 72 92m48 12 8-12" stroke={white} strokeWidth="5" /><path d="M88 128h24v14H88Z" stroke={shade} strokeWidth="3" /><path d="M76 92q24 12 48 0" stroke={shade} strokeWidth="4" /></>}
+      </g>
+
+      {/* ---------- neck ---------- */}
+      <path d="M88 82h24v18H88Z" fill={fur} stroke={ink} strokeWidth="4" />
+      <g stroke={ink} strokeWidth="4">
+        {outfit.neck === "scarf" && <><path d="M74 86q26 13 52 0v13q-26 13-52 0Z" fill={red} /><path d="m112 98-6 28 16 4 6-32Z" fill={red} /><path d="m108 112 16 4m-16 6 16 4" stroke={gold} strokeWidth="3" /></>}
+        {outfit.neck === "bow" && <><path d="m98 92-18-10v24l18-10Zm4 0 18-10v24l-18-10Z" fill={red} /><circle cx="100" cy="94" r="5" fill={gold} /></>}
+        {outfit.neck === "medal" && <><path d="m84 88 16 26 16-26" stroke={red} strokeWidth="7" /><circle cx="100" cy="126" r="12" fill={gold} /><path d="M100 119v13" stroke={shade} strokeWidth="3" /></>}
+      </g>
+
+      {/* ---------- head ---------- */}
+      {spikes && <path d={spikesPath(100, 60, 50, 35)} fill={shade} stroke={ink} strokeWidth="4" />}
+      {mascot === "steinbock" && <g stroke={ink} strokeWidth="4"><path d="M70 52C40 42 44 6 62 12c-12 8-8 22 8 28" fill={light} /><path d="M130 52c30-10 26-46 8-40 12 8 8 22-8 28" fill={light} /><ellipse cx="62" cy="60" rx="10" ry="6" transform="rotate(-20 62 60)" fill={fur} /><ellipse cx="138" cy="60" rx="10" ry="6" transform="rotate(20 138 60)" fill={fur} /><path d="M92 92q8 18 16 0" fill={light} /></g>}
+      {POINTED.includes(mascot) && <g fill={fur} stroke={ink} strokeWidth="4"><path d="M56 46 50 14l30 16Z" /><path d="M144 46 150 14l-30 16Z" /><path d="m60 34-3-14 14 11Zm80 0 3-14-14 11Z" fill={light} stroke="none" /></g>}
+      {mascot === "eichhoernchen" && <g fill={fur} stroke={ink} strokeWidth="3"><path d="m48 18-3-12 9 6Z" /><path d="m152 18 3-12-9 6Z" /></g>}
+      {mascot === "baer" && <g fill={fur} stroke={ink} strokeWidth="4"><circle cx="70" cy="36" r="14" /><circle cx="130" cy="36" r="14" /><circle cx="70" cy="36" r="7" fill={shade} stroke="none" /><circle cx="130" cy="36" r="7" fill={shade} stroke="none" /></g>}
+      {mascot === "murmeltier" && <g fill={fur} stroke={ink} strokeWidth="4"><circle cx="70" cy="38" r="10" /><circle cx="130" cy="38" r="10" /></g>}
+      {mascot === "igel" && <g fill={fur} stroke={ink} strokeWidth="4"><circle cx="70" cy="44" r="8" /><circle cx="130" cy="44" r="8" /></g>}
+      {FLOPPY.includes(mascot) && <g fill={shade} stroke={ink} strokeWidth="4"><path d="M66 44c-24-6-28 44-10 52 12 5 18-30 18-46Z" /><path d="M134 44c24-6 28 44 10 52-12 5-18-30-18-46Z" /></g>}
+      {owl && <g fill={fur} stroke={ink} strokeWidth="4"><path d="m72 44 6-24 16 16Z" /><path d="m128 44-6-24-16 16Z" /></g>}
+
+      <ellipse cx="100" cy="62" rx="35" ry="33" fill={fur} stroke={ink} strokeWidth="4" />
+      <path d="M126 40c10 10 12 30 2 42 8-16 6-32-2-42Z" fill={shade} opacity=".5" />
+      {mascot === "bernhardiner" && <><path d="M100 32 92 62l8 14 8-14Z" fill={white} /><ellipse cx="76" cy="56" rx="13" ry="15" fill={shade} /><ellipse cx="124" cy="56" rx="13" ry="15" fill={shade} /></>}
+      {owl && <><ellipse cx="82" cy="56" rx="17" ry="18" fill={light} stroke={ink} strokeWidth="3" /><ellipse cx="118" cy="56" rx="17" ry="18" fill={light} stroke={ink} strokeWidth="3" /></>}
+      {(mascot === "fuchs" || mascot === "wolf") && <path d="m66 62 14 8 20-11 20 11 14-8c-2 22-24 38-34 38S68 84 66 62Z" fill={light} />}
+
+      {/* ---------- muzzle + nose + mouth ---------- */}
+      {face.rx > 0 && <><ellipse cx="100" cy={face.cy} rx={face.rx} ry={face.ry} fill={light} stroke={ink} strokeWidth="3" />
+        <ellipse cx="100" cy={face.cy - (face.ry - 3)} rx="5.5" ry="4" fill={ink} />
+        <path d={`M100 ${face.cy + 1}v5m-8 0q8 8 16 0`} stroke={ink} strokeWidth="3" /></>}
+      {mascot === "murmeltier" && <path d="M95 84v9h10v-9m-5 0v9" fill={white} stroke={ink} strokeWidth="2" />}
+      {owl && <path d="m92 68 8 14 8-14Z" fill={gold} stroke={ink} strokeWidth="3" />}
+
+      {/* ---------- eyes ---------- */}
+      {owl ? <g fill={ink}><circle cx="84" cy="56" r="9" /><circle cx="116" cy="56" r="9" /><g fill={white}><circle cx="87" cy="52" r="3" /><circle cx="119" cy="52" r="3" /></g></g>
+        : <g fill={ink}><ellipse cx="86" cy="56" rx="5" ry="6.5" /><ellipse cx="114" cy="56" rx="5" ry="6.5" /><g fill={white}><circle cx="88" cy="53" r="2" /><circle cx="116" cy="53" r="2" /></g></g>}
+
+      {/* ---------- glasses ---------- */}
       <g stroke={ink} strokeWidth="3">
-        {outfit.eyes === "sport" && <><path d="m57 68 43 4 43-4-5 19-26 2-12-8-12 8-26-2Z" fill={blue}/><path d="m68 73 10 10m40-9 9 8" stroke={white}/></>}
-        {outfit.eyes === "aviator" && <><path d="M59 69h30l-2 16q-15 16-25-1Zm52 0h30l-3 15q-10 17-25 1Z" fill={blue}/><path d="M89 74h22m-52-3-8-3m90 3 8-3"/></>}
-        {outfit.eyes === "monocle" && <><circle cx="123" cy="76" r="14" stroke={gold}/><path d="M136 84q16 27 3 43" stroke={gold} strokeWidth="2"/></>}
+        {outfit.eyes === "sport" && <><path d="m62 47 38 5 38-5-4 18-22 2-10-8-10 8-22-2Z" fill={blue} /><path d="m72 53 9 9m40-8 8 8" stroke={white} /></>}
+        {outfit.eyes === "aviator" && <><path d="M70 49h30l-2 15q-16 15-26-1Z" fill={blue} /><path d="M130 49h-30l2 15q16 15 26-1Z" fill={blue} /><path d="M88 53h24m-42-3-9-3m74 3 9-3" /></>}
+        {outfit.eyes === "monocle" && <><circle cx="114" cy="56" r="14" stroke={gold} strokeWidth="4" /><path d="M127 65q16 26 3 41" stroke={gold} strokeWidth="3" /></>}
       </g>
-      <g>
-        {outfit.neck === "tshirt" && <><path d="m70 122-18 13 9 14 13-6v27h52v-27l13 6 9-14-18-13-17 6H87Z" fill={blue}/><path d="m93 142 7 15 7-15m-14 8h14" stroke={white} strokeWidth="3"/></>}
-        {outfit.neck === "apron" && <><path d="M79 121v15h42v-15m-37 16-9 37h50l-9-37" fill={white} stroke={shade} strokeWidth="3"/><path d="M89 149h22v12H89Z" stroke={shade} strokeWidth="2"/></>}
-        {outfit.neck === "vest" && <><path d="m71 121-7 46h29v-35l-12-11Zm58 0 7 46h-29v-35l12-11Z" fill={gold}/><path d="M67 149h26m14 0h26" stroke={white} strokeWidth="6"/></>}
-        {outfit.neck === "scarf" && <><path d="M70 113q30 13 60 0v14q-30 13-60 0Z" fill={red}/><path d="m111 126-7 30 15 4 8-34" fill={red}/><path d="m107 144 15 4m-16 3 14 4" stroke={gold} strokeWidth="3"/></>}
-        {outfit.neck === "bow" && <><path d="m98 120-17-9v23l17-10m4-4 17-9v23l-17-10" fill={red}/><circle cx="100" cy="122" r="5" fill={gold}/></>}
-        {outfit.neck === "medal" && <><path d="m79 117 21 28 21-28" stroke={red} strokeWidth="6"/><circle cx="100" cy="150" r="12" fill={gold}/><path d="M100 143v13" stroke={shade} strokeWidth="3"/></>}
+
+      {/* ---------- held items (right paw at 142,152) ---------- */}
+      <g stroke={ink} strokeWidth="3">
+        {outfit.hand === "flag" && <><path d="M142 150V88" stroke={shade} strokeWidth="5" /><path d="M143 88h40v28h-40Z" fill={white} /><path d="M143 88h10v9h-10Zm20 0h10v9h-10Zm-10 9h10v9h-10Zm20 0h8v9h-8Zm-30 9h10v9h-10Zm20 0h10v9h-10Z" fill={ink} stroke="none" /></>}
+        {outfit.hand === "quill" && <><path d="M142 152 166 106" stroke={shade} strokeWidth="4" /><path d="M152 140c-14-31 26-56 26-42 4 20-9 35-26 42" fill={white} stroke={blue} /><path d="m152 140 22-38" stroke={blue} /></>}
+        {outfit.hand === "mic" && <><path d="m142 150 14-28" stroke={ink} strokeWidth="9" /><ellipse cx="160" cy="114" rx="11" ry="14" fill={blue} /><path d="m153 110 14 5m-13 3 12 4" stroke={white} /></>}
+        {outfit.hand === "mug" && <><path d="M148 132h28v30h-28Z" fill={white} stroke={ink} strokeWidth="4" /><path d="M176 137c18-3 18 21 0 18" stroke={ink} strokeWidth="5" /><path d="M158 128q-6-7 0-13m12 13q-6-7 0-13" stroke={clothShade} strokeWidth="3" /></>}
+        {outfit.hand === "pretzel" && <path d="M152 158c-26-14-21-36-9-32 10 3 5 24-4 23-14-2-1-30 13-14 13-16 27 12 13 14-9 1-15-20-4-23 12-4 18 17-8 32Z" stroke={bread} strokeWidth="9" />}
       </g>
-      <g>
-        {outfit.hand === "flag" && <><path d="M140 156V99" stroke={shade} strokeWidth="4"/><path d="M141 99h38v27h-38Z" fill={white}/><path d="M141 99h10v9h-10Zm20 0h10v9h-10Zm-10 9h10v9h-10Zm20 0h8v9h-8Zm-30 9h10v9h-10Zm20 0h10v9h-10Z" fill={ink}/></>}
-        {outfit.hand === "quill" && <><path d="M140 157 162 110" stroke={shade} strokeWidth="3"/><path d="M147 145c-13-31 26-54 25-40 4 19-8 34-25 40" fill={white} stroke={blue} strokeWidth="2"/><path d="m147 145 22-37" stroke={blue} strokeWidth="2"/></>}
-        {outfit.hand === "mic" && <><path d="m141 155 10-29" stroke={ink} strokeWidth="9"/><ellipse cx="154" cy="120" rx="10" ry="13" fill={blue} stroke={ink} strokeWidth="2"/><path d="m147 117 13 4m-12 2 11 4" stroke={white} strokeWidth="2"/></>}
-        {outfit.hand === "mug" && <><path d="M141 128h26v28h-26Z" fill={white} stroke={blue} strokeWidth="2"/><path d="M167 132c17-3 17 19 0 16" stroke={blue} strokeWidth="4"/><path d="M147 120q-7-7 0-13m11 13q-7-7 0-13" stroke={shade} strokeWidth="2"/></>}
-        {outfit.hand === "pretzel" && <><path d="M150 152c-25-14-20-34-8-30 10 3 5 23-4 22-14-2-1-28 12-13 13-15 26 11 12 13-9 1-14-19-4-22 12-4 17 16-8 30Z" stroke={shade} strokeWidth="8"/><path d="m140 130 2 1m14 10 2 1m-9 5 2 1" stroke={white} strokeWidth="2"/></>}
-      </g>
-      <ellipse cx="63" cy="145" rx="10" ry="16" transform="rotate(-25 63 145)" fill={fur}/>
-      <ellipse cx="138" cy="151" rx="11" ry="9" fill={fur}/>
-      <path d="m134 149 1 5m5-5 1 5" stroke={shade} strokeWidth="1.5"/>
-      <g>
-        {outfit.hat === "cap" && <><path d="M65 47q0-28 35-28t35 28Z" fill={blue}/><path d="M68 44q43-9 76 5-42 10-76-5" fill={shade}/><path d="M100 22v18" stroke={white} strokeWidth="2"/></>}
-        {outfit.hat === "tyrol" && <><path d="m72 44 10-27 18 7 18-7 10 27" fill={green}/><path d="M64 44q36-8 72 0" stroke={green} strokeWidth="9"/><path d="M78 37h45" stroke={shade} strokeWidth="5"/><path d="m120 36 13-19" stroke={white} strokeWidth="4"/></>}
-        {outfit.hat === "bonnet" && <><path d="M67 43q0-26 33-26t33 26" fill={red}/><rect x="64" y="39" width="72" height="12" rx="5" fill={white}/><circle cx="100" cy="15" r="9" fill={white}/></>}
-        {outfit.hat === "crown" && <><path d="m67 42-5-23 20 12 18-20 18 20 20-12-5 23Z" fill={gold} stroke={shade} strokeWidth="2"/><circle cx="100" cy="34" r="4" fill={red}/></>}
-        {outfit.hat === "dj" && <><path d="M49 76V63c0-47 102-47 102 0v13" stroke={ink} strokeWidth="7"/><rect x="44" y="63" width="14" height="31" rx="7" fill={blue} stroke={ink} strokeWidth="3"/><rect x="142" y="63" width="14" height="31" rx="7" fill={blue} stroke={ink} strokeWidth="3"/></>}
+
+      {/* paw drawn again on top so held items look gripped */}
+      {outfit.hand && <><circle cx="142" cy="152" r="11" fill={fur} stroke={ink} strokeWidth="4" /><path d="M135 149q7-8 14-1" stroke={ink} strokeWidth="3" /></>}
+
+      {/* ---------- hats (head top at y=30) ---------- */}
+      <g stroke={ink} strokeWidth="4">
+        {outfit.hat === "cap" && <><path d="M66 38q0-27 34-27t34 27Z" fill={blue} /><path d="M64 38q40-10 76 5-40 9-76-5" fill={clothShade} /><path d="M100 14v18" stroke={white} strokeWidth="3" /></>}
+        {outfit.hat === "tyrol" && <><path d="m74 36 8-26 18 7 18-7 8 26" fill={green} /><path d="M62 38q38-9 76 0" stroke={green} strokeWidth="10" /><path d="M78 28h44" stroke={shade} strokeWidth="5" /><path d="m118 26 13-18" stroke={red} strokeWidth="5" /></>}
+        {outfit.hat === "bonnet" && <><path d="M66 40q0-22 34-22t34 22" fill={red} /><rect x="62" y="35" width="76" height="13" rx="6" fill={white} /><circle cx="100" cy="10" r="8" fill={white} /></>}
+        {outfit.hat === "crown" && <><path d="m66 34-5-24 20 12 19-20 19 20 20-12-5 24Z" fill={gold} /><circle cx="100" cy="24" r="4" fill={red} stroke="none" /></>}
+        {outfit.hat === "dj" && <><path d="M68 46V40c0-14 64-14 64 0v6" stroke={ink} strokeWidth="8" /><rect x="58" y="34" width="18" height="30" rx="9" fill={blue} /><rect x="124" y="34" width="18" height="30" rx="9" fill={blue} /></>}
       </g>
     </svg>
   );
