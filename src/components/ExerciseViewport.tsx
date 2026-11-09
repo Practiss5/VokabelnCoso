@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /** Keep answering controls in the visible area, including above the mobile keyboard. */
-export function ExerciseViewport({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function ExerciseViewport({ children, className = "", outerClassName = "" }: { children: ReactNode; className?: string; outerClassName?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const header = document.querySelector<HTMLElement>("[data-app-header]");
@@ -27,7 +27,7 @@ export function ExerciseViewport({ children, className = "" }: { children: React
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div ref={ref} className="exercise-viewport fixed inset-x-0 bottom-0 z-10 bg-background p-3 sm:p-4">
+  return <div ref={ref} className={`exercise-viewport fixed inset-x-0 bottom-0 z-10 bg-background p-3 sm:p-4 ${outerClassName}`}>
     <div className={`mx-auto flex h-full min-h-0 w-full max-w-xl flex-col gap-2 ${className}`}>{children}</div>
   </div>;
 }

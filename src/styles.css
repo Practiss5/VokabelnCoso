@@ -276,7 +276,19 @@ html.dark.dys body {
   .review-exercise .exercise-answers .h-20 { height: 2.75rem; font-size: 1rem; }
   .review-exercise .exercise-answers .p-3 { padding: .5rem; }
   .review-exercise .exercise-answers .text-lg { font-size: 1rem; }
-  .tetris-exercise { padding: .5rem; }
-  .tetris-well > div { font-size: 1.125rem; padding: .5rem; }
   .class-quiz-exercise .exercise-answers button { min-height: 2.75rem; font-size: 1rem; }
+}
+
+/* Wort-Tetris on phones: the falling brick and the answer choices must fit on screen together. */
+@media (max-width: 640px), (max-height: 760px) {
+  .tetris-viewport { padding: .25rem; padding-bottom: max(.25rem, env(safe-area-inset-bottom)); }
+  .tetris-exercise { padding: .375rem; gap: .25rem; }
+  .tetris-hud { gap: .25rem; }
+  .tetris-hud .text-sm { font-size: .75rem; }
+  .tetris-hud .text-2xl { font-size: 1.125rem; }
+  .tetris-hud button { height: 1.875rem; min-height: 1.875rem; padding-inline: .5rem; font-size: .75rem; }
+  .tetris-hud button[aria-label="Son"] { width: 1.875rem; padding: 0; }
+  .tetris-exercise .exercise-answers { max-height: 45%; }
+  .tetris-exercise .exercise-answers .p-3 { padding: .5rem; }
+  .tetris-well > div { font-size: 1.125rem; padding: .375rem .5rem; }
 }

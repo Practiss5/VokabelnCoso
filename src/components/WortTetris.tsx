@@ -292,14 +292,14 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
   }
 
   return (
-    <ExerciseViewport className="tetris-exercise rounded-lg bg-arcade p-3 text-arcade-fg">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+    <ExerciseViewport className="tetris-exercise rounded-lg bg-arcade p-3 text-arcade-fg" outerClassName="tetris-viewport">
+      <div className="tetris-hud flex flex-wrap items-center justify-between gap-2 text-sm">
         <Button variant="secondary" size="sm" onClick={onQuit}>← Quitter</Button>
         <span className="font-bold text-neon-cyan">{boss ? "👾 BOSS · " : ""}Niv. {level} {LEVEL_NAMES[level]}{!boss && ` · ${inLevel}/${WORDS_PER_LEVEL}`}</span>
         <span>⏱ {time}</span>
         <Button variant="secondary" size="icon" onClick={() => setSound((s) => !s)} aria-label="Son">{sound ? "🔊" : "🔇"}</Button>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="tetris-hud flex flex-wrap items-center justify-between gap-2">
         <span className="text-2xl font-black text-neon-amber">{score}</span>
         <span aria-label={`${lives} vies`}>{"❤️".repeat(lives)}</span>
         <div className="flex items-center gap-1" aria-label="Combo">
@@ -309,7 +309,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
           {combo.ready && <span className="ml-1 text-xs font-bold text-neon-pink">×2</span>}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="tetris-hud flex flex-wrap gap-2">
         <Button size="sm" variant="secondary" disabled={!slowInv || slowLeft > 0 || paused} onClick={() => { setSlowInv((n) => n - 1); setSlowLeft(SLOW_MS); sfx(400, 200, "triangle"); }}>
           🐢 {slowLeft > 0 ? `${(slowLeft / 1000).toFixed(1)} s` : `Ralentir (${slowInv})`}
         </Button>
