@@ -43,7 +43,7 @@ export const ITEMS: Item[] = [
   { id: "tshirt", slot: "neck", icon: "👕", name: "T-shirt « Deutsch-Meister »", rule: "Maîtriser une liste complète (écrit, QCM et audio)", unlocked: (s) => s.masteredLists >= 1 },
   { id: "apron", slot: "neck", icon: "🥼", name: "Tablier de boulanger", rule: "Badge Bâtisseur de mots", unlocked: (s) => lvl(s, "compound") >= 1 },
   { id: "medal", slot: "neck", icon: "🥇", name: "Médaille d'or", rule: "Réviser 1000 mots", unlocked: (s) => s.reviews >= 1000 },
-  { id: "pretzel", slot: "hand", icon: "🥨", name: "Bretzel géante", rule: "Réviser 200 mots", unlocked: (s) => s.reviews >= 200 },
+  { id: "pretzel", slot: "hand", icon: "🥨", name: "Bretzel géant", rule: "Réviser 200 mots", unlocked: (s) => s.reviews >= 200 },
   { id: "flag", slot: "hand", icon: "🏁", name: "Drapeau à damier", rule: "Badge Sprint éclair", unlocked: (s) => lvl(s, "sprint") >= 1 },
   { id: "quill", slot: "hand", icon: "🪶", name: "Plume d'oie", rule: "Badge Plume d'or", unlocked: (s) => lvl(s, "pen") >= 1 },
   { id: "mic", slot: "hand", icon: "🎤", name: "Micro de scène", rule: "Badge Polyglotte en herbe", unlocked: (s) => lvl(s, "polyglot") >= 1 },
