@@ -9,6 +9,7 @@ import {
   WORDS_PER_LEVEL, type ComboState, type SkillStat, type TLevel, type TWord,
 } from "@/lib/tetris";
 import { Button } from "@/components/ui/button";
+import { ExerciseViewport } from "@/components/ExerciseViewport";
 
 const COLORS = ["bg-neon-cyan", "bg-neon-pink", "bg-neon-lime", "bg-neon-amber"];
 const SPECIAL = ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"];
@@ -291,12 +292,12 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
   }
 
   return (
-    <div className={`${shell} space-y-3`}>
+    <ExerciseViewport className="tetris-exercise rounded-lg bg-arcade p-3 text-arcade-fg">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <button onClick={onQuit} className="underline">← Quitter</button>
+        <Button variant="secondary" size="sm" onClick={onQuit}>← Quitter</Button>
         <span className="font-bold text-neon-cyan">{boss ? "👾 BOSS · " : ""}Niv. {level} {LEVEL_NAMES[level]}{!boss && ` · ${inLevel}/${WORDS_PER_LEVEL}`}</span>
         <span>⏱ {time}</span>
-        <button onClick={() => setSound((s) => !s)} aria-label="Son">{sound ? "🔊" : "🔇"}</button>
+        <Button variant="secondary" size="icon" onClick={() => setSound((s) => !s)} aria-label="Son">{sound ? "🔊" : "🔇"}</Button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-2xl font-black text-neon-amber">{score}</span>
@@ -317,11 +318,11 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
         </Button>
       </div>
 
-      <div className="relative h-72 overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[linear-gradient(transparent_95%,color-mix(in_oklab,var(--color-neon-cyan)_15%,transparent)_95%)] bg-[length:100%_24px] sm:h-80">
+      <div className="tetris-well relative min-h-0 flex-1 overflow-hidden rounded-lg border-2 border-neon-cyan/50 bg-[linear-gradient(transparent_95%,color-mix(in_oklab,var(--color-neon-cyan)_15%,transparent)_95%)] bg-[length:100%_24px]">
         {flash && <p className="absolute inset-x-0 top-2 z-10 animate-pulse text-center text-xl font-black text-neon-pink">{flash}</p>}
         {brick && (
           <div key={brick.key} className={`absolute left-1/2 w-[85%] max-w-sm -translate-x-1/2 rounded-lg ${brick.color} px-4 py-3 text-center text-xl font-black text-arcade shadow-[0_0_20px] shadow-current sm:text-2xl ${feedback ? (feedback.ok ? "scale-110 opacity-60 transition-all" : "animate-pulse") : ""}`}
-            style={{ top: `calc(${y * 100}% - ${y * 64}px)` }}>
+            style={{ top: `${y * 100}%`, transform: `translateY(-${y * 100}%)` }}>
             {level === 1 ? brick.word.german : brick.word.french}
             {brick.word.foreign && <span className="block text-xs font-normal opacity-80">📚 {brick.word.listTitle}</span>}
           </div>
@@ -329,12 +330,13 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
         <div className="absolute inset-x-0 bottom-0 h-1 bg-neon-pink shadow-[0_0_12px] shadow-neon-pink" />
       </div>
 
+      <div className="exercise-answers min-h-0 shrink-0 overflow-y-auto">
       {feedback ? (
         <p className={`rounded-lg p-3 text-center font-bold ${feedback.ok ? "bg-neon-lime/20 text-neon-lime" : "bg-neon-pink/20 text-neon-pink"}`}>
           {feedback.text}{feedback.ok ? ` +${feedback.points}` : ""}
         </p>
       ) : brick && level === 1 ? (
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2">
           {brick.choices.map((c) => <Button key={c} variant="outline" className="h-auto min-h-12 whitespace-normal border-neon-cyan/60 bg-arcade text-base text-arcade-fg hover:bg-neon-cyan/20 hover:text-arcade-fg" onClick={() => resolve(c === brick.word.french, `Tu as choisi « ${c} »`)}>{c}</Button>)}
         </div>
       ) : brick && level === 2 && !keyboard && canRecognize() ? (
@@ -342,7 +344,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
           <p className="text-sm opacity-80">Dis le mot allemand avec son article. La brique s'arrête pendant que tu parles.</p>
           <Button size="lg" onClick={speak} disabled={listening}>{listening ? "● J'écoute…" : "🎙️ Parler"}</Button>
           {(heard || hint) && <p className="text-sm">{hint || `J'entends : ${heard}`}</p>}
-          <button className="block w-full text-xs underline" onClick={() => setKeyboard(true)}>⌨️ Passer au clavier</button>
+          <Button variant="link" size="sm" className="w-full" onClick={() => setKeyboard(true)}>⌨️ Passer au clavier</Button>
         </div>
       ) : brick ? (
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); submitTyped(); }}>
@@ -356,6 +358,7 @@ export function WortTetris({ listId, onQuit }: { listId: string; onQuit: () => v
           </div>
         </form>
       ) : null}
-    </div>
+      </div>
+    </ExerciseViewport>
   );
 }

@@ -9,6 +9,7 @@ import {
   type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
+import { ExerciseViewport } from "@/components/ExerciseViewport";
 import { Input } from "@/components/ui/input";
 import { GermanAudio } from "@/components/GermanAudio";
 import { reviewSpeech } from "@/lib/speech";
@@ -147,10 +148,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
 
   const pct = Math.round((index / queue.length) * 100);
   return (
-    <div className="mx-auto max-w-xl space-y-5">
-      <div className="flex items-center justify-between text-sm">
-        <button className="underline" onClick={onQuit}>← Quitter</button>
-        <span className="text-muted-foreground">{title} · {index + 1}/{queue.length}</span>
+    <ExerciseViewport className="review-exercise">
+      <div className="flex shrink-0 items-center justify-between gap-2 text-sm">
+        <Button variant="ghost" size="sm" onClick={onQuit}>← Quitter</Button>
+        <span className="min-w-0 text-right text-muted-foreground">{title} · {index + 1}/{queue.length}</span>
       </div>
       {notice && index === 0 && <div className="rounded-lg bg-secondary p-3 text-sm">{notice}</div>}
       <div>
@@ -160,7 +161,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         <p className="mt-1 text-right text-xs text-muted-foreground">{pct} %</p>
       </div>
 
-      <div className="word-card paper-lines flex min-h-48 flex-col items-center justify-center p-8 text-center">
+      <div className="exercise-prompt word-card paper-lines flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
           {item.reason ? `${REASON_LABELS[item.reason]} · ${MODE_LABELS[mode]}` : mode === "context" ? "Complète la phrase" : mode === "dictation" ? "Écoute et écris en allemand" : mode === "typing" ? "Français" : mode === "speaking" ? "Dis-le en allemand" : mode === "listen" ? (reverse ? "Français → écoute et choisis l'allemand" : "Écoute l'allemand → choisis le français") : reverse ? "Français → choisis l'allemand" : mode === "choice" ? "Allemand → choisis le français" : "Deutsch"}
         </p>
@@ -190,6 +191,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         </div>
       </div>
 
+      <div className="exercise-answers min-h-0 shrink-0 space-y-2 overflow-y-auto">
       {mode === "flashcard" && answered === null && (
         <div className="grid grid-cols-2 gap-3">
           <Button size="lg" variant="outline" className="h-14" onClick={() => answer(false)}>Je ne connais pas</Button>
@@ -198,15 +200,15 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       )}
 
       {audioChoices && (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {choices.map((c, i) => {
             const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
             return (
               <div key={c} className={`word-card flex min-h-14 items-center gap-3 px-4 py-2 ${state}`}>
                 <GermanAudio text={c} label={`Écouter ${"ABC"[i]}`} />
-                <button disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }} className="flex-1 text-left text-lg font-medium">
+                <Button variant="ghost" disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }} className="h-auto flex-1 whitespace-normal text-left text-base font-medium">
                   {answered === null ? `Choisir ${"ABC"[i]}` : `${"ABC"[i]} · ${c}`}
-                </button>
+                </Button>
               </div>
             );
           })}
@@ -214,14 +216,14 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         </div>
       )}
       {isQcm && !audioChoices && (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {choices.map((c) => {
             const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
             return (
-              <button key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }}
-                className={`word-card min-h-14 px-4 py-3 text-left text-lg font-medium ${state}`}>
+              <Button variant="outline" key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }}
+                className={`h-auto min-h-12 whitespace-normal px-3 py-2 text-base font-medium ${state}`}>
                 {c}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -368,6 +370,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           {mode !== "typing" && mode !== "dictation" && mode !== "context" && <Button size="lg" className="w-full" onClick={next}>Suivant</Button>}
         </>
       )}
-    </div>
+      </div>
+    </ExerciseViewport>
   );
 }

@@ -247,3 +247,36 @@ html.dark.dys body {
 .mascot-art[data-mascot="steinbock"] { --mascot-fur: var(--mascot-ibex-fur); --mascot-shade: var(--mascot-ibex-shade); }
 .mascot-art[data-mascot="igel"] { --mascot-fur: var(--mascot-hedgehog-fur); --mascot-shade: var(--mascot-hedgehog-shade); }
 .mascot-scenery { opacity: .65; }
+
+/* Active exercises reserve space for answers rather than pushing them below the screen. */
+.exercise-viewport { top: 0; height: 100dvh; }
+.exercise-viewport { padding-bottom: max(.5rem, env(safe-area-inset-bottom)); }
+.exercise-viewport p, .exercise-viewport button { overflow-wrap: anywhere; }
+.exercise-prompt > :first-child { margin-top: auto; }
+.exercise-prompt > :last-child { margin-bottom: auto; }
+.exercise-answers { max-height: 70%; }
+.exercise-answers button[type="submit"] { position: sticky; bottom: 0; z-index: 1; }
+.review-exercise .exercise-prompt .font-display { font-size: 2rem; line-height: 1.2; }
+.tetris-exercise > :not(.tetris-well) { flex-shrink: 0; }
+
+@media (max-height: 760px) {
+  .exercise-viewport { padding: .5rem; }
+  .exercise-viewport > div { gap: .375rem; }
+  .exercise-prompt { padding: .5rem; }
+  .review-exercise .exercise-prompt .font-display { font-size: 1.5rem; }
+  .review-exercise .exercise-prompt .text-xl,
+  .review-exercise .exercise-prompt .text-lg { font-size: 1rem; }
+  .review-exercise .exercise-prompt p { margin-top: .25rem; }
+  .review-exercise .exercise-prompt > div { margin-top: .25rem; }
+  .review-exercise .exercise-prompt button { width: 2.75rem; height: 2.75rem; }
+  .review-exercise .exercise-answers form { gap: .375rem; }
+  .review-exercise .exercise-answers form > * + * { margin-top: .375rem; }
+  .review-exercise .exercise-answers input { height: 2.5rem; font-size: 1rem; }
+  .review-exercise .exercise-answers .h-14 { height: auto; min-height: 2.75rem; white-space: normal; }
+  .review-exercise .exercise-answers .h-20 { height: 2.75rem; font-size: 1rem; }
+  .review-exercise .exercise-answers .p-3 { padding: .5rem; }
+  .review-exercise .exercise-answers .text-lg { font-size: 1rem; }
+  .tetris-exercise { padding: .5rem; }
+  .tetris-well > div { font-size: 1.125rem; padding: .5rem; }
+  .class-quiz-exercise .exercise-answers button { min-height: 2.75rem; font-size: 1rem; }
+}

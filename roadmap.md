@@ -4,6 +4,7 @@
 - Devoirs (règle 80 % QCM / 60 % écrit), série 🔥, classeurs partageables, audio, prononciation 🎙️, fiches de contrôle (Word/CSV), cartes à relier, mode sombre, QCM inversé, historique masqué, choix du mode par l'élève.
 
 ## En cours
+- [x] Tetris, révisions, duels et quiz adaptés à la hauteur visible ; révisions et Tetris contrôlés sur 643×581, 390×844, 360×640 et 844×390. Duels/quiz en classe et clavier mobile réel non retestés ; 17 tests passent.
 - [x] Devoirs : couverture 1x/2x par exercice, enchaînement direct et validation cohérente élève/enseignant/bilan ; tests automatiques.
 - [x] Vérification navigateur avec Maxime Test et réponses interceptées : reprise des 5 mots après une série de 20, seconde tentative des mots ratés, seuil obligatoire ; aucun résultat réel modifié. Sauvegarde réelle non retestée.
 - [x] Choix de liste dans « Ma séance du jour » et « Choisir mon entraînement », dernière attribution par défaut ; tests automatiques.

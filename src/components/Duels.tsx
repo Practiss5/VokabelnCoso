@@ -5,6 +5,7 @@ import { useStudyTimer } from "@/lib/study-time";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/Wardrobe";
+import { ExerciseViewport } from "@/components/ExerciseViewport";
 
 type Q = { done: boolean; index?: number; total?: number; german?: string; choices?: string[] };
 
@@ -40,16 +41,17 @@ function Play({ duelId, onEnd }: { duelId: string; onEnd: () => void }) {
     </div>
   );
   return (
-    <div className="space-y-4">
+    <ExerciseViewport className="duel-exercise">
+      <Button variant="ghost" size="sm" className="self-start" onClick={onEnd}>← Retour</Button>
       <p className="text-sm text-muted-foreground">Question {(q.index ?? 0) + 1}/{q.total} · sois rapide !</p>
-      <p className="text-3xl font-bold">{q.german}</p>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <p className="exercise-prompt flex min-h-0 flex-1 items-center justify-center overflow-y-auto text-center text-3xl font-bold">{q.german}</p>
+      <div className="exercise-answers grid shrink-0 grid-cols-2 gap-2 overflow-y-auto">
         {q.choices?.map((c) => {
           const state = feedback && (c === feedback.answer ? "border-success bg-success/15" : c === feedback.choice ? "border-destructive bg-destructive/15" : "");
-          return <button key={c} onClick={() => pick(c)} className={`word-card border-2 p-3 text-left text-lg ${state || ""}`}>{c}</button>;
+          return <Button variant="outline" key={c} disabled={!!feedback} onClick={() => pick(c)} className={`h-auto min-h-12 whitespace-normal border-2 p-3 text-base ${state || ""}`}>{c}</Button>;
         })}
       </div>
-    </div>
+    </ExerciseViewport>
   );
 }
 

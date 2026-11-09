@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { answerQuiz } from "@/lib/quiz.functions";
 import { useStudyTimer } from "@/lib/study-time";
+import { ExerciseViewport } from "@/components/ExerciseViewport";
 
 type State = {
   id: string; status: string; format: string; q_idx: number; total: number; points: number; started_at: string | null;
@@ -61,10 +62,11 @@ export function StudentQuiz() {
   }
   const q = s.question;
   return (
-    <section className="word-card space-y-4 border-2 border-primary">
+    <ExerciseViewport className="class-quiz-exercise">
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>📺 Quiz {s.q_idx >= 0 ? `· ${s.q_idx + 1}/${s.total}` : ""}</span>
         {s.format === "top3" && <span>{s.points} pts</span>}
+        <Button size="sm" variant="ghost" onClick={() => setJoined(false)}>← Retour</Button>
       </div>
       {s.status === "lobby" || !q ? <p className="text-center text-lg">Regarde le tableau, ça va commencer…</p>
         : s.mine ? (
@@ -72,15 +74,15 @@ export function StudentQuiz() {
         ) : s.status === "reveal" ? (
           <p className="text-center text-xl">⏹ Temps écoulé. Réponse : <b>{q.answer}</b></p>
         ) : q.mode === "typing" ? (
-          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) void send(typed); }}>
-            <p className="text-center text-2xl font-bold">{q.prompt}</p>
+          <form className="flex min-h-0 flex-1 flex-col gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) void send(typed); }}>
+            <p className="exercise-prompt flex min-h-0 flex-1 items-center justify-center overflow-y-auto text-center text-2xl font-bold">{q.prompt}</p>
             <Input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="En allemand, avec l'article" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
             <Button className="w-full" size="lg" disabled={sending}>Valider</Button>
           </form>
         ) : (
-          <div className="space-y-3">
-            {q.prompt ? <p className="text-center text-2xl font-bold">{q.prompt}</p> : <p className="text-center text-lg">🎧 Écoute le mot au tableau</p>}
-            <div className="grid grid-cols-2 gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <p className="exercise-prompt flex min-h-0 flex-1 items-center justify-center overflow-y-auto text-center text-2xl font-bold">{q.prompt || "🎧 Écoute le mot au tableau"}</p>
+            <div className="exercise-answers grid shrink-0 grid-cols-2 gap-2 overflow-y-auto">
               {q.options.map((o, i) => (
                 <Button key={o} size="lg" variant="outline" className="h-auto min-h-16 whitespace-normal text-lg" disabled={sending} onClick={() => send(o)}>
                   <b className="mr-1">{LETTERS[i]}</b> {o}
@@ -90,6 +92,6 @@ export function StudentQuiz() {
           </div>
         )}
       {s.status === "reveal" && s.format === "top3" && <p className="text-center text-sm">Le Top 3 est affiché au tableau 🏆</p>}
-    </section>
+    </ExerciseViewport>
   );
 }
