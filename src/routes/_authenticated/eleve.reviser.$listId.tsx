@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -59,6 +59,7 @@ function Review() {
   const [title, setTitle] = useState("");
   const [matchWords, setMatchWords] = useState<{ id: string; german: string; french: string }[] | null>(null);
   const { devoir, exo } = Route.useSearch();
+  const navigate = useNavigate();
   const active = useActiveHomework(listId, devoir);
   useHomeworkTimer(active.id);
   useStudyTimer("list", listId);
@@ -66,7 +67,12 @@ function Review() {
   const [hw, setHw] = useState<{ word_ids: string[] | null; modes: Mode[]; req: HwRequirements | null; created_at: string; due_at: string; coverage: boolean } | null>(null);
   useEffect(() => {
     if (!devoir) { setHw(null); return; }
-    void supabase.from("homeworks").select("word_ids, requirements, created_at, due_at, coverage_rule").eq("id", devoir).eq("list_id", listId).maybeSingle().then(({ data }) => {
+    void supabase.from("homeworks").select("word_ids, requirements, created_at, due_at, coverage_rule, archived_at").eq("id", devoir).eq("list_id", listId).maybeSingle().then(({ data, error }) => {
+      if (!error && (!data || data.archived_at)) {
+        toast.error("Ce devoir a été archivé par ton enseignant.");
+        void navigate({ to: "/eleve" });
+        return;
+      }
       if (!data) return;
       const req = (data.requirements ?? null) as HwRequirements | null;
       setHw({ coverage: data.coverage_rule, word_ids: data.word_ids, req, created_at: data.created_at, due_at: data.due_at, modes: req ? ALL_MODES.map((m) => m.id).filter((id) => (req as Record<string, unknown>)[id] != null) : ["choice", "typing"] });
