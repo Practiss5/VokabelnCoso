@@ -1035,6 +1035,7 @@ export type Database = {
           _correct: boolean
           _error?: string
           _given?: string
+          _homework?: string
           _mode: string
           _student: string
           _word: string
