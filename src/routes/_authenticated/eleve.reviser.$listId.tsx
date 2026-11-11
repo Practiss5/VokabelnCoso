@@ -129,9 +129,6 @@ function Review() {
   if (tetris) return <WortTetris listId={listId} onQuit={() => setTetris(false)} />;
   if (matchWords) return <MatchGame listId={listId} words={matchWords} onQuit={() => setMatchWords(null)} />;
 
-  // Targeted homework: nothing can start before its chosen words are loaded.
-  if (devoir && !hw) return <p className="text-muted-foreground" role="status">Chargement du devoir…</p>;
-
   if (!mode || !session)
     return (
       <div className="space-y-6">

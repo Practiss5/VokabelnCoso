@@ -225,13 +225,6 @@
       "when": 1794044621661,
       "tag": "0031_profile_outfits",
       "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "7",
-      "when": 1794416671662,
-      "tag": "0032_record_answer_with_homework",
-      "breakpoints": true
     }
   ]
 }
