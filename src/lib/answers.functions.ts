@@ -24,7 +24,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
       _correct: result.correct, _given: result.given,
       ...(result.error ? { _error: result.error } : {}),
       ...(tag ? { _homework: tag } : {}),
-    } as never);
+    });
     if (saveError) return { error: { message: "Réponse non enregistrée. Réessaie." } };
     return { error: null };
   });
