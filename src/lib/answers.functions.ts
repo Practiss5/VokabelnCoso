@@ -23,13 +23,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
       _student: context.userId, _word: word.id, _mode: data._mode,
       _correct: result.correct, _given: result.given,
       ...(result.error ? { _error: result.error } : {}),
-    });
+      ...(tag ? { _homework: tag } : {}),
+    } as never);
     if (saveError) return { error: { message: "Réponse non enregistrée. Réessaie." } };
-    if (tag) {
-      // Tag the answer just saved (latest untagged one for this word, no time window to miss).
-      const { data: last } = await supabaseAdmin.from("reviews").select("id").eq("student_id", context.userId).eq("word_id", word.id)
-        .is("homework_id", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (last) await supabaseAdmin.from("reviews").update({ homework_id: tag }).eq("id", last.id);
-    }
     return { error: null };
   });
