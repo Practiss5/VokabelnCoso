@@ -4,13 +4,13 @@
 - Devoirs (règle 80 % QCM / 60 % écrit), série 🔥, classeurs partageables, audio, prononciation 🎙️, fiches de contrôle (Word/CSV), cartes à relier, mode sombre, QCM inversé, historique masqué, choix du mode par l'élève.
 
 ## En cours
-- [ ] Corriger les réponses hors sélection et le rattachement direct des devoirs, sans modifier l’historique ; attendre leur chargement.
-- [ ] Ajouter l’alerte de duel près de la mascotte avec accès direct au duel.
+- [x] Réponses hors sélection sauvegardées sans rejet ; rattachement direct et atomique au devoir via la fonction existante, sans retoucher l’historique ; écran de chargement avant les exercices. 62 tests passent et une réponse réelle du compte Eleve Test est enregistrée avec le bon devoir.
+- [x] Alerte près de la mascotte pour les duels en attente, accès direct à la question ; vérifiée sur téléphone avec un défi simulé (aucun défi actif du compte test).
 - [x] Tetris, révisions, duels et quiz adaptés à la hauteur visible ; révisions et Tetris contrôlés sur 643×581, 390×844, 360×640 et 844×390. Duels/quiz en classe et clavier mobile réel non retestés ; 17 tests passent.
 - [x] Devoirs : couverture 1x/2x par exercice, enchaînement direct et validation cohérente élève/enseignant/bilan ; tests automatiques.
 - [x] Vérification navigateur avec Maxime Test et réponses interceptées : reprise des 5 mots après une série de 20, seconde tentative des mots ratés, seuil obligatoire ; aucun résultat réel modifié. Sauvegarde réelle non retestée.
 - [x] Choix de liste dans « Ma séance du jour » et « Choisir mon entraînement », dernière attribution par défaut ; tests automatiques.
-- [ ] Vérification avec un compte élève : le compte disponible est enseignant, sans classe élève.
+- [x] Vérification avec les comptes Maxime Test et Eleve Test : accueil réel et réponse du devoir sauvegardée puis relue.
 - [x] Tolérance des espaces en écriture/texte à trou + trémas via touches mortes (¨ et " valent ä/ö/ü) — 57 tests passent.
 
 - [x] Dictée audio 🎧 (écouter sans voir, écrire ; compte comme Écriture).
