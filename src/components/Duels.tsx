@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/Wardrobe";
 import { ExerciseViewport } from "@/components/ExerciseViewport";
+import { myDuelsQuery } from "@/lib/duels";
 
 type Q = { done: boolean; index?: number; total?: number; german?: string; choices?: string[] };
 
@@ -55,13 +56,9 @@ function Play({ duelId, onEnd }: { duelId: string; onEnd: () => void }) {
   );
 }
 
-export function StudentDuels({ listId }: { listId: string | undefined }) {
+export function StudentDuels({ listId, playing, onPlayingChange }: { listId: string | undefined; playing: string | null; onPlayingChange: (id: string | null) => void }) {
   const qc = useQueryClient();
-  const [playing, setPlaying] = useState<string | null>(null);
-  const { data } = useQuery({
-    queryKey: ["my-duels"],
-    queryFn: async () => { const { data, error } = await supabase.rpc("my_duels"); if (error) throw error; return data ?? []; },
-  });
+  const { data } = useQuery(myDuelsQuery);
   const { data: enabled } = useQuery({
     queryKey: ["duels-enabled"],
     queryFn: async () => { const { data, error } = await supabase.rpc("duels_enabled"); if (error) throw error; return !!data; },
@@ -77,14 +74,14 @@ export function StudentDuels({ listId }: { listId: string | undefined }) {
     const { data: id, error } = await supabase.rpc("start_duel", { _list: listId, ...(opponent ? { _opponent: opponent } : {}) });
     if (error) { toast.error(error.message); return; }
     setPicking(false);
-    setPlaying(id as string);
+    onPlayingChange(id as string);
   }
-  function end() { setPlaying(null); void qc.invalidateQueries({ queryKey: ["my-duels"] }); }
+  function end() { onPlayingChange(null); void qc.invalidateQueries({ queryKey: ["my-duels"] }); }
   if (enabled === false) return null;
-  if (playing) return <section className="word-card border-2 border-primary p-5"><Play duelId={playing} onEnd={end} /></section>;
+  if (playing) return <section id="duels" className="scroll-mt-36"><Play key={playing} duelId={playing} onEnd={end} /></section>;
   const now = Date.now();
   return (
-    <section className="space-y-3">
+    <section id="duels" className="scroll-mt-36 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">⚔️ Duels amicaux</h2>
         <div className="flex flex-wrap gap-2">
@@ -120,7 +117,7 @@ export function StudentDuels({ listId }: { listId: string | undefined }) {
               <Avatar outfit={d.opp_outfit} size={30} />
               <div><p className="font-semibold">{d.opponent} · {d.list_title}</p><p className="text-sm text-muted-foreground">{status}</p></div>
             </div>
-            {canPlay && <Button size="sm" onClick={() => setPlaying(d.duel_id)}>{d.my_idx > 0 ? "Continuer" : "Jouer"}</Button>}
+            {canPlay && <Button size="sm" onClick={() => onPlayingChange(d.duel_id)}>{d.my_idx > 0 ? "Continuer" : "Jouer"}</Button>}
           </div>
         );
       })}

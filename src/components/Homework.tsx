@@ -11,6 +11,7 @@ import { Avatar, Wardrobe } from "@/components/Wardrobe";
 import { fetchAllReviews } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { myDuelsQuery, pendingDuels } from "@/lib/duels";
 
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 /** Copy of a homework for another class: same list, words, instructions and thresholds, untouched. */
@@ -350,8 +351,11 @@ export function coachMessage(
 }
 
 /** Student: mascot with a speech bubble and a compact flame, at the top of the home page. */
-export function StudentCoach({ studentId, classId }: { studentId: string; classId: string }) {
+export function StudentCoach({ studentId, classId, onPlayDuel }: { studentId: string; classId: string; onPlayDuel: (id: string) => void }) {
   const { data: hw } = useQuery(myHomeworksQuery(studentId, classId));
+  const { data: duels } = useQuery(myDuelsQuery);
+  const pending = pendingDuels(duels ?? []);
+  const firstDuel = pending[0];
   const { data: streak } = useQuery(streakQuery(studentId));
   const { data: outfit } = useQuery({
     queryKey: ["outfit", studentId],
@@ -361,9 +365,12 @@ export function StudentCoach({ studentId, classId }: { studentId: string; classI
   return (
     <section className="word-card flex items-center gap-4 border-2 border-accent p-4">
       <a href="#vestiaire" aria-label="Habiller ma mascotte" className="shrink-0 transition-transform hover:scale-105"><Avatar outfit={outfit} size={64} /></a>
-      <div className="relative flex-1 rounded-2xl bg-secondary p-3 text-secondary-foreground">
+      <div className="relative min-w-0 flex-1 rounded-2xl bg-secondary p-3 text-secondary-foreground">
         <span aria-hidden className="absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 bg-secondary" />
         <p className="relative font-semibold">{msg}</p>
+        {firstDuel && <Button size="sm" variant="outline" className="relative mt-2 h-auto w-full whitespace-normal border-2 border-primary bg-accent py-2 text-left" onClick={() => onPlayDuel(firstDuel.duel_id)}>
+          ⚔️ {pending.length > 1 ? `${pending.length} duels t’attendent` : `${firstDuel.opponent} t’attend en duel`} · {firstDuel.my_idx > 0 ? "Continuer" : "Jouer"}
+        </Button>}
       </div>
       {streak && (
         <div className="shrink-0 text-center" title={`Série de ${streak.days} jour${streak.days > 1 ? "s" : ""}`}>

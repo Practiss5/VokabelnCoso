@@ -12,6 +12,16 @@ vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: Reac
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("mixed homework session retries", () => {
+  it("saves words outside the selected homework without assigning them to it", async () => {
+    const word = { id: "outside", german: "das Haus", french: "la maison" };
+    render(<QueryClientProvider client={new QueryClient()}><ReviewSession title="Test" pool={[word]}
+      items={[{ word, mode: "typing" }]} homeworkId="partial" homeworkWords={["selected"]} onQuit={() => {}} /></QueryClientProvider>);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "das Haus" } });
+    fireEvent.click(screen.getByRole("button", { name: "Valider" }));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledTimes(1));
+    expect(mocks.send.mock.calls[0]?.[0]).toMatchObject({ _word: "outside", _correct: true });
+    expect(mocks.send.mock.calls[0]?.[0]).not.toHaveProperty("_homework");
+  });
   it("sends a comma-free dictation as a correct writing answer for the selected homework", async () => {
     const word = { id: "11111111-1111-4111-8111-111111111111", german: "fahren, er fährt, ist gefahren", french: "aller" };
     const homeworkId = "22222222-2222-4222-8222-222222222222";

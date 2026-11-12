@@ -77,7 +77,7 @@ function Review() {
       const req = (data.requirements ?? null) as HwRequirements | null;
       setHw({ coverage: data.coverage_rule, word_ids: data.word_ids, req, created_at: data.created_at, due_at: data.due_at, modes: req ? ALL_MODES.map((m) => m.id).filter((id) => (req as Record<string, unknown>)[id] != null) : ["choice", "typing"] });
     });
-  }, [devoir]);
+  }, [devoir, listId, navigate]);
   // "Continuer mon devoir": open the first unfinished exercise directly, once the homework is loaded.
   const [autoStarted, setAutoStarted] = useState(false);
   useEffect(() => {
@@ -125,6 +125,8 @@ function Review() {
   const [tetris, setTetris] = useState(false);
   useEffect(() => { if (tetrisSearch) setTetris(true); }, [tetrisSearch]);
   useEffect(() => { if (jeu) void startMatch(); }, [jeu]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (devoir && !hw) return <p role="status">Chargement des mots du devoir…</p>;
 
   if (tetris) return <WortTetris listId={listId} onQuit={() => setTetris(false)} />;
   if (matchWords) return <MatchGame listId={listId} words={matchWords} onQuit={() => setMatchWords(null)} />;

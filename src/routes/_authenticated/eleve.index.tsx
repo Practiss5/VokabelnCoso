@@ -26,6 +26,11 @@ export const Route = createFileRoute("/_authenticated/eleve/")({
 
 function StudentHome() {
   const { data: me } = useSuspenseQuery(meQuery);
+  const [playingDuel, setPlayingDuel] = useState<string | null>(null);
+  function playDuel(id: string) {
+    setPlayingDuel(id);
+    requestAnimationFrame(() => document.getElementById("duels")?.scrollIntoView({ block: "start" }));
+  }
   if (!me?.classId) return <JoinClass />;
   return (
     <div className="space-y-10">
@@ -34,7 +39,7 @@ function StudentHome() {
           <p className="text-sm text-muted-foreground">Hallo{me.fullName ? `, ${me.fullName}` : ""} !</p>
           <h1 className="text-4xl font-bold">Aujourd'hui</h1>
         </div>
-        <StudentCoach studentId={me.id} classId={me.classId} />
+        <StudentCoach studentId={me.id} classId={me.classId} onPlayDuel={playDuel} />
         <StudentQuiz />
         <StudentHomework studentId={me.id} classId={me.classId} />
         <DailyIfNoHomework studentId={me.id} classId={me.classId} />
@@ -43,7 +48,7 @@ function StudentHome() {
         <h2 className="text-2xl font-bold">Mes listes</h2>
         <MyLists />
       </section>
-      <ChooseStep />
+      <ChooseStep playingDuel={playingDuel} onPlayingChange={setPlayingDuel} />
       <StudentBadges studentId={me.id} classId={me.classId} />
     </div>
   );
@@ -207,7 +212,7 @@ function TrainingListChoice({ id, lists, listId, onChange }: {
 }
 
 /** Lets the student pick one exercise type over all class words, besides the daily session. */
-function ChooseStep() {
+function ChooseStep({ playingDuel, onPlayingChange }: { playingDuel: string | null; onPlayingChange: (id: string | null) => void }) {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data: lists } = useQuery(trainingListsQuery(me?.classId ?? ""));
   const [chosenList, setChosenList] = useState<string>();
@@ -229,7 +234,7 @@ function ChooseStep() {
         <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ tetris: true }} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</Link>
       </div>
       </>}
-      <StudentDuels listId={listId} />
+      <StudentDuels listId={listId} playing={playingDuel} onPlayingChange={onPlayingChange} />
     </section>
   );
 }
