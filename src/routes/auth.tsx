@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { DysToggle } from "@/components/DysToggle";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,7 @@ function AuthPage() {
 
 function StudentLogin() {
   const [code, setCode] = useState("");
+  useEffect(() => { const c = localStorage.getItem("vokabeln:last-student-code"); if (c) setCode(c); }, []);
   const [info, setInfo] = useState<{ className: string; activated: boolean } | null>(null);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");

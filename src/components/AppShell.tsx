@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { meQuery } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { DysToggle } from "@/components/DysToggle";
+import { SessionWatcher } from "@/components/SessionWatcher";
 import { displayEmail } from "@/lib/student-code";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -21,6 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <SessionWatcher email={me?.email ?? ""} />
       <header data-app-header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 py-3 pl-16 pr-4">
           <Link to="/espace" className="font-display text-lg font-bold">
