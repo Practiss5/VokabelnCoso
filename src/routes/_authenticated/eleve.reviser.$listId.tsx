@@ -159,7 +159,7 @@ function Review() {
     );
 
   return (
-    <ReviewSession key={sessionNumber} title={title} {...(hw && devoir ? { homeworkId: devoir } : active.id ? { homeworkId: active.id, homeworkWords: active.wordIds } : {})} pool={session.pool} onQuit={() => setMode(null)}
+    <ReviewSession key={sessionNumber} title={title} stepLabel={hw && devoir && mode ? `Devoir · étape ${hw.modes.indexOf(mode) + 1}/${hw.modes.length} : ${ALL_MODES.find((m) => m.id === mode)?.title ?? ""}` : undefined} {...(hw && devoir ? { homeworkId: devoir } : active.id ? { homeworkId: active.id, homeworkWords: active.wordIds } : {})} pool={session.pool} onQuit={() => setMode(null)}
       items={session.items}
       notice={session.caughtUp ? "Tout est à jour ! Entraînement libre sur les mots les plus proches de leur révision." : undefined}
       endActions={hw && devoir && me ? <HomeworkEndActions studentId={me.id} homeworkId={devoir} sessionNumber={sessionNumber} hw={hw}

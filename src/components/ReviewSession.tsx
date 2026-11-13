@@ -18,8 +18,8 @@ import { canRecognize, listenGerman } from "@/lib/recognition";
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" | undefined };
 const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
 
-export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed", homeworkId, homeworkWords }: {
-  homeworkId?: string; homeworkWords?: string[] | null;
+export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed", homeworkId, homeworkWords, stepLabel }: {
+  homeworkId?: string; stepLabel?: string; homeworkWords?: string[] | null;
   items: SessionItem[]; pool: Word[]; title: string; notice?: ReactNode; onQuit: () => void; endActions?: ReactNode; qcmDirection?: QcmDirection;
 }) {
   const qc = useQueryClient();
@@ -38,6 +38,10 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const [useKeyboard, setUseKeyboard] = useState(false);
   const stopRef = useRef<null | (() => void)>(null);
   const retried = useRef(new Set<string>());
+  const keyOf = (it: SessionItem) => `${it.word.id}:${it.mode}:${it.dir ?? "mixed"}`;
+  const total = useMemo(() => new Set(items.map(keyOf)).size, [items]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [validated, setValidated] = useState<Set<string>>(() => new Set());
+  const [requeued, setRequeued] = useState(false);
   const item = queue[index];
   const word = item?.word;
   const mode = item?.mode;
@@ -62,10 +66,12 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     setAnswered(correct);
     setScore((s) => (correct ? { ...s, ok: s.ok + 1 } : { ...s, ko: s.ko + 1 }));
     // Missed words come back once more at the end of the session.
-    const retryKey = `${word.id}:${mode}:${item.dir ?? "mixed"}`;
+    const retryKey = keyOf(item);
+    if (correct) setValidated((v) => new Set(v).add(retryKey));
     if (!correct && !retried.current.has(retryKey)) {
       retried.current.add(retryKey);
       setQueue((q) => [...q, item]);
+      setRequeued(true);
     }
     const args: { _word: string; _mode: string; _correct: boolean; _given?: string; _error?: string; _alternatives?: string[]; _homework?: string } = { _word: word.id, _mode: mode === "dictation" ? "typing" : isQcm ? `${mode}_${reverse ? "fr_de" : "de_fr"}` : mode, _correct: correct };
     if (alternatives) args._alternatives = alternatives;
@@ -105,7 +111,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   }
   function next() {
     setForms(["", "", ""]); setFormsOk(null); setFocusIdx(0);
-    setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
+    setAnswered(null); setErrorType(null); setTyped(""); setPicked(null); setSecondTry(false); setRequeued(false); setShowHint(false); setHeard(""); setListening(false); setIndex((i) => i + 1);
   }
 
   const [canSpeak, setCanSpeak] = useState(true);
@@ -129,6 +135,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       <div className="word-card mx-auto max-w-md p-8 text-center">
         <h1 className="text-4xl font-bold">Gut gemacht !</h1>
         <p className="mt-4 text-lg">{score.ok} bonnes réponses · {score.ko} erreurs</p>
+        <p className="mt-2 font-bold">{validated.size === total ? "Étape réussie : tous les mots sont validés 🎉" : `${validated.size} / ${total} mots validés — encore ${total - validated.size} à revoir`}</p>
         <p className="mt-2 text-sm text-muted-foreground">Vos progrès sont enregistrés. Les mots ratés reviendront bientôt.</p>
         <div className="mt-6 flex flex-col gap-2">
           {saving ? <p className="text-sm text-muted-foreground">Enregistrement des réponses…</p> : endActions}
@@ -146,19 +153,20 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     answer(false, typed);
   }
 
-  const pct = Math.round((index / queue.length) * 100);
+  const pct = total ? Math.round((validated.size / total) * 100) : 0;
   return (
     <ExerciseViewport className="review-exercise">
       <div className="flex shrink-0 items-center justify-between gap-2 text-sm">
         <Button variant="ghost" size="sm" onClick={onQuit}>← Quitter</Button>
-        <span className="min-w-0 text-right text-muted-foreground">{title} · {index + 1}/{queue.length}</span>
+        <span className="min-w-0 text-right text-muted-foreground">{title}{stepLabel ? ` · ${stepLabel}` : ""} · question {index + 1}/{queue.length}</span>
       </div>
       {notice && index === 0 && <div className="rounded-lg bg-secondary p-3 text-sm">{notice}</div>}
       <div>
         <div className="h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <p className="mt-1 text-right text-xs text-muted-foreground">{pct} %</p>
+        <p className="mt-1 text-right text-xs text-muted-foreground">{validated.size} / {total} mots validés</p>
+        {answered === false && requeued && <p className="mt-1 text-center text-sm font-medium" role="status">🔄 Pas d'inquiétude : ce mot reviendra à la fin pour être validé.</p>}
       </div>
 
       <div className="exercise-prompt word-card paper-lines flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 text-center">
