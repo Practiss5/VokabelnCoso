@@ -142,6 +142,7 @@ function Review() {
             <button key={m.id} onClick={() => start(m.id)} className="word-card p-5 text-left transition-transform hover:-translate-y-0.5">
               <h2 className="text-2xl font-bold">{m.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{m.desc}</p>
+              {hw && devoir && me && <HwModeProgress modeId={m.id} studentId={me.id} homeworkId={devoir} listId={listId} sessionNumber={sessionNumber} hw={hw} />}
             </button>
           ))}
           {!hw && <>
@@ -166,6 +167,32 @@ function Review() {
         words={session.pool.filter((w) => !hw.word_ids?.length || hw.word_ids.includes(w.id))}
         onContinue={(m) => void start(m)} onChoose={() => setMode(null)} /> : <Button onClick={() => setMode(null)}>Choisir un autre mode</Button>} />
   );
+}
+
+/** Real progress under each exercise of "Mon devoir": "Écriture : 5/10 validés". */
+function HwModeProgress({ modeId, studentId, homeworkId, listId, sessionNumber, hw }: {
+  modeId: Mode; studentId: string; homeworkId: string; listId: string; sessionNumber: number;
+  hw: { word_ids: string[] | null; created_at: string; due_at: string; req: HwRequirements | null; coverage: boolean };
+}) {
+  const { data } = useQuery({
+    queryKey: ["homework-mode-progress", homeworkId, studentId, sessionNumber, hw],
+    staleTime: 0, gcTime: 0, refetchOnMount: "always",
+    queryFn: async () => {
+      await flushAnswers();
+      if (pendingCount(studentId)) return null;
+      const [reviews, words] = await Promise.all([
+        fetchAllReviews((from, to) => supabase.from("reviews").select("word_id, created_at, mode, correct, homework_id")
+          .eq("student_id", studentId).gte("created_at", hw.created_at).order("created_at").order("id").range(from, to)),
+        hw.word_ids?.length ? Promise.resolve(hw.word_ids) : supabase.from("words").select("id").eq("list_id", listId).then(({ data }) => (data ?? []).map((w) => w.id)),
+      ]);
+      return homeworkStatus(words, reviews, hw.created_at, hw.due_at, hw.req, homeworkId, hw.coverage).parts;
+    },
+  });
+  const part = data?.find((p) => p.key === modeId || (p.key === "qcm" && modeId === "choice") || (p.key === "writing" && modeId === "typing"));
+  if (!part) return null;
+  const got = part.covered !== undefined ? part.covered : part.got;
+  const total = part.covered !== undefined ? part.total ?? 0 : part.need;
+  return <p className="mt-2 text-sm font-semibold text-primary">{got}/{total} validés</p>;
 }
 
 function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, onContinue, onChoose }: {
