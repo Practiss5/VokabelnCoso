@@ -60,3 +60,22 @@ export const studentLogin = createServerFn({ method: "POST" })
     await supabaseAdmin.from("student_login_attempts").delete().eq("code", data.code);
     return { ok: true, access_token: auth.session.access_token, refresh_token: auth.session.refresh_token };
   });
+
+/** Pre-login code check, run server-side so the database lookup is not callable by anyone. */
+export const checkStudentCode = createServerFn({ method: "POST" })
+  .inputValidator((d: { code: string }) => {
+    const code = normalizeCode(String(d?.code ?? ""));
+    if (!isValidCode(code)) throw new Error("Code invalide");
+    return { code };
+  })
+  .handler(async ({ data }): Promise<{ className: string; activated: boolean } | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("student_codes")
+      .select("student_id, revoked, classes(name)")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!row || row.revoked) return null;
+    const cls = row.classes as { name: string } | null;
+    return { className: cls?.name ?? "", activated: row.student_id !== null };
+  });

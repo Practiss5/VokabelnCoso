@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isValidCode, isValidPin, loginEmail, normalizeCode, studentEmail } from "@/lib/student-code";
-import { studentLogin } from "@/lib/student-login.functions";
+import { checkStudentCode, studentLogin } from "@/lib/student-login.functions";
 
 type Tab = "eleve" | "prof";
 type ProfMode = "login" | "signup" | "forgot";
@@ -81,15 +81,13 @@ function StudentLogin() {
     }
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("check_student_code", { _code: normalized });
-      if (error) throw error;
-      const row = data?.[0];
+      const row = await checkStudentCode({ data: { code: normalized } });
       if (!row) {
         toast.error("Code inconnu ou désactivé. Demande à ton enseignant.");
         return;
       }
       setCode(normalized);
-      setInfo({ className: row.class_name, activated: row.activated });
+      setInfo({ className: row.className, activated: row.activated });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur");
     } finally {

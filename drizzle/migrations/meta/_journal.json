@@ -232,6 +232,13 @@
       "when": 1794594434569,
       "tag": "0032_revoked_codes_lose_class_access",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795250280046,
+      "tag": "0033_harden_role_code_duel_checks",
+      "breakpoints": true
     }
   ]
 }
