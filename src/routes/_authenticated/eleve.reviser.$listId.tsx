@@ -192,7 +192,8 @@ function HwModeProgress({ modeId, studentId, homeworkId, listId, sessionNumber, 
   if (!part) return null;
   const got = part.covered !== undefined ? part.covered : part.got;
   const total = part.covered !== undefined ? part.total ?? 0 : part.need;
-  return <p className="mt-2 text-sm font-semibold text-primary">{got}/{total} validés</p>;
+  const donePart = nextHomeworkMode([part]) === null;
+  return <p className={`mt-2 text-sm font-semibold ${donePart ? "text-success" : "text-primary"}`}>{donePart ? "✅" : "👉"} {got}/{total} validés{donePart ? "" : ` · encore ${total - got}`}</p>;
 }
 
 function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, onContinue, onChoose }: {
@@ -222,7 +223,7 @@ function HomeworkEndActions({ studentId, homeworkId, sessionNumber, hw, words, o
           const next = ALL_MODES.find((m) => m.id === result.data.next);
           if (next) onContinue(next.id);
         } finally { setOpening(false); }
-      }}>{isPending ? "Vérification du devoir…" : data?.pending ? "Réponses en attente de connexion" : "Continuer mes devoirs"}</Button>}
+      }}>{isPending ? "Vérification du devoir…" : data?.pending ? "Réponses en attente de connexion" : `Étape obligatoire suivante : ${ALL_MODES.find((m) => m.id === data?.next)?.title ?? "exercice"} →`}</Button>}
     {error && <p className="text-sm text-destructive">Progression indisponible. Réessaie avec le bouton Continuer.</p>}
     <Button variant="outline" onClick={onChoose}>Choisir un autre mode</Button>
   </>;

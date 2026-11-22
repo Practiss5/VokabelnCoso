@@ -135,7 +135,8 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       <div className="word-card mx-auto max-w-md p-8 text-center">
         <h1 className="text-4xl font-bold">Gut gemacht !</h1>
         <p className="mt-4 text-lg">{score.ok} bonnes réponses · {score.ko} erreurs</p>
-        <p className="mt-2 font-bold">{validated.size === total ? "Étape réussie : tous les mots sont validés 🎉" : `${validated.size} / ${total} mots validés — encore ${total - validated.size} à revoir`}</p>
+        <p className="mt-2 font-bold">{validated.size === total ? (stepLabel ? `✅ ${stepLabel} : terminée !` : "Étape réussie : tous les mots sont validés 🎉") : `${validated.size} / ${total} mots validés — encore ${total - validated.size} à revoir`}</p>
+        {stepLabel && <p className="mt-2 font-semibold text-primary">👇 Regarde ci-dessous : s'il reste une étape obligatoire, lance-la pour valider ton devoir.</p>}
         <p className="mt-2 text-sm text-muted-foreground">Vos progrès sont enregistrés. Les mots ratés reviendront bientôt.</p>
         <div className="mt-6 flex flex-col gap-2">
           {saving ? <p className="text-sm text-muted-foreground">Enregistrement des réponses…</p> : endActions}
