@@ -25,6 +25,7 @@
 - [x] Codes élèves : bouton « 🔑 Codes élèves » sur la page de la classe ouvrant une fenêtre au lieu de la section toujours affichée.
 - [x] Puits Wort-Tetris resserré sur téléphone (bordures et rangées du haut réduites) pour que les trois réponses restent visibles ; contrôlé sur 643×581, 390×844 et 360×640 en jouant réellement jusqu'à l'exercice de frappe.
 - [x] Site republié sur https://vokabelncoso.lovable.app (mascottes entières, exercices adaptés à l'écran, puits Tetris compacté).
+- [x] Site republié (vérification serveur du code élève, accès duel après révocation, lecture de sa propre meilleure série au jeu des paires) ; écran de connexion testé en ligne avec un code inconnu.
 
 ## Propositions en attente de choix
 - [ ] PWA (bouton d'installation smartphone)
