@@ -18,6 +18,14 @@ export const studentLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<Result> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date();
+    // Unknown/revoked codes never create lock state, so nobody can lock arbitrary codes.
+    // A revoked (or deleted) code must never sign in, even with the right PIN.
+    const { data: codeRow } = await supabaseAdmin
+      .from("student_codes")
+      .select("revoked")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!codeRow || codeRow.revoked) return { ok: false, reason: "wrong" };
     const { data: row } = await supabaseAdmin
       .from("student_login_attempts")
       .select("failures, lock_level, locked_until")
@@ -27,13 +35,6 @@ export const studentLogin = createServerFn({ method: "POST" })
     const remaining = lockRemainingMs(state, now);
     if (remaining > 0) return { ok: false, reason: "locked", minutes: Math.ceil(remaining / 60000) };
 
-    // A revoked (or deleted) code must never sign in, even with the right PIN.
-    const { data: codeRow } = await supabaseAdmin
-      .from("student_codes")
-      .select("revoked")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!codeRow || codeRow.revoked) return { ok: false, reason: "wrong" };
 
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
     const client = createClient(process.env["SUPABASE_URL"]!, key, {
