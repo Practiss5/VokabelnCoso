@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { applyStoredDys } from "@/components/DysToggle";
+import { InstallApp } from "@/components/InstallApp";
 import { ThemeToggle, applyStoredTheme } from "@/components/ThemeToggle";
 
 function NotFoundComponent() {
@@ -134,6 +135,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeToggle />
+      <InstallApp />
       <Outlet />
       <Toaster position="top-center" />
     </QueryClientProvider>
