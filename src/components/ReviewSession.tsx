@@ -121,6 +121,22 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
     const t = setTimeout(() => setCanSpeak(window.speechSynthesis.getVoices().some((v) => /^de(?:[-_]|$)/i.test(v.lang))), 1500);
     return () => clearTimeout(t);
   }, []);
+  // Desktop shortcuts: 1-4 pick a QCM answer, Enter goes to the next word (forms handle their own Enter).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (answered === null && isQcm && !audioChoices && /^[1-4]$/.test(e.key)) {
+        const c = choices[Number(e.key) - 1];
+        if (c) { e.preventDefault(); setPicked(c); answer(c === target, c); }
+      } else if (answered !== null && e.key === "Enter" && mode !== "typing" && mode !== "dictation" && mode !== "context" && tag !== "BUTTON") {
+        e.preventDefault(); next();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   const finished = !item;
   useEffect(() => {
     if (!finished) return;
@@ -157,18 +173,16 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
   const pct = total ? Math.round((validated.size / total) * 100) : 0;
   return (
     <ExerciseViewport className="review-exercise">
-      <div className="flex shrink-0 items-center justify-between gap-2 text-sm">
-        <Button variant="ghost" size="sm" onClick={onQuit}>← Quitter</Button>
-        <span className="min-w-0 text-right text-muted-foreground">{title}{stepLabel ? ` · ${stepLabel}` : ""} · question {index + 1}/{queue.length}</span>
-      </div>
-      {notice && index === 0 && <div className="rounded-lg bg-secondary p-3 text-sm">{notice}</div>}
-      <div>
-        <div className="h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className="flex shrink-0 items-center gap-2 text-sm">
+        <Button variant="ghost" size="sm" className="shrink-0 px-2" onClick={onQuit}>← Quitter</Button>
+        <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label={`${validated.size} / ${total} mots validés`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <p className="mt-1 text-right text-xs text-muted-foreground">{validated.size} / {total} mots validés</p>
-        {answered === false && requeued && <p className="mt-1 text-center text-sm font-medium" role="status">🔄 Pas d'inquiétude : ce mot reviendra à la fin pour être validé.</p>}
+        <span className="shrink-0 text-xs font-semibold text-muted-foreground" title={`${title}${stepLabel ? ` · ${stepLabel}` : ""}`}>{validated.size}/{total} ✓ · Q{index + 1}/{queue.length}</span>
       </div>
+      {stepLabel && <p className="shrink-0 truncate text-center text-xs text-muted-foreground">{title} · {stepLabel}</p>}
+      {notice && index === 0 && <div className="shrink-0 rounded-lg bg-secondary p-2 text-sm">{notice}</div>}
+      {answered === false && requeued && <p className="shrink-0 text-center text-xs font-medium" role="status">🔄 Ce mot reviendra à la fin pour être validé.</p>}
 
       <div className="exercise-prompt word-card paper-lines flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 text-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -226,12 +240,12 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
       )}
       {isQcm && !audioChoices && (
         <div className="grid grid-cols-2 gap-2">
-          {choices.map((c) => {
+          {choices.map((c, ci) => {
             const state = answered === null ? "" : c === target ? "border-success bg-success text-success-foreground" : c === picked ? "border-destructive bg-destructive text-destructive-foreground" : "opacity-60";
             return (
               <Button variant="outline" key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }}
                 className={`h-auto min-h-12 whitespace-normal px-3 py-2 text-base font-medium ${state}`}>
-                {c}
+                <span className="mr-1 hidden text-xs text-muted-foreground sm:inline">{ci + 1}</span>{c}
               </Button>
             );
           })}
@@ -290,15 +304,15 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           const given = forms.map((f) => f.trim()).join(", ");
           if (res.verdict === "correct") return void answer(true, given);
           if (!secondTry && res.verdict === "near") { setSecondTry(true); return; }
-          answer(false, given); }} className="space-y-3">
+          answer(false, given); }} className="space-y-2">
           {VERB_LABELS.map((label, i) => (
-            <label key={label} className="block space-y-1">
+            <label key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2">
               <span className="text-sm font-semibold">{label}</span>
               <Input ref={(el) => { formRefs.current[i] = el; }} autoFocus={i === 0} autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
                 value={forms[i]} onFocus={() => setFocusIdx(i)}
                 onChange={(e) => { const v = e.target.value; setForms((f) => f.map((x, j) => (j === i ? v : x))); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && i < 2 && answered === null) { e.preventDefault(); formRefs.current[i + 1]?.focus(); } }}
-                className={`h-12 text-lg ${formsOk && answered !== null ? (formsOk[i] ? "border-primary" : "border-destructive") : ""}`} />
+                className={`h-11 text-lg ${formsOk && answered !== null ? (formsOk[i] ? "border-primary" : "border-destructive") : ""}`} />
             </label>
           ))}
           <div className="flex flex-wrap gap-1">
@@ -322,16 +336,16 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
         <form onSubmit={(e) => { e.preventDefault(); if (answered !== null) return next();
           if (isWrittenCorrect(typed, word.german)) return void answer(true, typed);
           if (!secondTry && isNearMiss(typed, word.german)) { setSecondTry(true); return; }
-          answer(false, typed); }} className="space-y-3">
+          answer(false, typed); }} className="space-y-2">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot allemand (avec l'article)" className="h-14 text-lg" />
-          <div className="flex flex-wrap gap-1">
+          <div className="flex items-center gap-1">
             {["ä", "ö", "ü", "ß"].map((ch) => (
-              <Button key={ch} type="button" size="sm" variant="secondary" disabled={answered !== null} onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
+              <Button key={ch} type="button" size="sm" variant="secondary" className="w-10 shrink-0" disabled={answered !== null} onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
             ))}
+            {answered === null ? <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Valider</Button> : <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Suivant →</Button>}
           </div>
           {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
-          {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{word.german}</b></p>
@@ -339,18 +353,18 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
               {errorType && <p className="mt-1 text-sm font-semibold text-destructive">{ERROR_LABELS[errorType]}</p>}
             </div>
           )}
-          {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
         </form>
       )}
 
       {mode === "context" && cloze && (
-        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) submitContext(); else next(); }} className="space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); if (answered === null) submitContext(); else next(); }} className="space-y-2">
           <Input autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={answered !== null}
             value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Mot manquant" className="h-14 text-lg" />
-          <div className="flex flex-wrap gap-1">
+          <div className="flex items-center gap-1">
             {["ä", "ö", "ü", "ß"].map((ch) => (
-              <Button key={ch} type="button" size="sm" variant="secondary" disabled={answered !== null} onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
+              <Button key={ch} type="button" size="sm" variant="secondary" className="w-10 shrink-0" disabled={answered !== null} onClick={() => setTyped((t) => t + ch)}>{ch}</Button>
             ))}
+            {answered === null ? <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Valider</Button> : <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Suivant →</Button>}
           </div>
           {secondTry && answered === null && (
             <div className="rounded-lg border border-accent bg-accent/20 p-3 text-center">
@@ -359,20 +373,18 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
               <p className="mt-1 font-mono text-lg tracking-widest">{clozeHint(cloze.answer)}</p>
             </div>
           )}
-          {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{cloze.answer}</b></p>
               <p className="text-sm text-muted-foreground">Vous avez écrit : « {typed} »</p>
             </div>
           )}
-          {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
         </form>
       )}
 
       {answered !== null && (
         <>
-          <p className={`text-center text-lg font-bold ${answered ? "text-success" : "text-destructive"}`}>
+          <p className={`text-center text-base font-bold ${answered ? "text-success" : "text-destructive"}`}>
             {answered ? "Richtig ! ✓" : "Pas encore… ✗"}
           </p>
           {answered === false && isQcm && <p className="text-center">Bonne réponse : <b>{target}</b></p>}
