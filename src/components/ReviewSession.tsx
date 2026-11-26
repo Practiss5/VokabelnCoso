@@ -245,7 +245,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
             return (
               <Button variant="outline" key={c} disabled={answered !== null} onClick={() => { setPicked(c); answer(c === target, c); }}
                 className={`h-auto min-h-12 whitespace-normal px-3 py-2 text-base font-medium ${state}`}>
-                <span className="mr-1 hidden text-xs text-muted-foreground sm:inline">{ci + 1}</span>{c}
+                <span aria-hidden="true" className="mr-1 hidden text-xs text-muted-foreground sm:inline">{ci + 1}</span>{c}
               </Button>
             );
           })}
