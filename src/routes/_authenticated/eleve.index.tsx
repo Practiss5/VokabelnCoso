@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { hasPendingHomework, myHomeworksQuery, StudentBadges, StudentCoach, StudentHomework } from "@/components/Homework";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudentDuels } from "@/components/Duels";
 import { StudentQuiz } from "@/components/ClassQuiz";
@@ -211,30 +212,52 @@ function TrainingListChoice({ id, lists, listId, onChange }: {
   </div>;
 }
 
-/** Lets the student pick one exercise type over all class words, besides the daily session. */
+type Activity = { label: string; go: (listId: string) => void };
+
+/** Lets the student pick an activity first, then the vocabulary list in a dialog. */
 function ChooseStep({ playingDuel, onPlayingChange }: { playingDuel: string | null; onPlayingChange: (id: string | null) => void }) {
   const { data: me } = useSuspenseQuery(meQuery);
   const { data: lists } = useQuery(trainingListsQuery(me?.classId ?? ""));
-  const [chosenList, setChosenList] = useState<string>();
-  const listId = selectTrainingList(lists ?? [], chosenList);
+  const navigate = useNavigate();
+  const [pending, setPending] = useState<Activity | null>(null);
+  const defaultList = selectTrainingList(lists ?? [], undefined);
+  const card = "word-card p-3 text-center font-bold transition-transform hover:-translate-y-0.5";
+  function open(a: Activity) {
+    if (!lists?.length) { toast.info("Aucune liste attribuée à votre classe pour l'instant."); return; }
+    if (lists.length === 1) a.go(lists[0]!.id); else setPending(a);
+  }
+  const learn: Activity[] = STEPS.map((s) => ({ label: s.title, go: (listId) => navigate({ to: "/eleve/seance", search: { mode: s.mode, listId } }) }));
+  const games: (Activity & { cls: string })[] = [
+    { label: "⚡ Cartes à relier", cls: "border-2 border-accent p-4 text-lg", go: (listId) => navigate({ to: "/eleve/reviser/$listId", params: { listId }, search: { jeu: true } }) },
+    { label: "🧱 Wort-Tetris", cls: "border-2 border-primary p-4 text-lg", go: (listId) => navigate({ to: "/eleve/reviser/$listId", params: { listId }, search: { tetris: true } }) },
+  ];
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">Choisir mon entraînement</h2>
-      <TrainingListChoice id="training-list" lists={lists} listId={listId} onChange={setChosenList} />
-      {listId && <>
       <h3 className="text-lg font-semibold text-muted-foreground">📚 Apprendre</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {STEPS.map((s) => (
-          <Link key={s.mode} to="/eleve/seance" search={{ mode: s.mode, listId }} className="word-card p-3 text-center font-bold transition-transform hover:-translate-y-0.5">{s.title}</Link>
-        ))}
+        {learn.map((a) => <button key={a.label} type="button" onClick={() => open(a)} className={card}>{a.label}</button>)}
       </div>
       <h3 className="text-lg font-semibold text-muted-foreground">🎮 Jouer & défier</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ jeu: true }} className="word-card border-2 border-accent p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">⚡ Cartes à relier</Link>
-        <Link to="/eleve/reviser/$listId" params={{ listId }} search={{ tetris: true }} className="word-card border-2 border-primary p-4 text-center text-lg font-bold transition-transform hover:-translate-y-0.5">🧱 Wort-Tetris</Link>
+        {games.map((a) => <button key={a.label} type="button" onClick={() => open(a)} className={`${card} ${a.cls}`}>{a.label}</button>)}
       </div>
-      </>}
-      <StudentDuels listId={listId} playing={playingDuel} onPlayingChange={onPlayingChange} />
+      <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{pending?.label} — quelle liste ?</DialogTitle>
+            <DialogDescription>Choisis la liste de vocabulaire à travailler.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {lists?.map((l) => (
+              <Button key={l.id} variant={l.id === defaultList ? "default" : "outline"} className="h-auto justify-start whitespace-normal py-3 text-left text-base" onClick={() => { const a = pending; setPending(null); a?.go(l.id); }}>
+                {l.title}{l.id === defaultList && <span className="ml-auto text-xs font-normal opacity-80">la plus récente</span>}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <StudentDuels listId={defaultList} playing={playingDuel} onPlayingChange={onPlayingChange} />
     </section>
   );
 }
