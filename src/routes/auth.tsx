@@ -34,7 +34,7 @@ function AuthPage() {
   const [tab, setTab] = useState<Tab>(search.tab ?? "eleve");
 
   return (
-    <main className="paper-lines relative flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="paper-lines relative flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="flex w-full max-w-md flex-col gap-4">
         <DysToggle prominent />
         <div className="word-card w-full max-w-md p-6 sm:p-8">

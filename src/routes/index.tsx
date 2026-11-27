@@ -17,8 +17,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <main className="paper-lines min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-16">
+    <main className="paper-lines min-h-dvh">
+      <div className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-16">
         <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Deutsch · Français</p>
         <h1 className="mt-3 text-5xl font-bold leading-tight sm:text-7xl">
           Vocabulaire <span className="bg-accent px-2">Allemand</span>

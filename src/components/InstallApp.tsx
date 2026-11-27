@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
@@ -10,6 +11,9 @@ export function InstallApp() {
   const [installed, setInstalled] = useState(true);
   const [ios, setIos] = useState(false);
   const [open, setOpen] = useState(false);
+  // Visible seulement sur l'accueil, la connexion et les tableaux de bord : jamais pendant un exercice.
+  const path = useRouterState({ select: (st) => st.location.pathname }).replace(/\/$/, "") || "/";
+  const allowed = ["/", "/auth", "/eleve", "/enseignant"].includes(path);
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches ||
@@ -28,7 +32,7 @@ export function InstallApp() {
     };
   }, []);
 
-  if (installed) return null;
+  if (installed || !allowed) return null;
 
   async function click() {
     if (evt) {

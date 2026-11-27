@@ -31,7 +31,7 @@ function ResetPassword() {
     navigate({ to: "/espace" });
   }
   return (
-    <main className="paper-lines flex min-h-screen items-center justify-center px-4">
+    <main className="paper-lines flex min-h-dvh items-center justify-center px-4">
       <form onSubmit={submit} className="word-card w-full max-w-md space-y-4 p-6">
         <h1 className="text-3xl font-bold">Nouveau mot de passe</h1>
         <div className="space-y-1.5">
