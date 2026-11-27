@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS, verbForms, checkVerbForms,
+  buildChoices, qcmReverse, cleanSpoken, clozeHint, isSpokenCorrect, isWrittenCorrect, isNearMiss, diagnoseAnswer, parseCloze, diffWritten, ERROR_LABELS, isAnswerCorrect, MODE_LABELS, REASON_LABELS, verbForms, checkVerbForms,
   type DailyItem, type DailyMode, type QcmDirection, type ErrorType, type Word,
 } from "@/lib/vocab";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,33 @@ import { canRecognize, listenGerman } from "@/lib/recognition";
 
 export type SessionItem = { word: Word; mode: DailyMode; reason?: DailyItem["reason"]; dir?: "fr_de" | "de_fr" | undefined };
 const VERB_LABELS = ["Infinitif", "er / sie / es …", "Parfait (hat / ist …)"];
+
+/** Guided verb box: the expected spelling, the pronoun being optional in the present box. */
+const verbFormExpected = (verb: [string, string, string], i: number) =>
+  i === 1 ? `${verb[1]}/${verb[1]!.replace(/^(er|sie|es)\s+/i, "")}` : verb[i]!;
+
+/** The typed answer with its wrong letters highlighted in warning colour; missing letters are hinted. */
+function WrittenDiff({ typed, expected }: { typed: string; expected: string }) {
+  const tokens = useMemo(() => diffWritten(typed, expected), [typed, expected]);
+  if (!tokens) return <>« {typed} »</>;
+  const missing = tokens.filter((t) => t.state === "missing");
+  return (
+    <span className="font-semibold text-foreground">
+      «{" "}
+      {tokens.map((t, i) =>
+        t.state === "ok" ? (
+          <span key={i}>{t.ch}</span>
+        ) : t.state === "wrong" ? (
+          <mark key={i} className="rounded-sm bg-warning px-0.5 text-warning-foreground">{t.ch}</mark>
+        ) : (
+          <span key={i} aria-hidden="true" className="rounded-sm border-b-2 border-dashed border-warning bg-warning/40 px-0.5 text-warning-foreground">{t.ch}</span>
+        ),
+      )}
+      {" "}»
+      {missing.length > 0 && <span className="sr-only"> (lettre manquante : {missing.map((t) => t.ch).join(", ")})</span>}
+    </span>
+  );
+}
 
 export function ReviewSession({ items, pool, title, notice, onQuit, endActions, qcmDirection = "mixed", homeworkId, homeworkWords, stepLabel }: {
   homeworkId?: string; stepLabel?: string; homeworkWords?: string[] | null;
@@ -278,7 +305,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           {secondTry && answered === null && (
             <div className="rounded-lg border border-accent bg-accent/20 p-3 text-center">
               <p className="font-semibold">Presque ! Deuxième essai.</p>
-              {heard && <p className="text-sm">J'ai compris : « {heard} »</p>}
+              {heard && <p className="text-sm">J'ai compris : <WrittenDiff typed={heard} expected={word.german} /></p>}
               {errorType === "article" && <p className="text-sm font-semibold">Attention à l'article (der / die / das) !</p>}
               {errorType === "spelling" && <p className="text-sm">Tu y es presque, articule bien.</p>}
               <p className="mt-1 font-mono text-lg tracking-widest">{clozeHint(word.german)}</p>
@@ -287,7 +314,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{word.german}</b></p>
-              {heard && <p className="text-sm text-muted-foreground">J'ai compris : « {heard} »</p>}
+              {heard && <p className="text-sm text-muted-foreground">J'ai compris : <WrittenDiff typed={heard} expected={word.german} /></p>}
               {errorType && <p className="mt-1 text-sm font-semibold text-destructive">{ERROR_LABELS[errorType]}</p>}
             </div>
           )}
@@ -321,12 +348,18 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
                 onClick={() => { setForms((f) => f.map((x, j) => (j === focusIdx ? x + ch : x))); formRefs.current[focusIdx]?.focus(); }}>{ch}</Button>
             ))}
           </div>
-          {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
+          {answered === null && secondTry && (
+            <div className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">
+              <p>Presque ! Une lettre ne va pas. Corrige et réessaie.</p>
+              {formsOk && formsOk.map((ok, i) => (!ok && <p key={i} className="mt-1 text-sm font-normal">{VERB_LABELS[i]} : <WrittenDiff typed={forms[i]!} expected={verbFormExpected(verb, i)} /></p>))}
+            </div>
+          )}
           {answered === null && <Button type="submit" size="lg" className="w-full">Valider</Button>}
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{word.german}</b></p>
               {formsOk && <p className="text-sm text-muted-foreground">{VERB_LABELS.map((l, i) => `${l} ${formsOk[i] ? "✅" : "❌"}`).join(" · ")}</p>}
+              {formsOk && formsOk.map((ok, i) => (!ok && <p key={i} className="text-sm text-muted-foreground">{VERB_LABELS[i]} : <WrittenDiff typed={forms[i]!} expected={verbFormExpected(verb, i)} /></p>))}
             </div>
           )}
           {answered !== null && <Button type="submit" size="lg" className="w-full">Suivant</Button>}
@@ -345,11 +378,16 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
             ))}
             {answered === null ? <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Valider</Button> : <Button type="submit" size="lg" className="ml-1 min-w-0 flex-1">Suivant →</Button>}
           </div>
-          {answered === null && secondTry && <p className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">Presque ! Une lettre ne va pas. Corrige et réessaie.</p>}
+          {answered === null && secondTry && (
+            <div className="rounded-lg bg-secondary p-3 text-center text-sm font-semibold">
+              <p>Presque ! Une lettre ne va pas. Corrige et réessaie.</p>
+              <p className="mt-1 text-sm font-normal">Écrit : <WrittenDiff typed={typed} expected={word.german} /></p>
+            </div>
+          )}
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{word.german}</b></p>
-              <p className="text-sm text-muted-foreground">Vous avez écrit : « {typed} »</p>
+              <p className="text-sm text-muted-foreground">Vous avez écrit : <WrittenDiff typed={typed} expected={word.german} /></p>
               {errorType && <p className="mt-1 text-sm font-semibold text-destructive">{ERROR_LABELS[errorType]}</p>}
             </div>
           )}
@@ -376,7 +414,7 @@ export function ReviewSession({ items, pool, title, notice, onQuit, endActions, 
           {answered === false && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-center">
               <p>Bonne réponse : <b>{cloze.answer}</b></p>
-              <p className="text-sm text-muted-foreground">Vous avez écrit : « {typed} »</p>
+              <p className="text-sm text-muted-foreground">Vous avez écrit : <WrittenDiff typed={typed} expected={cloze.answer} /></p>
             </div>
           )}
         </form>

@@ -49,18 +49,28 @@ export function answerOptions(expected: string): string[] {
   return [...out].filter((o) => o.trim());
 }
 
+/** Same accepted spelling as isWrittenCorrect: lowercase, umlaut-insensitive, no spaces nor punctuation. */
+function squishWritten(s: string): string {
+  return normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.…·•?!:¿¡«»"'“”„‟’‘´`\-–—‑]/g, "");
+}
+
+/** Every spelling that counts as correct: full text, "/" variants, singular with article. */
+function writtenVariants(expected: string): string[] {
+  const out = new Set<string>();
+  for (const o of answerOptions(expected)) {
+    out.add(o);
+    // Nouns like "die Stadt, ”-e": the singular with article is enough.
+    const m = o.trim().match(/^(der|die|das)\s+[^,(]+?(?=\s*[,(])/i);
+    if (m) out.add(m[0]);
+  }
+  return [...out];
+}
+
 /** Written answers (Écriture & texte à trou): a space — extra, doubled or missing — is never an error. */
 export function isWrittenCorrect(typed: string, expected: string): boolean {
   if (!typed.trim()) return false;
-  const squish = (s: string) =>
-    normalizeAnswer(s.normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "")).replace(/[\s\u00a0,;.…·•?!:¿¡«»"'“”„‟’‘´`\-–—‑]/g, "");
-  const t = squish(typed);
-  return answerOptions(expected).some((o) => {
-    if (squish(o) === t) return true;
-    // Nouns like "die Stadt, ”-e": the singular with article is enough.
-    const m = o.trim().match(/^(der|die|das)\s+[^,(]+?(?=\s*[,(])/i);
-    return !!m && squish(m[0]) === t;
-  });
+  const t = squishWritten(typed);
+  return writtenVariants(expected).some((o) => squishWritten(o) === t);
 }
 
 /** Verbs stored with their forms ("fahren, er fährt, ist gefahren") → the 3 parts, else null. */
@@ -98,6 +108,86 @@ export function isNearMiss(typed: string, expected: string): boolean {
     const sing = o.trim().match(/^(der|die|das)\s+[^,(]+?(?=\s*[,(])/i)?.[0];
     return [o, sing].some((x) => x && levenshtein(sq(x), t) === 1);
   });
+}
+
+/** One character of a wrong written answer: kept, wrong, or missing from what the student typed. */
+export type DiffToken = { ch: string; state: "ok" | "wrong" | "missing" };
+
+/** squishWritten, keeping for each kept character the slice of the original answer it came from. */
+function squishWithMap(s: string): { text: string[]; ranges: [number, number][] } {
+  const src = [...s];
+  const text: string[] = [];
+  const ranges: [number, number][] = [];
+  const umlaut = (c: string) => (c === "a" ? "ä" : c === "o" ? "ö" : "ü");
+  const norm = (c: string | undefined) => (c ?? "").normalize("NFD").replace(/[\u0323\u0331\u0332]/g, "").normalize("NFC").toLowerCase();
+  const SEP = /[\s\u00a0,;.…·•?!:¿¡«»"'“”„‟’‘´`\u0300-\u036f\-–—‑]/;
+  for (let i = 0; i < src.length; i++) {
+    const c = norm(src[i]);
+    // dead-key tréma ("a, ¨a, a + combining diaeresis): the tréma is consumed before punctuation is skipped
+    if (c === '"' || c === "¨" || c === "\u0308") {
+      const n = norm(src[i + 1]);
+      if (n === "a" || n === "o" || n === "u") { text.push(umlaut(n)); ranges.push([i, i + 2]); i++; continue; }
+    }
+    if (SEP.test(c)) continue;
+    if (c === "a" || c === "o" || c === "u") {
+      const n = norm(src[i + 1]);
+      if (n === '"' || n === "¨" || n === "\u0308") { text.push(umlaut(c)); ranges.push([i, i + 2]); i++; continue; }
+      if (n === "e") { text.push(umlaut(c)); ranges.push([i, i + 2]); i++; continue; }
+      text.push(c); ranges.push([i, i + 1]); continue;
+    }
+    if (c === "ß") { text.push("s", "s"); ranges.push([i, i + 1], [i + 1, i + 1]); continue; }
+    text.push(c); ranges.push([i, i + 1]);
+  }
+  return { text, ranges };
+}
+
+/** Character-level compare of a wrong written answer with the closest accepted spelling:
+ *  each typed character is kept or wrong, missing letters are reported. Null when correct. */
+export function diffWritten(typed: string, expected: string): DiffToken[] | null {
+  if (!typed.trim() || isWrittenCorrect(typed, expected)) return null;
+  const { text, ranges } = squishWithMap(typed);
+  if (!text.length) return null;
+  let best: string[] | null = null;
+  let bestDist = Infinity;
+  for (const o of writtenVariants(expected)) {
+    const e = [...squishWritten(o)];
+    if (!e.length) continue;
+    const d = levenshtein(text.join(""), e.join(""));
+    if (d < bestDist) { bestDist = d; best = e; }
+  }
+  if (!best || bestDist === Infinity) return null;
+  const m = text.length;
+  const n = best.length;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)] as number[]);
+  for (let j = 1; j <= n; j++) d[0]![j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + (text[i - 1] === best![j - 1] ? 0 : 1));
+  type Op = { kind: "ok" | "wrong"; p: number } | { kind: "missing"; ch: string };
+  const ops: Op[] = [];
+  let i = m;
+  let j = n;
+  while (i > 0 && j > 0) {
+    const cost = text[i - 1] === best![j - 1] ? 0 : 1;
+    if (d[i]![j] === d[i - 1]![j - 1]! + cost) { ops.push({ kind: cost ? "wrong" : "ok", p: i - 1 }); i--; j--; }
+    else if (d[i]![j] === d[i - 1]![j]! + 1) { ops.push({ kind: "wrong", p: i - 1 }); i--; }
+    else { ops.push({ kind: "missing", ch: best![j - 1]! }); j--; }
+  }
+  while (i > 0) { ops.push({ kind: "wrong", p: i - 1 }); i--; }
+  while (j > 0) { ops.push({ kind: "missing", ch: best![j - 1]! }); j--; }
+  ops.reverse();
+  const src = [...typed];
+  const tokens: DiffToken[] = [];
+  let oi = 0;
+  for (const op of ops) {
+    if (op.kind === "missing") { tokens.push({ ch: op.ch, state: "missing" }); continue; }
+    const [s, e] = ranges[op.p]!;
+    if (oi < s) tokens.push({ ch: src.slice(oi, s).join(""), state: "ok" });
+    tokens.push({ ch: src.slice(s, e).join(""), state: op.kind });
+    oi = e;
+  }
+  if (oi < src.length) tokens.push({ ch: src.slice(oi).join(""), state: "ok" });
+  return tokens;
 }
 
 export function shuffle<T>(arr: T[], rng: () => number): T[] {
