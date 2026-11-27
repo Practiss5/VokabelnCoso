@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { afterFailure, lockRemainingMs, type LockState } from "./login-lock";
 import { isValidCode, isValidPin, normalizeCode, studentEmail } from "./student-code";
@@ -18,6 +19,11 @@ export const studentLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<Result> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date();
+    // Lockouts are keyed per code AND per client network, so a stranger cannot lock a student out.
+    const ip = (getRequestHeader("cf-connecting-ip") ?? getRequestHeader("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+    const ipKey = Array.from(new Uint8Array(digest).slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+    const lockKey = `${data.code}:${ipKey}`;
     // Unknown/revoked codes never create lock state, so nobody can lock arbitrary codes.
     // A revoked (or deleted) code must never sign in, even with the right PIN.
     const { data: codeRow } = await supabaseAdmin
@@ -29,7 +35,7 @@ export const studentLogin = createServerFn({ method: "POST" })
     const { data: row } = await supabaseAdmin
       .from("student_login_attempts")
       .select("failures, lock_level, locked_until")
-      .eq("code", data.code)
+      .eq("code", lockKey)
       .maybeSingle();
     const state = row as LockState | null;
     const remaining = lockRemainingMs(state, now);
@@ -54,11 +60,11 @@ export const studentLogin = createServerFn({ method: "POST" })
       const next = afterFailure(state, now);
       await supabaseAdmin
         .from("student_login_attempts")
-        .upsert({ code: data.code, ...next, updated_at: now.toISOString() });
+        .upsert({ code: lockKey, ...next, updated_at: now.toISOString() });
       const lockedMs = lockRemainingMs(next, now);
       return lockedMs > 0 ? { ok: false, reason: "wrong", locked_minutes: Math.ceil(lockedMs / 60000) } : { ok: false, reason: "wrong" };
     }
-    await supabaseAdmin.from("student_login_attempts").delete().eq("code", data.code);
+    await supabaseAdmin.from("student_login_attempts").delete().eq("code", lockKey);
     return { ok: true, access_token: auth.session.access_token, refresh_token: auth.session.refresh_token };
   });
 

@@ -13,6 +13,8 @@ export const answerQuiz = createServerFn({ method: "POST" })
       supabaseAdmin.from("profiles").select("class_id").eq("id", context.userId).maybeSingle(),
     ]);
     if (!s || !me) return { error: "Quiz indisponible." };
+    const { data: revokedCode } = await supabaseAdmin.from("student_codes").select("id").eq("student_id", context.userId).eq("revoked", true).limit(1).maybeSingle();
+    if (revokedCode) return { error: "Quiz indisponible." };
     if (s.class_id !== me.class_id) {
       const { data: joined } = await supabaseAdmin.from("quiz_joins").select("student_id").eq("session_id", data.session).eq("student_id", context.userId).maybeSingle();
       if (!joined) return { error: "Quiz indisponible." };

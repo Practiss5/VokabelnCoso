@@ -253,6 +253,13 @@
       "when": 1795641493614,
       "tag": "0035_harden_codes_and_duel_answers",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795804058143,
+      "tag": "0036_revoked_student_rpc_checks",
+      "breakpoints": true
     }
   ]
 }
