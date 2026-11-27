@@ -51,3 +51,19 @@ describe("mixed homework session retries", () => {
       .toEqual(["choice_de_fr", "choice_fr_de", "choice_de_fr", "choice_fr_de"]);
   });
 });
+describe("wrong letters highlighted", () => {
+  it("highlights the wrong letters of a written answer", async () => {
+    const word = { id: "w1", german: "die Stadt", french: "la ville" };
+    const { container } = render(<QueryClientProvider client={new QueryClient()}><ReviewSession title="Test" pool={[word]}
+      items={[{ word, mode: "typing" }]} onQuit={() => {}} /></QueryClientProvider>);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "die Stadd" } });
+    fireEvent.click(screen.getByRole("button", { name: "Valider" }));
+    // First miss: the "Presque !" box already shows the wrong letter highlighted.
+    await waitFor(() => expect(container.querySelectorAll("mark")).toHaveLength(1));
+    expect(container.querySelector("mark")?.textContent).toBe("d");
+    fireEvent.click(screen.getByRole("button", { name: "Valider" }));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledTimes(1));
+    expect(container.querySelector("mark")?.textContent).toBe("d");
+    expect(screen.getByText(/Vous avez écrit/)).toBeTruthy();
+  });
+});
